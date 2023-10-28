@@ -7,7 +7,7 @@ import (
 	_ "github.com/jackc/pgx/stdlib" // pgx driver
 	"github.com/jmoiron/sqlx"
 
-	"github.com/engineerXIII/Diploma-server/config"
+	"github.com/GCFactory/dbo-system/platform/config"
 )
 
 const (

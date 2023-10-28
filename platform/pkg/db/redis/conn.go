@@ -3,7 +3,7 @@ package redis
 import (
 	"time"
 
-	"github.com/engineerXIII/Diploma-server/config"
+	"github.com/GCFactory/dbo-system/platform/config"
 )
 
 // Returns new redis client
