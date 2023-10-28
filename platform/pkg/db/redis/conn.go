@@ -1,9 +1,9 @@
 package redis
 
 import (
-	"time"
-
 	"github.com/GCFactory/dbo-system/platform/config"
+	redis "github.com/go-redis/redis/v8"
+	"time"
 )
 
 // Returns new redis client
