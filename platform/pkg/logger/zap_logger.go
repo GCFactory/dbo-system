@@ -71,11 +71,11 @@ func (l *serverLogger) InitLogger() {
 	}
 
 	var encoder zapcore.Encoder
-	encoderCfg.LevelKey = "LEVEL"
-	encoderCfg.CallerKey = "CALLER"
-	encoderCfg.TimeKey = "TIME"
-	encoderCfg.NameKey = "NAME"
-	encoderCfg.MessageKey = "MESSAGE"
+	encoderCfg.LevelKey = "level"
+	encoderCfg.CallerKey = "caller"
+	encoderCfg.TimeKey = "timestamp"
+	encoderCfg.NameKey = "name"
+	encoderCfg.MessageKey = "message"
 
 	if l.cfg.Logger.Encoding == "console" {
 		encoder = zapcore.NewConsoleEncoder(encoderCfg)
