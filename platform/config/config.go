@@ -16,7 +16,7 @@ type Config struct {
 
 	Env        string                      `yaml:"env"`
 	App        map[interface{}]interface{} `yaml:"app"`
-	HTTPServer HTTPServerConfig            `yaml:"http-server,omitempty"`
+	HTTPServer HTTPServerConfig            `yaml:"http-server,omitempty" mapstructure:"http-server"`
 
 	Postgres PostgresConfig `yaml:"postgres,omitempty"`
 	Redis    RedisConfig    `yaml:"redis,omitempty"`
