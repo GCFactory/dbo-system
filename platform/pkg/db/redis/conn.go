@@ -1,7 +1,7 @@
 package redis
 
 import (
-	config "github.com/GCFactory/dbo-system/platform/v1/config"
+	config "github.com/GCFactory/dbo-system/platform/config"
 	redis "github.com/redis/go-redis/v9"
 	"time"
 )
