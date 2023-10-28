@@ -64,7 +64,7 @@ func (l *serverLogger) InitLogger() {
 	logWriter := zapcore.AddSync(os.Stderr)
 
 	var encoderCfg zapcore.EncoderConfig
-	if l.cfg.Server.Mode == "Development" {
+	if l.cfg.Env == "Development" {
 		encoderCfg = zap.NewDevelopmentEncoderConfig()
 	} else {
 		encoderCfg = zap.NewProductionEncoderConfig()

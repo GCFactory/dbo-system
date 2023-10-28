@@ -14,7 +14,9 @@ type Config struct {
 	Jaeger  Jaeger  `yaml:"jaeger"`
 	Metrics Metrics `yaml:"metrics"`
 
-	HTTPServer HTTPServerConfig `yaml:"http-server,omitempty"`
+	Env        string                      `yaml:"env"`
+	App        map[interface{}]interface{} `yaml:"app"`
+	HTTPServer HTTPServerConfig            `yaml:"http-server,omitempty"`
 
 	Postgres PostgresConfig `yaml:"postgres,omitempty"`
 	Redis    RedisConfig    `yaml:"redis,omitempty"`
@@ -30,7 +32,6 @@ type HTTPServerConfig struct {
 	AppVersion        string
 	Port              string
 	PprofPort         string
-	Mode              string
 	JwtSecretKey      string
 	CookieName        string
 	ReadTimeout       time.Duration
