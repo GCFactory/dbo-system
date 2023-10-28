@@ -1,0 +1,59 @@
+version: "3"
+services:
+  infra_mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: mailhog
+    networks:
+    - infra
+    ports:
+    - 1025
+    - 127.0.0.1:8025:8025
+    restart: always
+  infra_keydb:
+    image: eqalpha/keydb:alpine_x86_64_v6.3.2
+    container_name: keydb
+    networks:
+    - infra
+    ports:
+    - 6379
+    restart: always
+  infra_postgres:
+    image: postgres:16-bullseye
+    container_name: postgres
+    networks:
+    - infra
+    environment:
+    - POSTGRES_USER=postgres
+    - POSTGRES_PASSWORD=postgres
+    - POSTGRES_DB=main
+    ports:
+    - 5432
+    volumes:
+    - ./pgdata:/var/lib/postgresql/data
+    restart: on-failure
+  mon_jaeger:
+    image: jaegertracing/all-in-one:1.49
+    container_name: jaeger
+    networks:
+    - mon
+    environment:
+    - COLLECTOR_ZIPKIN_HTTP_PORT=9411
+    ports:
+    - 5775/udp
+    - 6831/udp
+    - 6832/udp
+    - 5778
+    - 127.0.0.1:16686:16686
+    - 14268
+    - 14250
+    - 9411
+    restart: always
+
+
+networks:
+  infra:
+    name: infra_net
+  mon:
+    name: monitor_net
+  service:
+    name: service_net 
