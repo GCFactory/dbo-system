@@ -6,7 +6,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/engineerXIII/Diploma-server/config"
+	"github.com/GCFactory/dbo-system/platform/config"
 )
 
 // Logger methods interface
