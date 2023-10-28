@@ -1,8 +1,8 @@
 package redis
 
 import (
-	"github.com/GCFactory/dbo-system/platform/config"
-	redis "github.com/go-redis/redis/v8"
+	config "github.com/GCFactory/dbo-system/platform/v1/config"
+	redis "github.com/redis/go-redis/v9"
 	"time"
 )
 

@@ -1,17 +1,16 @@
-module github.com/GCFactory/dbo-system/platform/v0
+module github.com/GCFactory/dbo-system/platform/v1
 
 go 1.21
 
 require (
-	github.com/GCFactory/dbo-system/platform v0.0.2
 	github.com/go-playground/validator/v10 v10.15.5
-	github.com/go-redis/redis/v8 v8.11.5
 	github.com/jackc/pgx v3.6.2+incompatible
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/labstack/echo/v4 v4.11.2
 	github.com/microcosm-cc/bluemonday v1.0.26
 	github.com/minio/minio-go/v7 v7.0.63
 	github.com/prometheus/client_golang v1.17.0
+	github.com/redis/go-redis/v9 v9.2.1
 	github.com/spf13/viper v1.17.0
 	go.uber.org/zap v1.26.0
 )
