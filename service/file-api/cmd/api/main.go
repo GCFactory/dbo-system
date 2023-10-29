@@ -5,8 +5,8 @@ import (
 	"github.com/GCFactory/dbo-system/platform/pkg/db/postgres"
 	"github.com/GCFactory/dbo-system/platform/pkg/db/redis"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
-	aws "github.com/GCFactory/dbo-system/platform/pkg/storage/s3"
 	"github.com/GCFactory/dbo-system/platform/pkg/utils"
+	server "github.com/GCFactory/dbo-system/service/file-api/internal/server/grpc"
 	"github.com/golang-migrate/migrate/v4"
 	migratePostgres "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -37,7 +37,7 @@ func main() {
 	appLogger := logger.NewServerLogger(cfg)
 
 	appLogger.InitLogger()
-	appLogger.Infof("AppVersion: %s, LogLevel: %s, Mode: %s, SSL: %v", cfg.HTTPServer.AppVersion, cfg.Logger.Level, cfg.HTTPServer.Mode, cfg.HTTPServer.SSL)
+	appLogger.Infof("AppVersion: %s, LogLevel: %s, Env: %s, SSL: %v", cfg.HTTPServer.AppVersion, cfg.Logger.Level, cfg.Env, cfg.HTTPServer.SSL)
 
 	psqlDB, err := postgres.NewPsqlDB(cfg)
 	if err != nil {
@@ -49,12 +49,12 @@ func main() {
 
 	driver, err := migratePostgres.WithInstance(psqlDB.DB, &migratePostgres.Config{})
 	if err != nil {
-		appLogger.Fatalf("Cannot create migration driver: %s", err)
+		appLogger.Fatalf("Cannot create migratiooran driver: %s", err)
 	}
 
 	migration, err := migrate.NewWithDatabaseInstance(
-		"file://db/migrations",
-		"postgres", driver)
+		"file://migration/postgres",
+		cfg.Postgres.PostgresqlDbname, driver)
 	if err != nil {
 		appLogger.Fatalf("Error on initiate migration: %s", err)
 	}
@@ -68,12 +68,12 @@ func main() {
 	defer redisClient.Close()
 	appLogger.Info("Redis connected")
 
-	awsClient, err := aws.NewAWSClient(cfg.AWS.Endpoint, cfg.AWS.AccessKey, cfg.AWS.SecretKey, cfg.AWS.UseSSL)
-	if err != nil {
-		appLogger.Errorf("AWS Client init: %s", err)
-	}
-	appLogger.Infof("AWS Status: %s", awsClient.IsOnline())
-	appLogger.Info("AWS S3 connected")
+	//awsClient, err := aws.NewAWSClient(cfg.AWS.Endpoint, cfg.AWS.AccessKey, cfg.AWS.SecretKey, cfg.AWS.UseSSL)
+	//if err != nil {
+	//	appLogger.Errorf("AWS Client init: %s", err)
+	//}
+	//appLogger.Infof("AWS Status: %s", awsClient.IsOnline())
+	//appLogger.Info("AWS S3 connected")
 
 	jaegerCfgInstance := jaegercfg.Configuration{
 		ServiceName: cfg.Jaeger.ServiceName,
@@ -101,5 +101,8 @@ func main() {
 	appLogger.Info("Opentracing connected")
 
 	//Run server
-	//TODO
+	s := server.NewServer(cfg, appLogger)
+	if err = s.Run(); err != nil {
+		log.Fatal(err)
+	}
 }

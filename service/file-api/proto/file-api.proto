@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+option go_package = "api/v1";
+
+//package api.v1;
+
+message IsAliveRequest {}
+message IsAliveResponse {}
+
+message DeliveryGetFile {
+  reserved "Id";
+  reserved 1 to 100;
+  string UUID = 101;
+
+}
+
+message DeliveryPutFile {
+  reserved 1 to 20;
+  File File = 21;
+}
+
+message File {
+  reserved 1 to 20;
+  string UUID = 21;
+  optional string Name = 22;
+  string BusinessType = 23;
+  string FileName = 30;
+
+  reserved 31 to 39;
+
+  uint64 Size = 40;
+  bytes Content = 201;
+}
+
+service FileApiService {
+  rpc GetFile(DeliveryGetFile) returns (File);
+
+  // FOR TESTING ONLY
+  rpc IsAlive(IsAliveRequest) returns (IsAliveResponse);
+}
+
+//service RouteAnalyticsService {
+//  rpc SessionStartedEvent(SessionStartedEventRequest) returns (SessionStartedEventResponse);
+//  rpc StageCompletedEvent(StageCompletedEventRequest) returns (StageCompletedEventResponse);
+//  rpc ChapterCompletedEvent(ChapterCompletedEventRequest) returns (ChapterCompletedEventResponse);
+//  rpc BasicStageCompletedEvent(BasicStageCompletedEventRequest) returns (BasicStageCompletedEventResponse);
+//  rpc EventStageCompletedEvent(EventStageCompletedEventRequest) returns (EventStageCompletedEventResponse);
+//  rpc BasicLevelNewScoreEvent(BasicLevelNewScoreEventRequest) returns (BasicLevelNewScoreEventResponse);
+//  rpc EventLevelNewScoreEvent(EventLevelNewScoreEventRequest) returns (EventLevelNewScoreEventResponse);
+//
+//  // FOR TESTING ONLY
+//  rpc IsAlive(IsAliveRequest) returns (IsAliveResponse);
+//}
