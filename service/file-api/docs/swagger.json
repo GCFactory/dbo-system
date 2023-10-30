@@ -1,7 +1,30 @@
 {
     "swagger": "2.0",
     "info": {
-        "contact": {}
+        "description": "File Api Service",
+        "contact": {
+            "name": "Alex Ryabikov",
+            "email": "ryabikov.alex@gmail.com"
+        },
+        "license": {
+            "name": "MIT License"
+        }
     },
-    "paths": {}
+    "host": "localhost:8080",
+    "basePath": "/api/v1/fileapi/",
+    "paths": {
+        "/api/v1/fileapi/ready/live": {
+            "get": {
+                "summary": "Ping Service",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

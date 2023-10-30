@@ -1,4 +1,19 @@
+basePath: /api/v1/fileapi/
+host: localhost:8080
 info:
-  contact: {}
-paths: {}
+  contact:
+    email: ryabikov.alex@gmail.com
+    name: Alex Ryabikov
+  description: File Api Service
+  license:
+    name: MIT License
+paths:
+  /api/v1/fileapi/ready/live:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Ping Service
 swagger: "2.0"
