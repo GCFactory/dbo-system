@@ -10,14 +10,17 @@ import (
 
 // App config struct
 type Config struct {
+	App        map[interface{}]interface{} `yaml:"app"`
+	Env        string                      `yaml:"env"`
+	Version    string                      `yaml:"version"`
+	HTTPServer HTTPServerConfig            `yaml:"http-server,omitempty" mapstructure:"http-server"`
+
 	Logger  Logger  `yaml:"logger"`
 	Jaeger  Jaeger  `yaml:"jaeger"`
 	Metrics Metrics `yaml:"metrics"`
+	Docs    Docs
 
-	Env        string                      `yaml:"env"`
-	App        map[interface{}]interface{} `yaml:"app"`
-	HTTPServer HTTPServerConfig            `yaml:"http-server,omitempty" mapstructure:"http-server"`
-
+	RabbitMQ RabbitMQConfig `yaml:"rabbitmq,omitempty"`
 	Postgres PostgresConfig `yaml:"postgres,omitempty"`
 	Redis    RedisConfig    `yaml:"redis,omitempty"`
 	MongoDB  MongoDB        `yaml:"mongodb,omitempty"`
@@ -27,9 +30,15 @@ type Config struct {
 	Session Session `yaml:"session,omitempty"`
 }
 
+// Swagger configuration
+type Docs struct {
+	Enable bool
+	Title  string
+	Prefix string
+}
+
 // HTTP Server config struct
 type HTTPServerConfig struct {
-	AppVersion        string
 	Port              string
 	PprofPort         string
 	JwtSecretKey      string
