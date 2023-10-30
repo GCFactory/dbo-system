@@ -2,13 +2,10 @@ package main
 
 import (
 	"github.com/GCFactory/dbo-system/platform/config"
-	"github.com/GCFactory/dbo-system/platform/pkg/db/postgres"
 	"github.com/GCFactory/dbo-system/platform/pkg/db/redis"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/platform/pkg/utils"
 	server "github.com/GCFactory/dbo-system/service/file-api/internal/server/grpc"
-	"github.com/golang-migrate/migrate/v4"
-	migratePostgres "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/opentracing/opentracing-go"
 	"github.com/uber/jaeger-client-go"
@@ -39,30 +36,30 @@ func main() {
 	appLogger.InitLogger()
 	appLogger.Infof("AppVersion: %s, LogLevel: %s, Env: %s, SSL: %v", cfg.HTTPServer.AppVersion, cfg.Logger.Level, cfg.Env, cfg.HTTPServer.SSL)
 
-	psqlDB, err := postgres.NewPsqlDB(cfg)
-	if err != nil {
-		appLogger.Fatalf("Postgresql init: %s", err)
-	} else {
-		appLogger.Infof("Postgres connected, Status: %#v", psqlDB.Stats())
-	}
-	defer psqlDB.Close()
+	//psqlDB, err := postgres.NewPsqlDB(cfg)
+	//if err != nil {
+	//	appLogger.Fatalf("Postgresql init: %s", err)
+	//} else {
+	//	appLogger.Infof("Postgres connected, Status: %#v", psqlDB.Stats())
+	//}
+	//defer psqlDB.Close()
 
-	driver, err := migratePostgres.WithInstance(psqlDB.DB, &migratePostgres.Config{})
-	if err != nil {
-		appLogger.Fatalf("Cannot create migratiooran driver: %s", err)
-	}
-
-	migration, err := migrate.NewWithDatabaseInstance(
-		"file://migration/postgres",
-		cfg.Postgres.PostgresqlDbname, driver)
-	if err != nil {
-		appLogger.Fatalf("Error on initiate migration: %s", err)
-	}
-	status := migration.Up()
-	if status != nil {
-		appLogger.Infof("Migration status: %s", status)
-	}
-	appLogger.Info("Migration completed")
+	//driver, err := migratePostgres.WithInstance(psqlDB.DB, &migratePostgres.Config{})
+	//if err != nil {
+	//	appLogger.Fatalf("Cannot create migratiooran driver: %s", err)
+	//}
+	//
+	//migration, err := migrate.NewWithDatabaseInstance(
+	//	"file://migration/postgres",
+	//	cfg.Postgres.PostgresqlDbname, driver)
+	//if err != nil {
+	//	appLogger.Fatalf("Error on initiate migration: %s", err)
+	//}
+	//status := migration.Up()
+	//if status != nil {
+	//	appLogger.Infof("Migration status: %s", status)
+	//}
+	//appLogger.Info("Migration completed")
 
 	redisClient := redis.NewRedisClient(cfg)
 	defer redisClient.Close()
@@ -103,6 +100,6 @@ func main() {
 	//Run server
 	s := server.NewServer(cfg, appLogger)
 	if err = s.Run(); err != nil {
-		log.Fatal(err)
+		appLogger.Fatal(err)
 	}
 }

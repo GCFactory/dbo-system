@@ -2,6 +2,7 @@ syntax = "proto3";
 
 option go_package = "api/v1";
 
+import "google/api/annotations.proto";
 //package api.v1;
 
 message IsAliveRequest {}
@@ -22,21 +23,29 @@ message DeliveryPutFile {
 message File {
   reserved 1 to 20;
   string UUID = 21;
-  optional string Name = 22;
-  string BusinessType = 23;
+  string BusinessType = 22;
   string FileName = 30;
 
   reserved 31 to 39;
 
-  uint64 Size = 40;
-  bytes Content = 201;
+  string Hash = 40;
+  uint64 Size = 41;
+  optional bytes Content = 42;
 }
 
 service FileApiService {
-  rpc GetFile(DeliveryGetFile) returns (File);
+  rpc GetFile(DeliveryGetFile) returns (File) {
+    option (google.api.http) = {
+      get: "/getfile/{UUID}"
+    };
+  };
 
   // FOR TESTING ONLY
-  rpc IsAlive(IsAliveRequest) returns (IsAliveResponse);
+  rpc IsAlive(IsAliveRequest) returns (IsAliveResponse) {
+    option (google.api.http) = {
+      get: "/ready/live"
+    };
+  }
 }
 
 //service RouteAnalyticsService {
