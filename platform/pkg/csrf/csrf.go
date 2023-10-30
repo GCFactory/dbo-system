@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"io"
 
-	"github.com/engineerXIII/Diploma-server/pkg/logger"
+	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 )
 
 const (
