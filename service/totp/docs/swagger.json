@@ -1,0 +1,50 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "TOTP Service",
+        "contact": {
+            "name": "Rueie"
+        },
+        "license": {
+            "name": "MIT License"
+        }
+    },
+    "basePath": "/api/v1/totp/",
+    "paths": {
+        "/enroll": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Enroll new user device",
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.TOTPEnroll"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "models.TOTPEnroll": {
+            "type": "object",
+            "properties": {
+                "base32": {
+                    "type": "string"
+                },
+                "otpath_url": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

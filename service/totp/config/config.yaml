@@ -1,0 +1,57 @@
+http-server:
+  AppVersion: 1.0.0
+  Env: Development
+  Port: :8080
+  PprofPort: :5555
+  Mode: Development
+  JwtSecretKey: secretkey
+  CookieName: jwt-token
+  ReadTimeout: 5
+  WriteTimeout: 5
+  SSL: false
+  CtxDefaultTimeout: 12
+  CSRF: true
+  Debug: false
+
+
+jaeger:
+  Host: localhost:6831
+  ServiceName: totp
+  LogSpans: false
+
+docs:
+  Enable: false
+  Prefix: swagger
+  Title: TOTP Service REST API
+
+logger:
+  Development: true
+  DisableCaller: false
+  DisableStacktrace: false
+  Encoding: json
+  Level: debug
+
+postgres:
+  PostgresqlHost: localhost
+  PostgresqlPort: 5432
+  PostgresqlUser: postgres
+  PostgresqlPassword: postgres
+  PostgresqlDbname: main
+  PostgresqlSSLMode: false
+  PgDriver: pgx
+
+
+cookie:
+  Name: jwt-token
+  MaxAge: 86400
+  Secure: false
+  HttpOnly: true
+
+session:
+  Name: session-id
+  Prefix: api-totp
+  Expire: 3600
+
+metrics:
+  Url: 0.0.0.0:7070
+  ServiceName: totp

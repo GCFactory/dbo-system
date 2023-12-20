@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS totp_service.totp_codes CASCADE;
