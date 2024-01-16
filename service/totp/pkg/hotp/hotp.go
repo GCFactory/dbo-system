@@ -23,12 +23,11 @@ import (
 	"encoding/base32"
 	"encoding/binary"
 	"fmt"
+	hotpConfig "github.com/GCFactory/dbo-system/service/totp/pkg/hotp/config"
 	"github.com/GCFactory/dbo-system/service/totp/pkg/otp/config"
 	"math"
 	"strings"
 )
-
-const debug = false
 
 // Validate a HOTP passcode given a counter and secret.
 // This is a shortcut for ValidateCustom, with parameters that
@@ -38,7 +37,7 @@ func Validate(passcode string, counter uint64, secret string) bool {
 		passcode,
 		counter,
 		secret,
-		ValidateOpts{
+		hotpConfig.ValidateOpts{
 			Digits:    config.DigitsSix,
 			Algorithm: config.AlgorithmSHA1,
 		},
@@ -46,19 +45,11 @@ func Validate(passcode string, counter uint64, secret string) bool {
 	return rv
 }
 
-// ValidateOpts provides options for ValidateCustom().
-type ValidateOpts struct {
-	// Digits as part of the input. Defaults to 6.
-	Digits config.Digits
-	// Algorithm to use for HMAC. Defaults to SHA1.
-	Algorithm config.Algorithm
-}
-
 // GenerateCode creates a HOTP passcode given a counter and secret.
 // This is a shortcut for GenerateCodeCustom, with parameters that
 // are compataible with Google-Authenticator.
 func GenerateCode(secret string, counter uint64) (string, error) {
-	return GenerateCodeCustom(secret, counter, ValidateOpts{
+	return GenerateCodeCustom(secret, counter, hotpConfig.ValidateOpts{
 		Digits:    config.DigitsSix,
 		Algorithm: config.AlgorithmSHA1,
 	})
@@ -66,7 +57,7 @@ func GenerateCode(secret string, counter uint64) (string, error) {
 
 // GenerateCodeCustom uses a counter and secret value and options struct to
 // create a passcode.
-func GenerateCodeCustom(secret string, counter uint64, opts ValidateOpts) (passcode string, err error) {
+func GenerateCodeCustom(secret string, counter uint64, opts hotpConfig.ValidateOpts) (passcode string, err error) {
 	//Set default value
 	if opts.Digits == 0 {
 		opts.Digits = config.DigitsSix
@@ -90,7 +81,7 @@ func GenerateCodeCustom(secret string, counter uint64, opts ValidateOpts) (passc
 	buf := make([]byte, 8)
 	mac := hmac.New(opts.Algorithm.Hash, secretBytes)
 	binary.BigEndian.PutUint64(buf, counter)
-	if debug {
+	if hotpConfig.Debug {
 		fmt.Printf("counter=%v\n", counter)
 		fmt.Printf("buf=%v\n", buf)
 	}
@@ -109,7 +100,7 @@ func GenerateCodeCustom(secret string, counter uint64, opts ValidateOpts) (passc
 	l := opts.Digits.Length()
 	mod := int32(value % int64(math.Pow10(l)))
 
-	if debug {
+	if hotpConfig.Debug {
 		fmt.Printf("offset=%v\n", offset)
 		fmt.Printf("value=%v\n", value)
 		fmt.Printf("mod'ed=%v\n", mod)
@@ -120,7 +111,7 @@ func GenerateCodeCustom(secret string, counter uint64, opts ValidateOpts) (passc
 
 // ValidateCustom validates an HOTP with customizable options. Most users should
 // use Validate().
-func ValidateCustom(passcode string, counter uint64, secret string, opts ValidateOpts) (bool, error) {
+func ValidateCustom(passcode string, counter uint64, secret string, opts hotpConfig.ValidateOpts) (bool, error) {
 	passcode = strings.TrimSpace(passcode)
 
 	if len(passcode) != opts.Digits.Length() {

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/base32"
 	"errors"
 	"io"
 )
@@ -16,6 +17,8 @@ var ErrGenerateMissingIssuer = errors.New("Issuer must be set")
 
 // When generating a Key, the Account Name must be set.
 var ErrGenerateMissingAccountName = errors.New("AccountName must be set")
+
+var B32NoPadding = base32.StdEncoding.WithPadding(base32.NoPadding)
 
 type Algorithm int
 

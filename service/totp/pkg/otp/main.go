@@ -2,9 +2,9 @@ package otp
 
 import (
 	"crypto/rand"
-	"encoding/base32"
 	"errors"
 	"github.com/GCFactory/dbo-system/service/totp/pkg/hotp"
+	hotpConfig "github.com/GCFactory/dbo-system/service/totp/pkg/hotp/config"
 	"github.com/GCFactory/dbo-system/service/totp/pkg/otp/config"
 	"math"
 	"net/url"
@@ -31,7 +31,7 @@ func ValidateCustom(passcode string, secret string, t time.Time, opts config.Val
 	}
 
 	for _, counter := range counters {
-		rv, err := hotp.ValidateCustom(passcode, counter, secret, hotp.ValidateOpts{
+		rv, err := hotp.ValidateCustom(passcode, counter, secret, hotpConfig.ValidateOpts{
 			Digits:    opts.Digits,
 			Algorithm: opts.Algorithm,
 		})
@@ -74,7 +74,7 @@ func GenerateCodeCustom(secret string, t time.Time, opts config.ValidateOpts) (p
 		opts.Period = 30
 	}
 	counter := uint64(math.Floor(float64(t.Unix()) / float64(opts.Period)))
-	passcode, err = hotp.GenerateCodeCustom(secret, counter, hotp.ValidateOpts{
+	passcode, err = hotp.GenerateCodeCustom(secret, counter, hotpConfig.ValidateOpts{
 		Digits:    opts.Digits,
 		Algorithm: opts.Algorithm,
 	})
@@ -95,8 +95,6 @@ func GenerateCode(secret string, t time.Time) (string, error) {
 		Algorithm: config.AlgorithmSHA1,
 	})
 }
-
-var B32NoPadding = base32.StdEncoding.WithPadding(base32.NoPadding)
 
 func Generate(opts config.GenerateOpts) (*string, *string, error) {
 	// url encode the Issuer/AccountName
@@ -128,14 +126,14 @@ func Generate(opts config.GenerateOpts) (*string, *string, error) {
 
 	v := url.Values{}
 	if len(opts.Secret) != 0 {
-		v.Set("secret", B32NoPadding.EncodeToString(opts.Secret))
+		v.Set("secret", config.B32NoPadding.EncodeToString(opts.Secret))
 	} else {
 		secret := make([]byte, opts.SecretSize)
 		_, err := opts.Rand.Read(secret)
 		if err != nil {
 			return nil, nil, err
 		}
-		v.Set("secret", B32NoPadding.EncodeToString(secret))
+		v.Set("secret", config.B32NoPadding.EncodeToString(secret))
 	}
 
 	v.Set("issuer", opts.Issuer)
