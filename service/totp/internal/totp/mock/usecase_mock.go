@@ -96,16 +96,16 @@ func (mr *MockUseCaseMockRecorder) Validate(ctx, request interface{}) *gomock.Ca
 }
 
 // Verify mocks base method.
-func (m *MockUseCase) Verify(ctx context.Context, request *models.TOTPRequest) (*models.TOTPConfig, error) {
+func (m *MockUseCase) Verify(ctx context.Context, url string) (*models.TOTPVerify, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Verify", ctx, request)
-	ret0, _ := ret[0].(*models.TOTPConfig)
+	ret := m.ctrl.Call(m, "Verify", ctx, url)
+	ret0, _ := ret[0].(*models.TOTPVerify)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Verify indicates an expected call of Verify.
-func (mr *MockUseCaseMockRecorder) Verify(ctx, request interface{}) *gomock.Call {
+func (mr *MockUseCaseMockRecorder) Verify(ctx, url interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Verify", reflect.TypeOf((*MockUseCase)(nil).Verify), ctx, request)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Verify", reflect.TypeOf((*MockUseCase)(nil).Verify), ctx, url)
 }

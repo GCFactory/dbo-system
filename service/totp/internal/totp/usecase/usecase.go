@@ -13,6 +13,7 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"net/http"
+	"strings"
 )
 
 type totpUC struct {
@@ -56,9 +57,31 @@ func (t totpUC) Enroll(ctx context.Context, totpConfig models.TOTPConfig) (*mode
 	return &totpEnroll, nil
 }
 
-func (t totpUC) Verify(ctx context.Context, request *models.TOTPRequest) (*models.TOTPConfig, error) {
-	//TODO implement me
-	panic("implement me")
+func (t totpUC) Verify(ctx context.Context, url string) (*models.TOTPVerify, error) {
+	if len(url) == 0 {
+		return &models.TOTPVerify{Status: "Empty TOTP URL"}, errors.New("Empty TOTP URL")
+	}
+	algorithm := strings.Contains(url, "algorithm")
+	if !algorithm {
+		return &models.TOTPVerify{Status: "No algorithm field"}, errors.New("URL hadn't algorithm field")
+	}
+	digits := strings.Contains(url, "digits")
+	if !digits {
+		return &models.TOTPVerify{Status: "No digits field"}, errors.New("URL hadn't digits field")
+	}
+	issuer := strings.Contains(url, "issuer")
+	if !issuer {
+		return &models.TOTPVerify{Status: "No issuer field"}, errors.New("URL hadn't issuer field")
+	}
+	period := strings.Contains(url, "period")
+	if !period {
+		return &models.TOTPVerify{Status: "No period field"}, errors.New("URL hadn't period field")
+	}
+	secret := strings.Contains(url, "secret")
+	if !secret {
+		return &models.TOTPVerify{Status: "No secret field"}, errors.New("URL hadn't secret field")
+	}
+	return &models.TOTPVerify{Status: "OK"}, nil
 }
 
 func (t totpUC) Validate(ctx context.Context, request *models.TOTPRequest) (*models.TOTPBase, error) {

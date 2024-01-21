@@ -7,6 +7,10 @@ type TOTPEnroll struct {
 	OTPathURL string `json:"otpath_url"`
 }
 
+type TOTPVerify struct {
+	Status string `json:"info" validate:"omitempty"`
+}
+
 type TOTPRequest struct {
 	// USER id
 	UserId uuid.UUID `json:"user_id" db:"user_id"`

@@ -8,7 +8,7 @@ import (
 
 type UseCase interface {
 	Enroll(ctx context.Context, totp models.TOTPConfig) (*models.TOTPEnroll, error)
-	Verify(ctx context.Context, request *models.TOTPRequest) (*models.TOTPConfig, error)
+	Verify(ctx context.Context, url string) (*models.TOTPVerify, error)
 	Validate(ctx context.Context, request *models.TOTPRequest) (*models.TOTPBase, error)
 	Enable(ctx context.Context, request *models.TOTPRequest) (*models.TOTPBase, error)
 	Disable(ctx context.Context, request *models.TOTPRequest) (*models.TOTPBase, error)

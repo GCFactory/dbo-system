@@ -34,11 +34,6 @@ func (t totpRepo) CreateConfig(ctx context.Context, totpConfig models.TOTPConfig
 	return nil
 }
 
-func (t totpRepo) Verify(ctx context.Context, request models.TOTPRequest) (*models.TOTPConfig, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
 func (t totpRepo) Validate(ctx context.Context, request models.TOTPRequest) (*models.TOTPBase, error) {
 	//TODO implement me
 	panic("implement me")

@@ -62,12 +62,37 @@ func (t totpHandlers) Enroll() echo.HandlerFunc {
 	}
 }
 
+// По url
+// Verify otp URL
+// @Summary Verify otp URL
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Success 200 {object} models.TOTPVerify
+// @Router /verify [post]
 func (t totpHandlers) Verify() echo.HandlerFunc {
+	type Url struct {
+		URL string `json:"url"`
+	}
 	return func(c echo.Context) error {
-		return c.JSON(http.StatusNotImplemented, "")
+		//Вопросы
+		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "auth.Login")
+		defer span.Finish()
+
+		input := &Url{}
+		if err := utils.ReadRequest(c, input); err != nil {
+			utils.LogResponseError(c, t.logger, err)
+			return c.JSON(httpErrors.ErrorResponse(err))
+		}
+		t.logger.Info(input.URL)
+
+		url := input.URL
+		totpVerify, _ := t.totpUC.Verify(ctx, url)
+		return c.JSON(http.StatusOK, totpVerify)
 	}
 }
 
+// По коду
 func (t totpHandlers) Validate() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		return c.JSON(http.StatusNotImplemented, "")
