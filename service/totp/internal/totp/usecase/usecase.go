@@ -41,6 +41,7 @@ func (t totpUC) Enroll(ctx context.Context, totpConfig models.TOTPConfig) (*mode
 		return nil, httpErrors.NewInternalServerError(errors.Wrap(err, "totpUC.Enroll.Generate"))
 	}
 	totpConfig.Secret = *secret
+	totpConfig.URL = *url
 
 	err = t.totpRepo.CreateConfig(ctx, totpConfig)
 	if err != nil {

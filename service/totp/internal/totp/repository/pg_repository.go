@@ -27,6 +27,7 @@ func (t totpRepo) CreateConfig(ctx context.Context, totpConfig models.TOTPConfig
 		&totpConfig.Issuer,
 		&totpConfig.AccountName,
 		&totpConfig.Secret,
+		&totpConfig.URL,
 	).StructScan(&s); err != nil {
 		return errors.Wrap(err, "totpRepo.CreateConfig.QueryRowxContext")
 	}

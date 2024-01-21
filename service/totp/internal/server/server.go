@@ -34,6 +34,7 @@ const (
 )
 
 func (s *Server) Run() error {
+	//Сервер с включённым TLS (SSL)
 	if s.cfg.HTTPServer.SSL {
 		if err := s.MapHandlers(s.echo); err != nil {
 			return err
@@ -42,6 +43,7 @@ func (s *Server) Run() error {
 		s.echo.Server.ReadTimeout = time.Second * s.cfg.HTTPServer.ReadTimeout
 		s.echo.Server.WriteTimeout = time.Second * s.cfg.HTTPServer.WriteTimeout
 
+		//Разворачиваем TLS
 		go func() {
 			s.logger.Infof("Server is listening on PORT: %s", s.cfg.HTTPServer.Port)
 			s.echo.Server.MaxHeaderBytes = maxHeaderBytes
@@ -50,6 +52,7 @@ func (s *Server) Run() error {
 			}
 		}()
 
+		//Наинаем слушать запросы
 		go func() {
 			s.logger.Infof("Starting Debug Server on PORT: %s", s.cfg.HTTPServer.PprofPort)
 			if err := http.ListenAndServe(s.cfg.HTTPServer.PprofPort, http.DefaultServeMux); err != nil {
@@ -57,6 +60,7 @@ func (s *Server) Run() error {
 			}
 		}()
 
+		//Подвесили обработчик прерывания
 		quit := make(chan os.Signal, 1)
 		signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
@@ -68,7 +72,7 @@ func (s *Server) Run() error {
 		s.logger.Info("Server Exited Properly")
 		return s.echo.Server.Shutdown(ctx)
 	}
-
+	//Аналог сервера, только без SSL
 	server := &http.Server{
 		Addr:           s.cfg.HTTPServer.Port,
 		ReadTimeout:    time.Second * s.cfg.HTTPServer.ReadTimeout,
