@@ -94,8 +94,29 @@ func (t totpHandlers) Verify() echo.HandlerFunc {
 
 // По коду
 func (t totpHandlers) Validate() echo.HandlerFunc {
+	type Input struct {
+		Id   string `json:"id"`
+		Code string `json:"code"`
+	}
 	return func(c echo.Context) error {
-		return c.JSON(http.StatusNotImplemented, "")
+		//Вопросы
+		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "auth.Login")
+		defer span.Finish()
+
+		input := &Input{}
+		if err := utils.ReadRequest(c, input); err != nil {
+			utils.LogResponseError(c, t.logger, err)
+			return c.JSON(httpErrors.ErrorResponse(err))
+		}
+		t.logger.Info(input.Code)
+		userId, err := uuid.Parse(input.Id)
+		if err != nil {
+			utils.LogResponseError(c, t.logger, err)
+			return c.JSON(http.StatusBadRequest, err)
+		}
+
+		totpValidate, _ := t.totpUC.Validate(ctx, userId, input.Code)
+		return c.JSON(http.StatusOK, totpValidate)
 	}
 }
 

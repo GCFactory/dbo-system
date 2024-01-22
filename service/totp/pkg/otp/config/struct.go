@@ -37,8 +37,11 @@ const (
 type Digits int
 
 const (
-	DigitsSix   Digits = 6
-	DigitsEight Digits = 8
+	DigitsSix        Digits    = 6
+	DigitsEight      Digits    = 8
+	DefaultPeriod    uint      = 30
+	DefaultDigits    Digits    = DigitsSix
+	DefaultAlgorithm Algorithm = AlgorithmSHA1
 )
 
 // ValidateOpts provides options for ValidateCustom().

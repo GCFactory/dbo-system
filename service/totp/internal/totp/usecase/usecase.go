@@ -13,7 +13,10 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"net/http"
+	"regexp"
+	"strconv"
 	"strings"
+	"time"
 )
 
 type totpUC struct {
@@ -84,9 +87,95 @@ func (t totpUC) Verify(ctx context.Context, url string) (*models.TOTPVerify, err
 	return &models.TOTPVerify{Status: "OK"}, nil
 }
 
-func (t totpUC) Validate(ctx context.Context, request *models.TOTPRequest) (*models.TOTPBase, error) {
-	//TODO implement me
-	panic("implement me")
+func (t totpUC) Validate(ctx context.Context, id uuid.UUID, code string) (*models.TOTPValidate, error) {
+	if len(code) == 0 {
+		return &models.TOTPValidate{Status: "Empty code"}, errors.New("Empty code")
+	}
+	url, err := t.totpRepo.GetURL(ctx, id)
+	if err != nil {
+		return &models.TOTPValidate{Status: "Non-existent user id"}, nil
+	}
+	validateOpts := totpPkgConfig.ValidateOpts{}
+
+	//Extract secret
+	reg_expr, err := regexp.Compile("secret=([\\d\\w]{32})")
+	if err != nil {
+		return &models.TOTPValidate{Status: "Secret match compile error"}, errors.New("Secret match compile error")
+	}
+	secret := reg_expr.FindString(url)
+	secret = secret[7:]
+
+	//Extract period
+	reg_expr, err = regexp.Compile("period=(\\d{1,2})")
+	if err != nil {
+		return &models.TOTPValidate{Status: "Period match compile error"}, errors.New("Period match compile error")
+	}
+	period_str := reg_expr.FindString(url)
+	var period uint
+	if period_str == "" {
+		period = totpPkgConfig.DefaultPeriod
+	} else {
+		period_str = period_str[7:]
+		tmp, err := strconv.ParseUint(period_str, 10, 32)
+		if err != nil {
+			return &models.TOTPValidate{Status: "Parse period string to uint error"}, errors.New("Parse period string to uint error")
+		}
+		period = uint(tmp)
+	}
+	validateOpts.Period = period
+
+	//Extract digits
+	reg_expr, err = regexp.Compile("digits=(6|8)")
+	if err != nil {
+		return &models.TOTPValidate{Status: "Digits match compile error"}, errors.New("Digits match compile error")
+	}
+	digits_str := reg_expr.FindString(url)
+	var digits totpPkgConfig.Digits
+	if digits_str == "" {
+		digits = totpPkgConfig.DefaultDigits
+	} else {
+		digits_str = digits_str[7:]
+		tmp, err := strconv.ParseInt(digits_str, 10, 8)
+		if err != nil {
+			return &models.TOTPValidate{Status: "Parse digits string to uint error"}, errors.New("Parse digits string to uint error")
+		}
+		digits = totpPkgConfig.Digits(tmp)
+	}
+	validateOpts.Digits = digits
+
+	//Extract algorithm
+	reg_expr, err = regexp.Compile("algorithm=([\\d\\w]{2,6})")
+	if err != nil {
+		return &models.TOTPValidate{Status: "Digits match compile error"}, errors.New("Digits match compile error")
+	}
+	algorithm_str := reg_expr.FindString(url)
+	var algorithm totpPkgConfig.Algorithm
+	if algorithm_str == "" {
+		algorithm = totpPkgConfig.DefaultAlgorithm
+	} else {
+		algorithm_str = algorithm_str[10:]
+		if algorithm_str == "MD5" {
+			algorithm = totpPkgConfig.AlgorithmMD5
+		} else if algorithm_str == "SHA1" {
+			algorithm = totpPkgConfig.AlgorithmSHA1
+		} else if algorithm_str == "SHA256" {
+			algorithm = totpPkgConfig.AlgorithmSHA256
+		} else if algorithm_str == "SHA512" {
+			algorithm = totpPkgConfig.AlgorithmSHA512
+		} else {
+			algorithm = totpPkgConfig.DefaultAlgorithm
+		}
+	}
+	validateOpts.Algorithm = algorithm
+
+	serverCode, err := totpPkg.GenerateCodeCustom(secret, time.Now(), validateOpts)
+	if err != nil {
+		return &models.TOTPValidate{Status: "Generate code error"}, errors.New("Generate code error")
+	}
+	if serverCode != code {
+		return &models.TOTPValidate{Status: "Incorrect code"}, errors.New("Incorrect")
+	}
+	return &models.TOTPValidate{Status: "OK"}, nil
 }
 
 func (t totpUC) Enable(ctx context.Context, request *models.TOTPRequest) (*models.TOTPBase, error) {

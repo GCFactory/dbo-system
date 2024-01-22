@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/GCFactory/dbo-system/service/totp/internal/models"
 	"github.com/GCFactory/dbo-system/service/totp/internal/totp"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
@@ -34,19 +35,23 @@ func (t totpRepo) CreateConfig(ctx context.Context, totpConfig models.TOTPConfig
 	return nil
 }
 
-func (t totpRepo) Validate(ctx context.Context, request models.TOTPRequest) (*models.TOTPBase, error) {
-	//TODO implement me
-	panic("implement me")
-}
+func (t totpRepo) GetURL(ctx context.Context, id uuid.UUID) (string, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "totpRepo.Get")
+	defer span.Finish()
 
-func (t totpRepo) Enable(ctx context.Context, request models.TOTPRequest) (*models.TOTPBase, error) {
-	//TODO implement me
-	panic("implement me")
-}
+	type Data struct {
+		Url string `json:"url"`
+	}
 
-func (t totpRepo) Disable(ctx context.Context, request models.TOTPRequest) (*models.TOTPBase, error) {
-	//TODO implement me
-	panic("implement me")
+	var tmp Data
+
+	if err := t.db.QueryRowxContext(ctx,
+		getURL,
+		id,
+	).StructScan(&tmp); err != nil {
+		return tmp.Url, errors.Wrap(err, "totpRepo.GetSecret.QueryRowxContext")
+	}
+	return tmp.Url, nil
 }
 
 func NewTOTPRepository(db *sqlx.DB) totp.Repository {

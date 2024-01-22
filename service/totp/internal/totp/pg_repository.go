@@ -4,11 +4,10 @@ package totp
 import (
 	"context"
 	"github.com/GCFactory/dbo-system/service/totp/internal/models"
+	"github.com/google/uuid"
 )
 
 type Repository interface {
 	CreateConfig(ctx context.Context, totp models.TOTPConfig) error
-	Validate(ctx context.Context, request models.TOTPRequest) (*models.TOTPBase, error)
-	Enable(ctx context.Context, request models.TOTPRequest) (*models.TOTPBase, error)
-	Disable(ctx context.Context, request models.TOTPRequest) (*models.TOTPBase, error)
+	GetURL(ctx context.Context, id uuid.UUID) (string, error)
 }
