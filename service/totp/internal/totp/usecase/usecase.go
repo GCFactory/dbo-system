@@ -178,9 +178,16 @@ func (t totpUC) Validate(ctx context.Context, id uuid.UUID, code string) (*model
 	return &models.TOTPValidate{Status: "OK"}, nil
 }
 
-func (t totpUC) Enable(ctx context.Context, request *models.TOTPRequest) (*models.TOTPBase, error) {
-	//TODO implement me
-	panic("implement me")
+func (t totpUC) Enable(ctx context.Context, id uuid.UUID) (*models.TOTPEnable, error) {
+	_, err := t.totpRepo.GetURL(ctx, id)
+	if err != nil {
+		return &models.TOTPEnable{Status: "Non-existent id"}, errors.New("Non-existent id")
+	}
+	err = t.totpRepo.UpdateActive(ctx, id, true)
+	if err != nil {
+		return &models.TOTPEnable{Status: "Update active status error"}, errors.New("Update active status error")
+	}
+	return &models.TOTPEnable{Status: "OK"}, nil
 }
 
 func (t totpUC) Disable(ctx context.Context, id uuid.UUID) (*models.TOTPDisable, error) {

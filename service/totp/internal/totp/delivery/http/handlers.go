@@ -121,8 +121,27 @@ func (t totpHandlers) Validate() echo.HandlerFunc {
 }
 
 func (t totpHandlers) Enable() echo.HandlerFunc {
+	type Input struct {
+		Id string `json:"id"`
+	}
 	return func(c echo.Context) error {
-		return c.JSON(http.StatusNotImplemented, "")
+		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "auth.Login")
+		defer span.Finish()
+
+		input := &Input{}
+		if err := utils.ReadRequest(c, input); err != nil {
+			utils.LogResponseError(c, t.logger, err)
+			return c.JSON(httpErrors.ErrorResponse(err))
+		}
+		t.logger.Info(input.Id)
+		userId, err := uuid.Parse(input.Id)
+		if err != nil {
+			utils.LogResponseError(c, t.logger, err)
+			return c.JSON(http.StatusBadRequest, err)
+		}
+
+		totpEnable, _ := t.totpUC.Enable(ctx, userId)
+		return c.JSON(http.StatusOK, totpEnable)
 	}
 }
 

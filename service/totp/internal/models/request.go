@@ -15,6 +15,10 @@ type TOTPValidate struct {
 	Status string `json:"status"`
 }
 
+type TOTPEnable struct {
+	Status string `json:"status"`
+}
+
 type TOTPDisable struct {
 	Status string `json:"status"`
 }
