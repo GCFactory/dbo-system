@@ -183,9 +183,16 @@ func (t totpUC) Enable(ctx context.Context, request *models.TOTPRequest) (*model
 	panic("implement me")
 }
 
-func (t totpUC) Disable(ctx context.Context, request *models.TOTPRequest) (*models.TOTPBase, error) {
-	//TODO implement me
-	panic("implement me")
+func (t totpUC) Disable(ctx context.Context, id uuid.UUID) (*models.TOTPDisable, error) {
+	_, err := t.totpRepo.GetURL(ctx, id)
+	if err != nil {
+		return &models.TOTPDisable{Status: "Non-existent id"}, errors.New("Non-existent id")
+	}
+	err = t.totpRepo.UpdateActive(ctx, id, false)
+	if err != nil {
+		return &models.TOTPDisable{Status: "Update active status error"}, errors.New("Update active status error")
+	}
+	return &models.TOTPDisable{Status: "OK"}, nil
 }
 
 func NewTOTPUseCase(cfg *config.Config, totpRepo totp.Repository, log logger.Logger) totp.UseCase {

@@ -54,6 +54,21 @@ func (t totpRepo) GetURL(ctx context.Context, id uuid.UUID) (string, error) {
 	return tmp.Url, nil
 }
 
+func (t totpRepo) UpdateActive(ctx context.Context, id uuid.UUID, status bool) error {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "totpRepo.Update")
+	defer span.Finish()
+
+	_, err := t.db.ExecContext(ctx,
+		updareActive,
+		id,
+		status,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func NewTOTPRepository(db *sqlx.DB) totp.Repository {
 	return &totpRepo{db: db}
 }

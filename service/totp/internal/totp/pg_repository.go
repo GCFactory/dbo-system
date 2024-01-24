@@ -10,4 +10,5 @@ import (
 type Repository interface {
 	CreateConfig(ctx context.Context, totp models.TOTPConfig) error
 	GetURL(ctx context.Context, id uuid.UUID) (string, error)
+	UpdateActive(ctx context.Context, id uuid.UUID, status bool) error
 }

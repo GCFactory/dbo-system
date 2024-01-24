@@ -15,6 +15,10 @@ type TOTPValidate struct {
 	Status string `json:"status"`
 }
 
+type TOTPDisable struct {
+	Status string `json:"status"`
+}
+
 type TOTPRequest struct {
 	// USER id
 	UserId uuid.UUID `json:"user_id" db:"user_id"`

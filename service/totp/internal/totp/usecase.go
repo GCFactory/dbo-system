@@ -12,5 +12,5 @@ type UseCase interface {
 	Verify(ctx context.Context, url string) (*models.TOTPVerify, error)
 	Validate(ctx context.Context, id uuid.UUID, code string) (*models.TOTPValidate, error)
 	Enable(ctx context.Context, request *models.TOTPRequest) (*models.TOTPBase, error)
-	Disable(ctx context.Context, request *models.TOTPRequest) (*models.TOTPBase, error)
+	Disable(ctx context.Context, id uuid.UUID) (*models.TOTPDisable, error)
 }
