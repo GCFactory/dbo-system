@@ -9,7 +9,7 @@ type TOTPEnroll struct {
 }
 
 type TOTPVerify struct {
-	Status string `json:"info" validate:"omitempty"`
+	Status string `json:"status" validate:"omitempty"`
 }
 
 type TOTPValidate struct {

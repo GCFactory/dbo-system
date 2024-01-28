@@ -91,6 +91,7 @@ func (t totpHandlers) Enroll() echo.HandlerFunc {
 // @Param totp_url url string true "TOTP path url"
 // @Success 200 {object} models.TOTPVerify
 // @Failure 400 {object} httputil.HTTPError
+// @Failure 400 {object} models.TOTPVerify
 // @Router /verify [post]
 func (t totpHandlers) Verify() echo.HandlerFunc {
 	type Url struct {
@@ -106,17 +107,21 @@ func (t totpHandlers) Verify() echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.Verify.utils.ReadRequest")))
 		}
 
+		if input.TotpUrl == "" {
+			utils.LogResponseError(c, t.logger, errors.New("No totp_url field"))
+			return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, "No totp_url field", nil))
+		}
+
 		url := input.TotpUrl
 		totpVerify, err := t.totpUC.Verify(ctx, url)
 		if err != nil {
 			utils.LogResponseError(c, t.logger, err)
-			if errors.Is(err, totpErrors.EmptyTotpUrl) ||
-				errors.Is(err, totpErrors.NoAlgorithmField) ||
+			if errors.Is(err, totpErrors.NoAlgorithmField) ||
 				errors.Is(err, totpErrors.NoDigitsField) ||
 				errors.Is(err, totpErrors.NoIssuerField) ||
 				errors.Is(err, totpErrors.NoPeriodField) ||
 				errors.Is(err, totpErrors.NoSecretField) {
-				return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, err.Error(), nil))
+				return c.JSON(http.StatusBadRequest, totpVerify)
 			} else {
 				return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.Verify.utils.ReadRequest")))
 			}
@@ -125,30 +130,59 @@ func (t totpHandlers) Verify() echo.HandlerFunc {
 	}
 }
 
-// По коду
+// @Summary Validate totp code
+// @Description Validate users's titp cide
+// @Tags TOTP
+// @Accept json
+// @Produce json
+// @Param user_id uuid string true "User id"
+// @Param totp_code string string true "Totp user's code"
+// @Success 200 {object} models.TotpValidate
+// @Failure 400 {object} httputil.HTTPError
+// @Failure 404 {object} httputil.HTTPError
+// @Router /verify [post]
 func (t totpHandlers) Validate() echo.HandlerFunc {
 	type Input struct {
-		Id   string `json:"id"`
-		Code string `json:"code"`
+		UserId   string `json:"user_id"`
+		TotpCode string `json:"totp_code"`
 	}
 	return func(c echo.Context) error {
-		//Вопросы
 		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "auth.Login")
 		defer span.Finish()
 
 		input := &Input{}
 		if err := utils.ReadRequest(c, input); err != nil {
 			utils.LogResponseError(c, t.logger, err)
-			return c.JSON(httpErrors.ErrorResponse(err))
-		}
-		t.logger.Info(input.Code)
-		userId, err := uuid.Parse(input.Id)
-		if err != nil {
-			utils.LogResponseError(c, t.logger, err)
-			return c.JSON(http.StatusBadRequest, err)
+			return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.Validate.utils.ReadRequest")))
 		}
 
-		totpValidate, _ := t.totpUC.Validate(ctx, userId, input.Code)
+		if input.UserId == "" {
+			utils.LogResponseError(c, t.logger, errors.New("No user_id field"))
+			return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, "No user_id field", nil))
+		}
+
+		if input.TotpCode == "" {
+			utils.LogResponseError(c, t.logger, errors.New("No totp_code field"))
+			return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, "No totp_code field", nil))
+		}
+
+		userId, err := uuid.Parse(input.UserId)
+		if err != nil {
+			utils.LogResponseError(c, t.logger, err)
+			return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.Validate.uuid.Parse")))
+		}
+
+		totpValidate, err := t.totpUC.Validate(ctx, userId, input.TotpCode)
+		if err != nil {
+			if errors.Is(err, totpErrors.NoUserTotp) {
+				return c.JSON(http.StatusNotFound, totpValidate)
+			} else if errors.Is(err, totpErrors.WrongTotpCode) {
+				return c.JSON(http.StatusBadRequest, totpValidate)
+			} else {
+				return c.JSON(httpErrors.ErrorResponse(err))
+			}
+		}
+
 		return c.JSON(http.StatusOK, totpValidate)
 	}
 }
