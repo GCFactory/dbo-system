@@ -3,8 +3,9 @@ package models
 import "github.com/google/uuid"
 
 type TOTPEnroll struct {
-	Base32    string `json:"base32"`
-	OTPathURL string `json:"otpath_url"`
+	TotpId     string `json:"totp_id"`
+	TotpSecret string `json:"totp_secret"`
+	TotpUrl    string `json:"totp_url"`
 }
 
 type TOTPVerify struct {

@@ -107,11 +107,11 @@ func Generate(opts config.GenerateOpts) (*string, *string, error) {
 	}
 
 	if opts.Period == 0 {
-		opts.Period = 30
+		opts.Period = config.DefaultPeriod
 	}
 
 	if opts.SecretSize == 0 {
-		opts.SecretSize = 20
+		opts.SecretSize = config.DefaultSecretLength
 	}
 
 	if opts.Digits == 0 {

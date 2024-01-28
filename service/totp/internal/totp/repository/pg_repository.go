@@ -49,7 +49,7 @@ func (t totpRepo) GetURL(ctx context.Context, id uuid.UUID) (string, error) {
 		getURL,
 		id,
 	).StructScan(&tmp); err != nil {
-		return tmp.Url, errors.Wrap(err, "totpRepo.GetSecret.QueryRowxContext")
+		return tmp.Url, errors.Wrap(err, "totpRepo.GetSecret.QueryRowContext")
 	}
 	return tmp.Url, nil
 }
@@ -67,6 +67,21 @@ func (t totpRepo) UpdateActive(ctx context.Context, id uuid.UUID, status bool) e
 		return err
 	}
 	return nil
+}
+
+func (t totpRepo) GetActiveConfig(ctx context.Context, userId uuid.UUID) (models.TOTPConfig, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "totpRepo.GetConfig")
+	defer span.Finish()
+
+	var s models.TOTPConfig
+
+	if err := t.db.QueryRowxContext(ctx,
+		getActiveConfig,
+		&userId,
+	).StructScan(&s); err != nil {
+		return s, errors.Wrap(err, "totpRepo.GetConfig.QueryRowContext")
+	}
+	return s, nil
 }
 
 func NewTOTPRepository(db *sqlx.DB) totp.Repository {

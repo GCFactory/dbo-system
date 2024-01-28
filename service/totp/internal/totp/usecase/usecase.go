@@ -7,12 +7,12 @@ import (
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/service/totp/internal/models"
 	"github.com/GCFactory/dbo-system/service/totp/internal/totp"
+	totpErrors "github.com/GCFactory/dbo-system/service/totp/pkg/errors"
 	totpPkg "github.com/GCFactory/dbo-system/service/totp/pkg/otp"
 	totpPkgConfig "github.com/GCFactory/dbo-system/service/totp/pkg/otp/config"
 	"github.com/google/uuid"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
-	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
@@ -29,16 +29,20 @@ func (t totpUC) Enroll(ctx context.Context, totpConfig models.TOTPConfig) (*mode
 	span, ctx := opentracing.StartSpanFromContext(ctx, "totpUC.Enroll")
 	defer span.Finish()
 
+	_, err := t.totpRepo.GetActiveConfig(ctx, totpConfig.UserId)
+	if err == nil {
+		return nil, totpErrors.ActiveTotp
+	}
+
 	totpConfig.Id = uuid.New()
-	totpConfig.AccountName = "admin"
 	totpConfig.IsActive = true
 	totpConfig.Issuer = "dbo.gcfactory.space"
 
 	secret, url, err := totpPkg.Generate(totpPkgConfig.GenerateOpts{
 		Issuer:      totpConfig.Issuer,
 		AccountName: totpConfig.AccountName,
-		SecretSize:  20,
-		Algorithm:   totpPkgConfig.AlgorithmSHA256,
+		SecretSize:  totpPkgConfig.DefaultSecretLength,
+		Algorithm:   totpPkgConfig.DefaultAlgorithm,
 	})
 
 	if err != nil {
@@ -49,15 +53,14 @@ func (t totpUC) Enroll(ctx context.Context, totpConfig models.TOTPConfig) (*mode
 
 	err = t.totpRepo.CreateConfig(ctx, totpConfig)
 	if err != nil {
-		return nil, httpErrors.NewRestError(http.StatusBadRequest, err.Error(), nil)
+		return nil, httpErrors.NewInternalServerError(errors.Wrap(err, "totpUC.Enroll.CreateConfig"))
 	}
 
-	totpEnroll := models.TOTPEnroll{
-		Base32:    totpConfig.Secret,
-		OTPathURL: *url,
-	}
-
-	return &totpEnroll, nil
+	return &models.TOTPEnroll{
+		TotpId:     totpConfig.Id.String(),
+		TotpSecret: *secret,
+		TotpUrl:    *url,
+	}, nil
 }
 
 func (t totpUC) Verify(ctx context.Context, url string) (*models.TOTPVerify, error) {
