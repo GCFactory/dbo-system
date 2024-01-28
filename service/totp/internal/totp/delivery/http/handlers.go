@@ -37,7 +37,7 @@ func NewTOTPHandlers(cfg *config.Config, totpUC totp.UseCase, log logger.Logger)
 // @Router /enroll [post]
 func (t totpHandlers) Enroll() echo.HandlerFunc {
 	type User struct {
-		UserName string `json:"user_name" `
+		UserName string `json:"user_name"`
 		UserId   string `json:"user_id"`
 	}
 	return func(c echo.Context) error {
@@ -47,7 +47,7 @@ func (t totpHandlers) Enroll() echo.HandlerFunc {
 		user := &User{}
 		if err := utils.ReadRequest(c, user); err != nil {
 			utils.LogResponseError(c, t.logger, err)
-			return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.utils.ReadRequest")))
+			return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.Enroll.utils.ReadRequest")))
 		}
 
 		if user.UserId == "" {
@@ -63,7 +63,7 @@ func (t totpHandlers) Enroll() echo.HandlerFunc {
 		userId, err := uuid.Parse(user.UserId)
 		if err != nil {
 			utils.LogResponseError(c, t.logger, err)
-			return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.uuid.Parse")))
+			return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.Enroll.uuid.Parse")))
 		}
 
 		totpEnroll, err := t.totpUC.Enroll(ctx, models.TOTPConfig{
@@ -83,32 +83,44 @@ func (t totpHandlers) Enroll() echo.HandlerFunc {
 	}
 }
 
-// По url
-// Verify otp URL
-// @Summary Verify otp URL
-// @Tags Auth
+// @Summary Verify totp URL
+// @Description Verify totp URL
+// @Tags TOTP
 // @Accept json
 // @Produce json
+// @Param totp_url url string true "TOTP path url"
 // @Success 200 {object} models.TOTPVerify
+// @Failure 400 {object} httputil.HTTPError
 // @Router /verify [post]
 func (t totpHandlers) Verify() echo.HandlerFunc {
 	type Url struct {
-		URL string `json:"url"`
+		TotpUrl string `json:"totp_url"`
 	}
 	return func(c echo.Context) error {
-		//Вопросы
 		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "auth.Login")
 		defer span.Finish()
 
 		input := &Url{}
 		if err := utils.ReadRequest(c, input); err != nil {
 			utils.LogResponseError(c, t.logger, err)
-			return c.JSON(httpErrors.ErrorResponse(err))
+			return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.Verify.utils.ReadRequest")))
 		}
-		t.logger.Info(input.URL)
 
-		url := input.URL
-		totpVerify, _ := t.totpUC.Verify(ctx, url)
+		url := input.TotpUrl
+		totpVerify, err := t.totpUC.Verify(ctx, url)
+		if err != nil {
+			utils.LogResponseError(c, t.logger, err)
+			if errors.Is(err, totpErrors.EmptyTotpUrl) ||
+				errors.Is(err, totpErrors.NoAlgorithmField) ||
+				errors.Is(err, totpErrors.NoDigitsField) ||
+				errors.Is(err, totpErrors.NoIssuerField) ||
+				errors.Is(err, totpErrors.NoPeriodField) ||
+				errors.Is(err, totpErrors.NoSecretField) {
+				return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, err.Error(), nil))
+			} else {
+				return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.Verify.utils.ReadRequest")))
+			}
+		}
 		return c.JSON(http.StatusOK, totpVerify)
 	}
 }

@@ -65,27 +65,27 @@ func (t totpUC) Enroll(ctx context.Context, totpConfig models.TOTPConfig) (*mode
 
 func (t totpUC) Verify(ctx context.Context, url string) (*models.TOTPVerify, error) {
 	if len(url) == 0 {
-		return &models.TOTPVerify{Status: "Empty TOTP URL"}, errors.New("Empty TOTP URL")
+		return nil, totpErrors.EmptyTotpUrl
 	}
 	algorithm := strings.Contains(url, "algorithm")
 	if !algorithm {
-		return &models.TOTPVerify{Status: "No algorithm field"}, errors.New("URL hadn't algorithm field")
+		return nil, totpErrors.NoAlgorithmField
 	}
 	digits := strings.Contains(url, "digits")
 	if !digits {
-		return &models.TOTPVerify{Status: "No digits field"}, errors.New("URL hadn't digits field")
+		return nil, totpErrors.NoDigitsField
 	}
 	issuer := strings.Contains(url, "issuer")
 	if !issuer {
-		return &models.TOTPVerify{Status: "No issuer field"}, errors.New("URL hadn't issuer field")
+		return nil, totpErrors.NoIssuerField
 	}
 	period := strings.Contains(url, "period")
 	if !period {
-		return &models.TOTPVerify{Status: "No period field"}, errors.New("URL hadn't period field")
+		return nil, totpErrors.NoPeriodField
 	}
 	secret := strings.Contains(url, "secret")
 	if !secret {
-		return &models.TOTPVerify{Status: "No secret field"}, errors.New("URL hadn't secret field")
+		return nil, totpErrors.NoSecretField
 	}
 	return &models.TOTPVerify{Status: "OK"}, nil
 }
