@@ -14,4 +14,5 @@ var (
 	NoTotpId         = errors.New("No totp with this totp id")
 	TotpIsDisabled   = errors.New("Totp is disabled yet")
 	NoId             = errors.New("No such user and totp ids")
+	TotpIsActive     = errors.New("Totp is active yet")
 )

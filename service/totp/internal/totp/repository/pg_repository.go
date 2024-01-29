@@ -95,6 +95,21 @@ func (t totpRepo) GetConfigByUserId(ctx context.Context, userId uuid.UUID) (*mod
 	return &s, nil
 }
 
+func (t totpRepo) GetLastDisabledConfig(ctx context.Context, userId uuid.UUID) (*models.TOTPConfig, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "totpRepo.GetConfigByUserId")
+	defer span.Finish()
+
+	var s models.TOTPConfig
+
+	if err := t.db.QueryRowxContext(ctx,
+		getLastDisabledConfig,
+		&userId,
+	).StructScan(&s); err != nil {
+		return nil, errors.Wrap(err, "totpRepo.GetLastDisabledConfig.QueryRowContext")
+	}
+	return &s, nil
+}
+
 func NewTOTPRepository(db *sqlx.DB) totp.Repository {
 	return &totpRepo{db: db}
 }

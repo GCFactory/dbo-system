@@ -30,10 +30,10 @@ func NewTOTPHandlers(cfg *config.Config, totpUC totp.UseCase, log logger.Logger)
 // @Tags TOTP
 // @Accept json
 // @Produce json
-// @Param user_name string string true "User account name"
-// @Param user_id uuid string true "User account uuid"
+// @Param user_name body string true "User account name"
+// @Param user_id body string true "User account uuid"
 // @Success 201 {object} models.TOTPEnroll
-// @Failure 403 {object} httputil.HTTPError
+// @Failure 403 {object} httpErrors.RestError
 // @Router /enroll [post]
 func (t totpHandlers) Enroll() echo.HandlerFunc {
 	type User struct {
@@ -88,9 +88,9 @@ func (t totpHandlers) Enroll() echo.HandlerFunc {
 // @Tags TOTP
 // @Accept json
 // @Produce json
-// @Param totp_url url string true "TOTP path url"
+// @Param totp_url body string true "TOTP path url"
 // @Success 200 {object} models.TOTPVerify
-// @Failure 400 {object} httputil.HTTPError
+// @Failure 400 {object} httpErrors.RestError
 // @Failure 400 {object} models.TOTPVerify
 // @Router /verify [post]
 func (t totpHandlers) Verify() echo.HandlerFunc {
@@ -135,12 +135,12 @@ func (t totpHandlers) Verify() echo.HandlerFunc {
 // @Tags TOTP
 // @Accept json
 // @Produce json
-// @Param user_id uuid string true "User id"
-// @Param totp_code string string true "Totp user's code"
-// @Success 200 {object} models.TotpValidate
-// @Failure 400 {object} httputil.HTTPError
-// @Failure 404 {object} httputil.HTTPError
-// @Router /verify [post]
+// @Param user_id body string true "User id"
+// @Param totp_code body string true "Totp user's code"
+// @Success 200 {object} models.TOTPValidate
+// @Failure 400 {object} httpErrors.RestError
+// @Failure 404 {object} httpErrors.RestError
+// @Router /validate [post]
 func (t totpHandlers) Validate() echo.HandlerFunc {
 	type Input struct {
 		UserId   string `json:"user_id"`
@@ -187,9 +187,21 @@ func (t totpHandlers) Validate() echo.HandlerFunc {
 	}
 }
 
+// @Summary Enable totp code
+// @Description Enable users's totp cide or selected totp code
+// @Tags TOTP
+// @Accept json
+// @Produce json
+// @Param user_id body string true "User id"
+// @Param totp_id body string true "Totp id"
+// @Success 200 {object} models.TOTPEnable
+// @Failure 400 {object} httpErors.RestError
+// @Failure 404 {object} httpErrors.RestError
+// @Router /enable [post]
 func (t totpHandlers) Enable() echo.HandlerFunc {
 	type Input struct {
-		Id string `json:"id"`
+		UserId string `json:"user_id"`
+		TotpId string `json:"totp_id"`
 	}
 	return func(c echo.Context) error {
 		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "auth.Login")
@@ -198,16 +210,45 @@ func (t totpHandlers) Enable() echo.HandlerFunc {
 		input := &Input{}
 		if err := utils.ReadRequest(c, input); err != nil {
 			utils.LogResponseError(c, t.logger, err)
-			return c.JSON(httpErrors.ErrorResponse(err))
-		}
-		t.logger.Info(input.Id)
-		userId, err := uuid.Parse(input.Id)
-		if err != nil {
-			utils.LogResponseError(c, t.logger, err)
-			return c.JSON(http.StatusBadRequest, err)
+			return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.Enable.utils.ReadRequest")))
 		}
 
-		totpEnable, _ := t.totpUC.Enable(ctx, userId)
+		if input.TotpId == "" && input.UserId == "" {
+			utils.LogResponseError(c, t.logger, errors.New("No user_id and totp_id fields"))
+			return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, "No user_id and totp_id fields", nil))
+		}
+
+		var userId uuid.UUID = uuid.Nil
+		var totpId uuid.UUID = uuid.Nil
+
+		var err error
+
+		if input.TotpId != "" {
+			totpId, err = uuid.Parse(input.TotpId)
+			if err != nil {
+				utils.LogResponseError(c, t.logger, err)
+				return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.Enable.uuid(totp_id).Parse")))
+			}
+		}
+		if input.UserId != "" {
+			userId, err = uuid.Parse(input.UserId)
+			if err != nil {
+				utils.LogResponseError(c, t.logger, err)
+				return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.Enable.uuid(user_id).Parse")))
+			}
+		}
+
+		totpEnable, err := t.totpUC.Enable(ctx, totpId, userId)
+		if err != nil {
+			if errors.Is(err, totpErrors.NoTotpId) ||
+				errors.Is(err, totpErrors.NoId) {
+				return c.JSON(http.StatusNotFound, totpEnable)
+			} else if errors.Is(err, totpErrors.TotpIsActive) {
+				return c.JSON(http.StatusBadRequest, totpEnable)
+			} else {
+				return c.JSON(httpErrors.ErrorResponse(err))
+			}
+		}
 		return c.JSON(http.StatusOK, totpEnable)
 	}
 }
@@ -217,12 +258,12 @@ func (t totpHandlers) Enable() echo.HandlerFunc {
 // @Tags TOTP
 // @Accept json
 // @Produce json
-// @Param user_id uuid string true "User id"
-// @Param totp_id uuid string true "Totp id"
-// @Success 200 {object} models.TotpDisable
-// @Failure 400 {object} httputil.HTTPError
-// @Failure 404 {object} httputil.HTTPError
-// @Router /verify [post]
+// @Param user_id body string true "User id"
+// @Param totp_id body string true "Totp id"
+// @Success 200 {object} models.TOTPDisable
+// @Failure 400 {object} httpErrors.RestError
+// @Failure 404 {object} httpErrors.RestError
+// @Router /disable [post]
 func (t totpHandlers) Disable() echo.HandlerFunc {
 	type Input struct {
 		UserId string `json:"user_id"`
