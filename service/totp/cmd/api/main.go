@@ -18,14 +18,16 @@ import (
 	"os"
 )
 
-// @description  TOTP Service
+//	@Title			TOTP Service
+//	@Version		0.1.0
+//	@description	Service for generating totp codes
 
-// @contact.name Rueie
-// @contact.email
+//	@contact.name	Rueie
+//	@contact.email
 
-// @license.name  MIT License
+//	@license.name	MIT License
 
-// @BasePath  /api/v1/totp/
+//	@BasePath	/api/v1/totp/
 
 func main() {
 	log.Println("Starting api server")

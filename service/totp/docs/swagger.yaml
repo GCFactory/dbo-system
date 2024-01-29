@@ -1,23 +1,133 @@
 basePath: /api/v1/totp/
 definitions:
+  http.httpError:
+    type: object
+  models.TOTPDisable:
+    properties:
+      status:
+        type: string
+    type: object
+  models.TOTPEnable:
+    properties:
+      status:
+        type: string
+    type: object
   models.TOTPEnroll:
     properties:
-      base32:
+      totp_id:
         type: string
-      otpath_url:
+      totp_secret:
+        type: string
+      totp_url:
+        type: string
+    type: object
+  models.TOTPValidate:
+    properties:
+      status:
+        type: string
+    type: object
+  models.TOTPVerify:
+    properties:
+      status:
         type: string
     type: object
 info:
   contact:
     name: Rueie
-  description: TOTP Service
+  description: Service for generating totp codes
   license:
     name: MIT License
+  title: TOTP Service
+  version: 0.1.0
 paths:
+  /disable:
+    post:
+      consumes:
+      - application/json
+      description: Disable users's totp cide or selected totp code
+      parameters:
+      - description: User id
+        in: body
+        name: user_id
+        schema:
+          type: string
+      - description: Totp id
+        in: body
+        name: totp_id
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.TOTPDisable'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.httpError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/http.httpError'
+      summary: Disable totp code
+      tags:
+      - TOTP
+  /enable:
+    post:
+      consumes:
+      - application/json
+      description: Enable users's totp cide or selected totp code
+      parameters:
+      - description: User id
+        in: body
+        name: user_id
+        required: true
+        schema:
+          type: string
+      - description: Totp id
+        in: body
+        name: totp_id
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.TOTPEnable'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.httpError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/http.httpError'
+      summary: Enable totp code
+      tags:
+      - TOTP
   /enroll:
     post:
       consumes:
       - application/json
+      description: Create new totp data for user
+      parameters:
+      - description: User account name
+        in: body
+        name: user_name
+        required: true
+        schema:
+          type: string
+      - description: User account uuid
+        in: body
+        name: user_id
+        required: true
+        schema:
+          type: string
       produces:
       - application/json
       responses:
@@ -25,7 +135,73 @@ paths:
           description: Created
           schema:
             $ref: '#/definitions/models.TOTPEnroll'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/http.httpError'
       summary: Enroll new user device
       tags:
-      - Auth
+      - TOTP
+  /validate:
+    post:
+      consumes:
+      - application/json
+      description: Validate users's totp cide
+      parameters:
+      - description: User id
+        in: body
+        name: user_id
+        required: true
+        schema:
+          type: string
+      - description: Totp user's code
+        in: body
+        name: totp_code
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.TOTPValidate'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.httpError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/http.httpError'
+      summary: Validate totp code
+      tags:
+      - TOTP
+  /verify:
+    post:
+      consumes:
+      - application/json
+      description: Verify totp URL
+      parameters:
+      - description: TOTP path url
+        in: body
+        name: totp_url
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.TOTPVerify'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.TOTPVerify'
+      summary: Verify totp URL
+      tags:
+      - TOTP
 swagger: "2.0"

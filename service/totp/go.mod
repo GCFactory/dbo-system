@@ -2,7 +2,6 @@ module github.com/GCFactory/dbo-system/service/totp
 
 go 1.21
 
-toolchain go1.21.5
 
 require (
 	github.com/GCFactory/dbo-system/platform v1.1.1

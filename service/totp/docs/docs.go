@@ -20,8 +20,9 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/enroll": {
+        "/disable": {
             "post": {
+                "description": "Disable users's totp cide or selected totp code",
                 "consumes": [
                     "application/json"
                 ],
@@ -29,14 +30,243 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Auth"
+                    "TOTP"
+                ],
+                "summary": "Disable totp code",
+                "parameters": [
+                    {
+                        "description": "User id",
+                        "name": "user_id",
+                        "in": "body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Totp id",
+                        "name": "totp_id",
+                        "in": "body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.TOTPDisable"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/http.httpError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/http.httpError"
+                        }
+                    }
+                }
+            }
+        },
+        "/enable": {
+            "post": {
+                "description": "Enable users's totp cide or selected totp code",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "TOTP"
+                ],
+                "summary": "Enable totp code",
+                "parameters": [
+                    {
+                        "description": "User id",
+                        "name": "user_id",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Totp id",
+                        "name": "totp_id",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.TOTPEnable"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/http.httpError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/http.httpError"
+                        }
+                    }
+                }
+            }
+        },
+        "/enroll": {
+            "post": {
+                "description": "Create new totp data for user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "TOTP"
                 ],
                 "summary": "Enroll new user device",
+                "parameters": [
+                    {
+                        "description": "User account name",
+                        "name": "user_name",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "User account uuid",
+                        "name": "user_id",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
                 "responses": {
                     "201": {
                         "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/models.TOTPEnroll"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/http.httpError"
+                        }
+                    }
+                }
+            }
+        },
+        "/validate": {
+            "post": {
+                "description": "Validate users's totp cide",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "TOTP"
+                ],
+                "summary": "Validate totp code",
+                "parameters": [
+                    {
+                        "description": "User id",
+                        "name": "user_id",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Totp user's code",
+                        "name": "totp_code",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.TOTPValidate"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/http.httpError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/http.httpError"
+                        }
+                    }
+                }
+            }
+        },
+        "/verify": {
+            "post": {
+                "description": "Verify totp URL",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "TOTP"
+                ],
+                "summary": "Verify totp URL",
+                "parameters": [
+                    {
+                        "description": "TOTP path url",
+                        "name": "totp_url",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.TOTPVerify"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.TOTPVerify"
                         }
                     }
                 }
@@ -44,13 +274,51 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "http.httpError": {
+            "type": "object"
+        },
+        "models.TOTPDisable": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.TOTPEnable": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
         "models.TOTPEnroll": {
             "type": "object",
             "properties": {
-                "base32": {
+                "totp_id": {
                     "type": "string"
                 },
-                "otpath_url": {
+                "totp_secret": {
+                    "type": "string"
+                },
+                "totp_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.TOTPValidate": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.TOTPVerify": {
+            "type": "object",
+            "properties": {
+                "status": {
                     "type": "string"
                 }
             }
@@ -60,12 +328,12 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "",
+	Version:          "0.1.0",
 	Host:             "",
 	BasePath:         "/api/v1/totp/",
 	Schemes:          []string{},
-	Title:            "",
-	Description:      "TOTP Service",
+	Title:            "TOTP Service",
+	Description:      "Service for generating totp codes",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

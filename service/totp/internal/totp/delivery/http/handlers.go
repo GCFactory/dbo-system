@@ -15,6 +15,10 @@ import (
 	"net/http"
 )
 
+type httpError struct {
+	_ httpErrors.RestError
+}
+
 type totpHandlers struct {
 	cfg    *config.Config
 	totpUC totp.UseCase
@@ -25,16 +29,16 @@ func NewTOTPHandlers(cfg *config.Config, totpUC totp.UseCase, log logger.Logger)
 	return &totpHandlers{cfg: cfg, totpUC: totpUC, logger: log}
 }
 
-// @Summary Enroll new user device
-// @Description Create new totp data for user
-// @Tags TOTP
-// @Accept json
-// @Produce json
-// @Param user_name body string true "User account name"
-// @Param user_id body string true "User account uuid"
-// @Success 201 {object} models.TOTPEnroll
-// @Failure 403 {object} httpErrors.RestError
-// @Router /enroll [post]
+// @Summary		Enroll new user device
+// @Description	Create new totp data for user
+// @Tags			TOTP
+// @Accept			json
+// @Produce		json
+// @Param			user_name	body		string	true	"User account name"
+// @Param			user_id		body		string	true	"User account uuid"
+// @Success		201			{object}	models.TOTPEnroll
+// @Failure		403			{object}	httpError
+// @Router			/enroll [post]
 func (t totpHandlers) Enroll() echo.HandlerFunc {
 	type User struct {
 		UserName string `json:"user_name"`
@@ -83,16 +87,16 @@ func (t totpHandlers) Enroll() echo.HandlerFunc {
 	}
 }
 
-// @Summary Verify totp URL
-// @Description Verify totp URL
-// @Tags TOTP
-// @Accept json
-// @Produce json
-// @Param totp_url body string true "TOTP path url"
-// @Success 200 {object} models.TOTPVerify
-// @Failure 400 {object} httpErrors.RestError
-// @Failure 400 {object} models.TOTPVerify
-// @Router /verify [post]
+// @Summary		Verify totp URL
+// @Description	Verify totp URL
+// @Tags			TOTP
+// @Accept			json
+// @Produce		json
+// @Param			totp_url	body		string	true	"TOTP path url"
+// @Success		200			{object}	models.TOTPVerify
+// @Failure		400			{object}	httpError
+// @Failure		400			{object}	models.TOTPVerify
+// @Router			/verify [post]
 func (t totpHandlers) Verify() echo.HandlerFunc {
 	type Url struct {
 		TotpUrl string `json:"totp_url"`
@@ -130,17 +134,17 @@ func (t totpHandlers) Verify() echo.HandlerFunc {
 	}
 }
 
-// @Summary Validate totp code
-// @Description Validate users's totp cide
-// @Tags TOTP
-// @Accept json
-// @Produce json
-// @Param user_id body string true "User id"
-// @Param totp_code body string true "Totp user's code"
-// @Success 200 {object} models.TOTPValidate
-// @Failure 400 {object} httpErrors.RestError
-// @Failure 404 {object} httpErrors.RestError
-// @Router /validate [post]
+// @Summary		Validate totp code
+// @Description	Validate users's totp cide
+// @Tags			TOTP
+// @Accept			json
+// @Produce		json
+// @Param			user_id		body		string	true	"User id"
+// @Param			totp_code	body		string	true	"Totp user's code"
+// @Success		200			{object}	models.TOTPValidate
+// @Failure		400			{object}	httpError
+// @Failure		404			{object}	httpError
+// @Router			/validate [post]
 func (t totpHandlers) Validate() echo.HandlerFunc {
 	type Input struct {
 		UserId   string `json:"user_id"`
@@ -187,17 +191,17 @@ func (t totpHandlers) Validate() echo.HandlerFunc {
 	}
 }
 
-// @Summary Enable totp code
-// @Description Enable users's totp cide or selected totp code
-// @Tags TOTP
-// @Accept json
-// @Produce json
-// @Param user_id body string true "User id"
-// @Param totp_id body string true "Totp id"
-// @Success 200 {object} models.TOTPEnable
-// @Failure 400 {object} httpErors.RestError
-// @Failure 404 {object} httpErrors.RestError
-// @Router /enable [post]
+// @Summary		Enable totp code
+// @Description	Enable users's totp cide or selected totp code
+// @Tags			TOTP
+// @Accept			json
+// @Produce		json
+// @Param			user_id	body		string	true	"User id"
+// @Param			totp_id	body		string	true	"Totp id"
+// @Success		200		{object}	models.TOTPEnable
+// @Failure		400		{object}	httpError
+// @Failure		404		{object}	httpError
+// @Router			/enable [post]
 func (t totpHandlers) Enable() echo.HandlerFunc {
 	type Input struct {
 		UserId string `json:"user_id"`
@@ -253,17 +257,17 @@ func (t totpHandlers) Enable() echo.HandlerFunc {
 	}
 }
 
-// @Summary Disable totp code
-// @Description Disable users's totp cide or selected totp code
-// @Tags TOTP
-// @Accept json
-// @Produce json
-// @Param user_id body string true "User id"
-// @Param totp_id body string true "Totp id"
-// @Success 200 {object} models.TOTPDisable
-// @Failure 400 {object} httpErrors.RestError
-// @Failure 404 {object} httpErrors.RestError
-// @Router /disable [post]
+// @Summary		Disable totp code
+// @Description	Disable users's totp cide or selected totp code
+// @Tags			TOTP
+// @Accept			json
+// @Produce		json
+// @Param			user_id	body		string	false	"User id"
+// @Param			totp_id	body		string	false	"Totp id"
+// @Success		200		{object}	models.TOTPDisable
+// @Failure		400		{object}	httpError
+// @Failure		404		{object}	httpError
+// @Router			/disable [post]
 func (t totpHandlers) Disable() echo.HandlerFunc {
 	type Input struct {
 		UserId string `json:"user_id"`
