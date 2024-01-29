@@ -15,7 +15,7 @@ type totpRepo struct {
 }
 
 func (t totpRepo) CreateConfig(ctx context.Context, totpConfig models.TOTPConfig) error {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "totpRepo.Save")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "totpRepo.CreateConfig")
 	defer span.Finish()
 
 	var s models.TOTPConfig
@@ -35,42 +35,8 @@ func (t totpRepo) CreateConfig(ctx context.Context, totpConfig models.TOTPConfig
 	return nil
 }
 
-func (t totpRepo) GetURL(ctx context.Context, id uuid.UUID) (string, error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "totpRepo.Get")
-	defer span.Finish()
-
-	type Data struct {
-		Url string `json:"url"`
-	}
-
-	var tmp Data
-
-	if err := t.db.QueryRowxContext(ctx,
-		getURL,
-		id,
-	).StructScan(&tmp); err != nil {
-		return tmp.Url, errors.Wrap(err, "totpRepo.GetSecret.QueryRowContext")
-	}
-	return tmp.Url, nil
-}
-
-func (t totpRepo) UpdateActive(ctx context.Context, id uuid.UUID, status bool) error {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "totpRepo.Update")
-	defer span.Finish()
-
-	_, err := t.db.ExecContext(ctx,
-		updareActive,
-		id,
-		status,
-	)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (t totpRepo) GetActiveConfig(ctx context.Context, userId uuid.UUID) (models.TOTPConfig, error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "totpRepo.GetConfig")
+func (t totpRepo) GetActiveConfig(ctx context.Context, userId uuid.UUID) (*models.TOTPConfig, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "totpRepo.GetActiveConfig")
 	defer span.Finish()
 
 	var s models.TOTPConfig
@@ -79,9 +45,54 @@ func (t totpRepo) GetActiveConfig(ctx context.Context, userId uuid.UUID) (models
 		getActiveConfig,
 		&userId,
 	).StructScan(&s); err != nil {
-		return s, errors.Wrap(err, "totpRepo.GetConfig.QueryRowContext")
+		return nil, errors.Wrap(err, "totpRepo.GetActiveConfig.QueryRowContext")
 	}
-	return s, nil
+	return &s, nil
+}
+
+func (t totpRepo) GetConfigByTotpId(ctx context.Context, totpId uuid.UUID) (*models.TOTPConfig, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "totpRepo.GetConfigByTotpId")
+	defer span.Finish()
+
+	var s models.TOTPConfig
+
+	if err := t.db.QueryRowxContext(ctx,
+		getConfigByTotpId,
+		&totpId,
+	).StructScan(&s); err != nil {
+		return nil, errors.Wrap(err, "totpRepo.GetConfigByTotpId.QueryRowContext")
+	}
+	return &s, nil
+}
+
+func (t totpRepo) UpdateTotpActivityByTotpId(ctx context.Context, totpId uuid.UUID, status bool) error {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "totpRepo.UpdateActive")
+	defer span.Finish()
+
+	_, err := t.db.ExecContext(ctx,
+		updateTotpActivityByTotpId,
+		totpId,
+		status,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (t totpRepo) GetConfigByUserId(ctx context.Context, userId uuid.UUID) (*models.TOTPConfig, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "totpRepo.GetConfigByUserId")
+	defer span.Finish()
+
+	var s models.TOTPConfig
+
+	if err := t.db.QueryRowxContext(ctx,
+		getConfigByUserId,
+		&userId,
+	).StructScan(&s); err != nil {
+		return nil, errors.Wrap(err, "totpRepo.GetConfigByUserId.QueryRowContext")
+	}
+	return &s, nil
 }
 
 func NewTOTPRepository(db *sqlx.DB) totp.Repository {

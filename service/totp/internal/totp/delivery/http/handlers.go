@@ -131,7 +131,7 @@ func (t totpHandlers) Verify() echo.HandlerFunc {
 }
 
 // @Summary Validate totp code
-// @Description Validate users's titp cide
+// @Description Validate users's totp cide
 // @Tags TOTP
 // @Accept json
 // @Produce json
@@ -174,7 +174,7 @@ func (t totpHandlers) Validate() echo.HandlerFunc {
 
 		totpValidate, err := t.totpUC.Validate(ctx, userId, input.TotpCode)
 		if err != nil {
-			if errors.Is(err, totpErrors.NoUserTotp) {
+			if errors.Is(err, totpErrors.NoUserId) {
 				return c.JSON(http.StatusNotFound, totpValidate)
 			} else if errors.Is(err, totpErrors.WrongTotpCode) {
 				return c.JSON(http.StatusBadRequest, totpValidate)
@@ -212,9 +212,21 @@ func (t totpHandlers) Enable() echo.HandlerFunc {
 	}
 }
 
+// @Summary Disable totp code
+// @Description Disable users's totp cide or selected totp code
+// @Tags TOTP
+// @Accept json
+// @Produce json
+// @Param user_id uuid string true "User id"
+// @Param totp_id uuid string true "Totp id"
+// @Success 200 {object} models.TotpDisable
+// @Failure 400 {object} httputil.HTTPError
+// @Failure 404 {object} httputil.HTTPError
+// @Router /verify [post]
 func (t totpHandlers) Disable() echo.HandlerFunc {
 	type Input struct {
-		Id string `json:"id"`
+		UserId string `json:"user_id"`
+		TotpId string `json:"totp_id"`
 	}
 	return func(c echo.Context) error {
 		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "auth.Login")
@@ -223,16 +235,45 @@ func (t totpHandlers) Disable() echo.HandlerFunc {
 		input := &Input{}
 		if err := utils.ReadRequest(c, input); err != nil {
 			utils.LogResponseError(c, t.logger, err)
-			return c.JSON(httpErrors.ErrorResponse(err))
-		}
-		t.logger.Info(input.Id)
-		userId, err := uuid.Parse(input.Id)
-		if err != nil {
-			utils.LogResponseError(c, t.logger, err)
-			return c.JSON(http.StatusBadRequest, err)
+			return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.Disable.utils.ReadRequest")))
 		}
 
-		totpDisable, _ := t.totpUC.Disable(ctx, userId)
+		if input.TotpId == "" && input.UserId == "" {
+			utils.LogResponseError(c, t.logger, errors.New("No user_id and totp_id fields"))
+			return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, "No user_id and totp_id fields", nil))
+		}
+
+		var userId uuid.UUID = uuid.Nil
+		var totpId uuid.UUID = uuid.Nil
+
+		var err error
+
+		if input.TotpId != "" {
+			totpId, err = uuid.Parse(input.TotpId)
+			if err != nil {
+				utils.LogResponseError(c, t.logger, err)
+				return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.Disable.uuid(totp_id).Parse")))
+			}
+		}
+		if input.UserId != "" {
+			userId, err = uuid.Parse(input.UserId)
+			if err != nil {
+				utils.LogResponseError(c, t.logger, err)
+				return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.Disable.uuid(user_id).Parse")))
+			}
+		}
+
+		totpDisable, err := t.totpUC.Disable(ctx, totpId, userId)
+		if err != nil {
+			if errors.Is(err, totpErrors.NoTotpId) ||
+				errors.Is(err, totpErrors.NoId) {
+				return c.JSON(http.StatusNotFound, totpDisable)
+			} else if errors.Is(err, totpErrors.TotpIsDisabled) {
+				return c.JSON(http.StatusBadRequest, totpDisable)
+			} else {
+				return c.JSON(httpErrors.ErrorResponse(err))
+			}
+		}
 		return c.JSON(http.StatusOK, totpDisable)
 	}
 }

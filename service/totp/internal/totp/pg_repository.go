@@ -9,10 +9,12 @@ import (
 
 type Repository interface {
 	CreateConfig(ctx context.Context, totp models.TOTPConfig) error
+	GetActiveConfig(ctx context.Context, userId uuid.UUID) (*models.TOTPConfig, error)
+	GetConfigByTotpId(ctx context.Context, totpId uuid.UUID) (*models.TOTPConfig, error)
 
-	GetURL(ctx context.Context, id uuid.UUID) (string, error)
-	UpdateActive(ctx context.Context, id uuid.UUID, status bool) error
+	UpdateTotpActivityByTotpId(ctx context.Context, totpId uuid.UUID, status bool) error
+
+	GetConfigByUserId(ctx context.Context, userId uuid.UUID) (*models.TOTPConfig, error)
+
 	//UpdateConfig(ctx context.Context, totp models.TOTPConfig) error
-
-	GetActiveConfig(ctx context.Context, userId uuid.UUID) (models.TOTPConfig, error)
 }

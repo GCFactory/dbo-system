@@ -90,7 +90,7 @@ func (t totpUC) Verify(ctx context.Context, url string) (*models.TOTPVerify, err
 func (t totpUC) Validate(ctx context.Context, id uuid.UUID, code string) (*models.TOTPValidate, error) {
 	activeConfig, err := t.totpRepo.GetActiveConfig(ctx, id)
 	if err != nil {
-		return &models.TOTPValidate{Status: totpErrors.NoUserTotp.Error()}, totpErrors.NoUserTotp
+		return &models.TOTPValidate{Status: totpErrors.NoUserId.Error()}, totpErrors.NoUserId
 	}
 
 	url := activeConfig.URL
@@ -189,27 +189,49 @@ func (t totpUC) Validate(ctx context.Context, id uuid.UUID, code string) (*model
 }
 
 func (t totpUC) Enable(ctx context.Context, id uuid.UUID) (*models.TOTPEnable, error) {
-	_, err := t.totpRepo.GetURL(ctx, id)
-	if err != nil {
-		return &models.TOTPEnable{Status: "Non-existent id"}, errors.New("Non-existent id")
-	}
-	err = t.totpRepo.UpdateActive(ctx, id, true)
-	if err != nil {
-		return &models.TOTPEnable{Status: "Update active status error"}, errors.New("Update active status error")
-	}
+	//_, err := t.totpRepo.GetURL(ctx, id)
+	//if err != nil {
+	//	return &models.TOTPEnable{Status: "Non-existent id"}, errors.New("Non-existent id")
+	//}
+	//err = t.totpRepo.UpdateActive(ctx, id, true)
+	//if err != nil {
+	//	return &models.TOTPEnable{Status: "Update active status error"}, errors.New("Update active status error")
+	//}
 	return &models.TOTPEnable{Status: "OK"}, nil
 }
 
-func (t totpUC) Disable(ctx context.Context, id uuid.UUID) (*models.TOTPDisable, error) {
-	_, err := t.totpRepo.GetURL(ctx, id)
-	if err != nil {
-		return &models.TOTPDisable{Status: "Non-existent id"}, errors.New("Non-existent id")
+func (t totpUC) Disable(ctx context.Context, totpId uuid.UUID, userId uuid.UUID) (*models.TOTPDisable, error) {
+	if totpId != uuid.Nil {
+		config, err := t.totpRepo.GetConfigByTotpId(ctx, totpId)
+		if err != nil && userId == uuid.Nil {
+			return &models.TOTPDisable{Status: totpErrors.NoTotpId.Error()}, totpErrors.NoTotpId
+		} else if err == nil {
+			if config.IsActive == false {
+				return &models.TOTPDisable{Status: totpErrors.TotpIsDisabled.Error()}, totpErrors.TotpIsDisabled
+			}
+			err = t.totpRepo.UpdateTotpActivityByTotpId(ctx, totpId, false)
+			if err != nil {
+				return nil, httpErrors.NewInternalServerError(errors.Wrap(err, "totpUC.Disable.totpRepo.UpdateTotpActivityByTotpId(totpId)"))
+			}
+			return &models.TOTPDisable{Status: "OK"}, nil
+		}
 	}
-	err = t.totpRepo.UpdateActive(ctx, id, false)
-	if err != nil {
-		return &models.TOTPDisable{Status: "Update active status error"}, errors.New("Update active status error")
+	if userId != uuid.Nil {
+		config, err := t.totpRepo.GetConfigByUserId(ctx, userId)
+		if err != nil {
+			return &models.TOTPDisable{Status: totpErrors.NoId.Error()}, totpErrors.NoId
+		}
+		config, err = t.totpRepo.GetActiveConfig(ctx, userId)
+		if err != nil {
+			return &models.TOTPDisable{Status: totpErrors.TotpIsDisabled.Error()}, totpErrors.TotpIsDisabled
+		}
+		err = t.totpRepo.UpdateTotpActivityByTotpId(ctx, config.Id, false)
+		if err != nil {
+			return nil, httpErrors.NewInternalServerError(errors.Wrap(err, "totpUC.Disable.totpRepo.UpdateTotpActivityByTotpId(userId)"))
+		}
+		return &models.TOTPDisable{Status: "OK"}, nil
 	}
-	return &models.TOTPDisable{Status: "OK"}, nil
+	return &models.TOTPDisable{Status: totpErrors.NoId.Error()}, totpErrors.NoId
 }
 
 func NewTOTPUseCase(cfg *config.Config, totpRepo totp.Repository, log logger.Logger) totp.UseCase {
