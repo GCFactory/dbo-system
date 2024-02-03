@@ -2,7 +2,7 @@ package test
 
 import "os"
 
-func ad() func() {
+func DisableOutput() func() {
 	null, _ := os.Open(os.DevNull)
 	sout := os.Stdout
 	serr := os.Stderr
