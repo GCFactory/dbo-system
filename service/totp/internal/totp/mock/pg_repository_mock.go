@@ -10,6 +10,7 @@ import (
 
 	models "github.com/GCFactory/dbo-system/service/totp/internal/models"
 	gomock "github.com/golang/mock/gomock"
+	uuid "github.com/google/uuid"
 )
 
 // MockRepository is a mock of Repository interface.
@@ -35,77 +36,90 @@ func (m *MockRepository) EXPECT() *MockRepositoryMockRecorder {
 	return m.recorder
 }
 
-// Disable mocks base method.
-func (m *MockRepository) Disable(ctx context.Context, request models.TOTPRequest) (*models.TOTPBase, error) {
+// CreateConfig mocks base method.
+func (m *MockRepository) CreateConfig(ctx context.Context, totp models.TOTPConfig) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Disable", ctx, request)
-	ret0, _ := ret[0].(*models.TOTPBase)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret := m.ctrl.Call(m, "CreateConfig", ctx, totp)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// Disable indicates an expected call of Disable.
-func (mr *MockRepositoryMockRecorder) Disable(ctx, request interface{}) *gomock.Call {
+// CreateConfig indicates an expected call of CreateConfig.
+func (mr *MockRepositoryMockRecorder) CreateConfig(ctx, totp interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Disable", reflect.TypeOf((*MockRepository)(nil).Disable), ctx, request)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateConfig", reflect.TypeOf((*MockRepository)(nil).CreateConfig), ctx, totp)
 }
 
-// Enable mocks base method.
-func (m *MockRepository) Enable(ctx context.Context, request models.TOTPRequest) (*models.TOTPBase, error) {
+// GetActiveConfig mocks base method.
+func (m *MockRepository) GetActiveConfig(ctx context.Context, userId uuid.UUID) (*models.TOTPConfig, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Enable", ctx, request)
-	ret0, _ := ret[0].(*models.TOTPBase)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Enable indicates an expected call of Enable.
-func (mr *MockRepositoryMockRecorder) Enable(ctx, request interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Enable", reflect.TypeOf((*MockRepository)(nil).Enable), ctx, request)
-}
-
-// Enroll mocks base method.
-func (m *MockRepository) Enroll(ctx context.Context, totp models.TOTPConfig) (*models.TOTPEnroll, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Enroll", ctx, totp)
-	ret0, _ := ret[0].(*models.TOTPEnroll)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Enroll indicates an expected call of Enroll.
-func (mr *MockRepositoryMockRecorder) Enroll(ctx, totp interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Enroll", reflect.TypeOf((*MockRepository)(nil).Enroll), ctx, totp)
-}
-
-// Validate mocks base method.
-func (m *MockRepository) Validate(ctx context.Context, request models.TOTPRequest) (*models.TOTPBase, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Validate", ctx, request)
-	ret0, _ := ret[0].(*models.TOTPBase)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Validate indicates an expected call of Validate.
-func (mr *MockRepositoryMockRecorder) Validate(ctx, request interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Validate", reflect.TypeOf((*MockRepository)(nil).Validate), ctx, request)
-}
-
-// Verify mocks base method.
-func (m *MockRepository) Verify(ctx context.Context, request models.TOTPRequest) (*models.TOTPConfig, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Verify", ctx, request)
+	ret := m.ctrl.Call(m, "GetActiveConfig", ctx, userId)
 	ret0, _ := ret[0].(*models.TOTPConfig)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// Verify indicates an expected call of Verify.
-func (mr *MockRepositoryMockRecorder) Verify(ctx, request interface{}) *gomock.Call {
+// GetActiveConfig indicates an expected call of GetActiveConfig.
+func (mr *MockRepositoryMockRecorder) GetActiveConfig(ctx, userId interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Verify", reflect.TypeOf((*MockRepository)(nil).Verify), ctx, request)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetActiveConfig", reflect.TypeOf((*MockRepository)(nil).GetActiveConfig), ctx, userId)
+}
+
+// GetConfigByTotpId mocks base method.
+func (m *MockRepository) GetConfigByTotpId(ctx context.Context, totpId uuid.UUID) (*models.TOTPConfig, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetConfigByTotpId", ctx, totpId)
+	ret0, _ := ret[0].(*models.TOTPConfig)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetConfigByTotpId indicates an expected call of GetConfigByTotpId.
+func (mr *MockRepositoryMockRecorder) GetConfigByTotpId(ctx, totpId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigByTotpId", reflect.TypeOf((*MockRepository)(nil).GetConfigByTotpId), ctx, totpId)
+}
+
+// GetConfigByUserId mocks base method.
+func (m *MockRepository) GetConfigByUserId(ctx context.Context, userId uuid.UUID) (*models.TOTPConfig, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetConfigByUserId", ctx, userId)
+	ret0, _ := ret[0].(*models.TOTPConfig)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetConfigByUserId indicates an expected call of GetConfigByUserId.
+func (mr *MockRepositoryMockRecorder) GetConfigByUserId(ctx, userId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigByUserId", reflect.TypeOf((*MockRepository)(nil).GetConfigByUserId), ctx, userId)
+}
+
+// GetLastDisabledConfig mocks base method.
+func (m *MockRepository) GetLastDisabledConfig(ctx context.Context, userId uuid.UUID) (*models.TOTPConfig, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLastDisabledConfig", ctx, userId)
+	ret0, _ := ret[0].(*models.TOTPConfig)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLastDisabledConfig indicates an expected call of GetLastDisabledConfig.
+func (mr *MockRepositoryMockRecorder) GetLastDisabledConfig(ctx, userId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLastDisabledConfig", reflect.TypeOf((*MockRepository)(nil).GetLastDisabledConfig), ctx, userId)
+}
+
+// UpdateTotpActivityByTotpId mocks base method.
+func (m *MockRepository) UpdateTotpActivityByTotpId(ctx context.Context, totpId uuid.UUID, status bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateTotpActivityByTotpId", ctx, totpId, status)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateTotpActivityByTotpId indicates an expected call of UpdateTotpActivityByTotpId.
+func (mr *MockRepositoryMockRecorder) UpdateTotpActivityByTotpId(ctx, totpId, status interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateTotpActivityByTotpId", reflect.TypeOf((*MockRepository)(nil).UpdateTotpActivityByTotpId), ctx, totpId, status)
 }

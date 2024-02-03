@@ -10,6 +10,7 @@ import (
 
 	models "github.com/GCFactory/dbo-system/service/totp/internal/models"
 	gomock "github.com/golang/mock/gomock"
+	uuid "github.com/google/uuid"
 )
 
 // MockUseCase is a mock of UseCase interface.
@@ -36,33 +37,33 @@ func (m *MockUseCase) EXPECT() *MockUseCaseMockRecorder {
 }
 
 // Disable mocks base method.
-func (m *MockUseCase) Disable(ctx context.Context, request *models.TOTPRequest) (*models.TOTPBase, error) {
+func (m *MockUseCase) Disable(ctx context.Context, totpId, userId uuid.UUID) (*models.TOTPDisable, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Disable", ctx, request)
-	ret0, _ := ret[0].(*models.TOTPBase)
+	ret := m.ctrl.Call(m, "Disable", ctx, totpId, userId)
+	ret0, _ := ret[0].(*models.TOTPDisable)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Disable indicates an expected call of Disable.
-func (mr *MockUseCaseMockRecorder) Disable(ctx, request interface{}) *gomock.Call {
+func (mr *MockUseCaseMockRecorder) Disable(ctx, totpId, userId interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Disable", reflect.TypeOf((*MockUseCase)(nil).Disable), ctx, request)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Disable", reflect.TypeOf((*MockUseCase)(nil).Disable), ctx, totpId, userId)
 }
 
 // Enable mocks base method.
-func (m *MockUseCase) Enable(ctx context.Context, request *models.TOTPRequest) (*models.TOTPBase, error) {
+func (m *MockUseCase) Enable(ctx context.Context, totpId, userId uuid.UUID) (*models.TOTPEnable, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Enable", ctx, request)
-	ret0, _ := ret[0].(*models.TOTPBase)
+	ret := m.ctrl.Call(m, "Enable", ctx, totpId, userId)
+	ret0, _ := ret[0].(*models.TOTPEnable)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Enable indicates an expected call of Enable.
-func (mr *MockUseCaseMockRecorder) Enable(ctx, request interface{}) *gomock.Call {
+func (mr *MockUseCaseMockRecorder) Enable(ctx, totpId, userId interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Enable", reflect.TypeOf((*MockUseCase)(nil).Enable), ctx, request)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Enable", reflect.TypeOf((*MockUseCase)(nil).Enable), ctx, totpId, userId)
 }
 
 // Enroll mocks base method.
@@ -81,18 +82,18 @@ func (mr *MockUseCaseMockRecorder) Enroll(ctx, totp interface{}) *gomock.Call {
 }
 
 // Validate mocks base method.
-func (m *MockUseCase) Validate(ctx context.Context, request *models.TOTPRequest) (*models.TOTPBase, error) {
+func (m *MockUseCase) Validate(ctx context.Context, id uuid.UUID, code string) (*models.TOTPValidate, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Validate", ctx, request)
-	ret0, _ := ret[0].(*models.TOTPBase)
+	ret := m.ctrl.Call(m, "Validate", ctx, id, code)
+	ret0, _ := ret[0].(*models.TOTPValidate)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Validate indicates an expected call of Validate.
-func (mr *MockUseCaseMockRecorder) Validate(ctx, request interface{}) *gomock.Call {
+func (mr *MockUseCaseMockRecorder) Validate(ctx, id, code interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Validate", reflect.TypeOf((*MockUseCase)(nil).Validate), ctx, request)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Validate", reflect.TypeOf((*MockUseCase)(nil).Validate), ctx, id, code)
 }
 
 // Verify mocks base method.
