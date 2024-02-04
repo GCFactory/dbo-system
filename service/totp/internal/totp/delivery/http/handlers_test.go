@@ -9,7 +9,6 @@ import (
 	"github.com/GCFactory/dbo-system/service/totp/internal/models"
 	"github.com/GCFactory/dbo-system/service/totp/internal/totp/mock"
 	totpErrors "github.com/GCFactory/dbo-system/service/totp/pkg/errors"
-	"github.com/GCFactory/dbo-system/test"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -17,8 +16,19 @@ import (
 	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
+)
+
+var (
+	testCfg = &config.Config{
+		Env: "Development",
+		Logger: config.Logger{
+			Development: true,
+			Level:       "Debug",
+		},
+	}
 )
 
 //func TestTOTPHandlers_Enroll(t *testing.T) {
@@ -29,14 +39,14 @@ import (
 //
 //	mockTOTPUsecase := mock.NewMockUseCase(ctrl)
 //
-//	cfg := &config.Config{
+//	testCfg := &config.Config{
 //		Logger: config.Logger{
 //			Development: true,
 //		},
 //	}
 //
-//	apiLogger := logger.NewServerLogger(cfg)
-//	totpHandlers := NewTOTPHandlers(cfg, mockTOTPUsecase, apiLogger)
+//	apiLogger := logger.NewServerLogger(testCfg)
+//	totpHandlers := NewTOTPHandlers(testCfg, mockTOTPUsecase, apiLogger)
 //
 //	type User struct {
 //		UserId uuid.UUID `json:"user_id"`
@@ -77,7 +87,7 @@ import (
 //	require.Nil(t, err)
 //}
 
-func TestTOTPHandlers_Disable(t *testing.T) {
+func TestTotpHandlers_Disable(t *testing.T) {
 	type inputStruct struct {
 		UserId string `json:"user_id"`
 		TotpId string `json:"totp_id"`
@@ -86,23 +96,24 @@ func TestTOTPHandlers_Disable(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	cfg := &config.Config{
-		Env: "Development",
-		Logger: config.Logger{
-			Development: true,
-			Level:       "Debug",
-		},
-	}
-
-	apiLogger := logger.NewServerLogger(cfg)
+	apiLogger := logger.NewServerLogger(testCfg)
 	apiLogger.InitLogger()
 
 	mockTOTP := mock.NewMockUseCase(ctrl)
-	tHandlers := NewTOTPHandlers(cfg, mockTOTP, apiLogger)
+	tHandlers := NewTOTPHandlers(testCfg, mockTOTP, apiLogger)
 
 	t.Parallel()
-	supressOutput := test.DisableOutput()
-	defer supressOutput()
+	// Supress output
+	null, _ := os.Open(os.DevNull)
+	sout := os.Stdout
+	serr := os.Stderr
+	os.Stdout = null
+	os.Stderr = null
+	defer func() {
+		defer null.Close()
+		os.Stdout = sout
+		os.Stderr = serr
+	}()
 
 	t.Run("EmptyBody", func(t *testing.T) {
 		inputBody := ""
