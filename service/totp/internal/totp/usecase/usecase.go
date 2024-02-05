@@ -234,11 +234,23 @@ func (t totpUC) Disable(ctx context.Context, totpId uuid.UUID, userId uuid.UUID)
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Disable")
 	defer span.Finish()
 
+	totpCfg := &models.TOTPConfig{}
+
+	var err error
+
+	if totpId != uuid.Nil && userId != uuid.Nil {
+		totpCfg, err = t.totpRepo.GetConfigByTotpId(ctxWithTrace, totpId)
+		if err != nil || totpCfg.UserId != userId {
+			return &models.TOTPDisable{Status: totpErrors.NoId.Error()}, totpErrors.NoId
+		}
+	}
 	if totpId != uuid.Nil {
-		totpCfg, err := t.totpRepo.GetConfigByTotpId(ctxWithTrace, totpId)
-		if err != nil && userId == uuid.Nil {
+		if totpCfg.Id == uuid.Nil {
+			totpCfg, err = t.totpRepo.GetConfigByTotpId(ctxWithTrace, totpId)
+		}
+		if err != nil {
 			return &models.TOTPDisable{Status: totpErrors.NoTotpId.Error()}, totpErrors.NoTotpId
-		} else if err == nil {
+		} else {
 			if totpCfg.IsActive == false {
 				return &models.TOTPDisable{Status: totpErrors.TotpIsDisabled.Error()}, totpErrors.TotpIsDisabled
 			}
@@ -250,11 +262,12 @@ func (t totpUC) Disable(ctx context.Context, totpId uuid.UUID, userId uuid.UUID)
 		}
 	}
 	if userId != uuid.Nil {
-		totpCfg, err := t.totpRepo.GetConfigByUserId(ctxWithTrace, userId)
-		if err != nil && totpId == uuid.Nil {
+		totpCfg, err = t.totpRepo.GetConfigByUserId(ctxWithTrace, userId)
+		if err != nil {
 			return &models.TOTPDisable{Status: totpErrors.NoTotpId.Error()}, totpErrors.NoTotpId
-		} else if err == nil {
-			if totpCfg.IsActive == false {
+		} else {
+			totpCfg, err = t.totpRepo.GetActiveConfig(ctxWithTrace, userId)
+			if err != nil {
 				return &models.TOTPDisable{Status: totpErrors.TotpIsDisabled.Error()}, totpErrors.TotpIsDisabled
 			}
 			err = t.totpRepo.UpdateTotpActivityByTotpId(ctxWithTrace, totpCfg.Id, false)
