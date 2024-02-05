@@ -3,15 +3,14 @@ package usecase
 import (
 	"context"
 	"github.com/GCFactory/dbo-system/platform/config"
-	"github.com/GCFactory/dbo-system/platform/pkg/httpErrors"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/service/totp/internal/models"
 	"github.com/GCFactory/dbo-system/service/totp/internal/totp/mock"
+	totpRepo "github.com/GCFactory/dbo-system/service/totp/internal/totp/repository"
 	totpErrors "github.com/GCFactory/dbo-system/service/totp/pkg/errors"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/opentracing/opentracing-go"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	"os"
 	"testing"
@@ -111,7 +110,7 @@ func TestTotpUC_Disable(t *testing.T) {
 			span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Disable")
 			defer span.Finish()
 
-			mockRepo.EXPECT().GetConfigByTotpId(ctxWithTrace, gomock.Eq(totpId)).Return(nil, totpErrors.NoTotpId)
+			mockRepo.EXPECT().GetConfigByTotpId(ctxWithTrace, gomock.Eq(totpId)).Return(nil, totpRepo.ErrorGetConfigByTotpId)
 
 			usecaseResult, err := totpUC.Disable(ctx, totpId, uuid.Nil)
 			require.NotNil(t, err)
@@ -121,7 +120,7 @@ func TestTotpUC_Disable(t *testing.T) {
 			require.Equal(t, usecaseResult, &models.TOTPDisable{Status: totpErrors.NoTotpId.Error()})
 
 		})
-		t.Run("InActive", func(t *testing.T) {
+		t.Run("IsDisabled", func(t *testing.T) {
 			configTOTP := models.TOTPConfig{
 				IsActive: false,
 			}
@@ -143,21 +142,19 @@ func TestTotpUC_Disable(t *testing.T) {
 			configTOTP := models.TOTPConfig{
 				IsActive: true,
 			}
-			expectedRepoError := errors.New("")
-			expectedUsecaseError := httpErrors.NewInternalServerError(errors.Wrap(expectedRepoError, "totpUC.Disable.totpRepo.UpdateTotpActivityByTotpId(totpId)"))
 
 			ctx := context.Background()
 			span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Disable")
 			defer span.Finish()
 
 			mockRepo.EXPECT().GetConfigByTotpId(ctxWithTrace, gomock.Eq(totpId)).Return(&configTOTP, nil)
-			mockRepo.EXPECT().UpdateTotpActivityByTotpId(ctxWithTrace, gomock.Eq(totpId), gomock.Eq(false)).Return(expectedRepoError)
+			mockRepo.EXPECT().UpdateTotpActivityByTotpId(ctxWithTrace, gomock.Eq(totpId), gomock.Eq(false)).Return(totpRepo.ErrorUpdateTotpActivityByTotpId)
 
 			usecaseResult, err := totpUC.Disable(ctx, totpId, uuid.Nil)
 			require.NotNil(t, err)
-			require.Error(t, err)
-			require.Equal(t, err.Error(), expectedUsecaseError.Error())
 			require.Nil(t, usecaseResult)
+			require.Error(t, err)
+			require.Equal(t, err, ErrorUpdateActivityByTotpId)
 		})
 	})
 
@@ -169,7 +166,7 @@ func TestTotpUC_Disable(t *testing.T) {
 				Id:       uuid.New(),
 			}
 
-			ctx := context.TODO()
+			ctx := context.Background()
 			span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Disable")
 			defer span.Finish()
 
@@ -187,7 +184,7 @@ func TestTotpUC_Disable(t *testing.T) {
 			span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Disable")
 			defer span.Finish()
 
-			mockRepo.EXPECT().GetConfigByUserId(ctxWithTrace, gomock.Eq(userId)).Return(nil, totpErrors.NoTotpId)
+			mockRepo.EXPECT().GetConfigByUserId(ctxWithTrace, gomock.Eq(userId)).Return(nil, totpRepo.ErrorGetConfiByUserId)
 
 			usecaseResult, err := totpUC.Disable(ctx, uuid.Nil, userId)
 			require.NotNil(t, err)
@@ -197,6 +194,52 @@ func TestTotpUC_Disable(t *testing.T) {
 			require.Equal(t, usecaseResult, &models.TOTPDisable{Status: totpErrors.NoTotpId.Error()})
 
 		})
+		t.Run("IsDisabled", func(t *testing.T) {
+			totpCfg := models.TOTPConfig{
+				IsActive: false,
+			}
+			ctx := context.Background()
+			span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Disable")
+			defer span.Finish()
 
+			mockRepo.EXPECT().GetConfigByUserId(ctxWithTrace, gomock.Eq(userId)).Return(&totpCfg, nil)
+
+			result, err := totpUC.Disable(ctx, uuid.Nil, userId)
+			require.NotNil(t, result)
+			require.NotNil(t, err)
+			require.Error(t, err)
+			require.Equal(t, err, totpErrors.TotpIsDisabled)
+			require.Equal(t, result, &models.TOTPDisable{Status: err.Error()})
+		})
+		t.Run("FailedToUpdateRepo", func(t *testing.T) {
+			totpCfg := models.TOTPConfig{
+				IsActive: true,
+				Id:       uuid.New(),
+			}
+
+			ctx := context.Background()
+			span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Disable")
+			defer span.Finish()
+
+			mockRepo.EXPECT().GetConfigByUserId(ctxWithTrace, gomock.Eq(userId)).Return(&totpCfg, nil)
+			mockRepo.EXPECT().UpdateTotpActivityByTotpId(ctxWithTrace, gomock.Eq(totpCfg.Id), gomock.Eq(false)).Return(totpRepo.ErrorUpdateTotpActivityByTotpId)
+
+			result, err := totpUC.Disable(ctx, uuid.Nil, userId)
+			require.Nil(t, result)
+			require.NotNil(t, err)
+			require.Error(t, err)
+			require.Equal(t, err, ErrorUpdateActivityByTotpId)
+		})
+	})
+
+	t.Run("No Id", func(t *testing.T) {
+		ctx := context.Background()
+
+		result, err := totpUC.Disable(ctx, uuid.Nil, uuid.Nil)
+		require.NotNil(t, result)
+		require.NotNil(t, err)
+		require.Error(t, err)
+		require.Equal(t, err, totpErrors.NoId)
+		require.Equal(t, result, &models.TOTPDisable{Status: totpErrors.NoId.Error()})
 	})
 }

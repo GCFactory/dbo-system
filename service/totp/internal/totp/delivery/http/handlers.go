@@ -316,7 +316,7 @@ func (t totpHandlers) Disable() echo.HandlerFunc {
 			} else if errors.Is(err, totpErrors.TotpIsDisabled) {
 				return c.JSON(http.StatusBadRequest, totpDisable)
 			} else {
-				return c.JSON(httpErrors.ErrorResponse(err))
+				return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, err.Error())))
 			}
 		}
 		return c.JSON(http.StatusOK, totpDisable)

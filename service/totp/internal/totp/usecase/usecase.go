@@ -244,7 +244,7 @@ func (t totpUC) Disable(ctx context.Context, totpId uuid.UUID, userId uuid.UUID)
 			}
 			err = t.totpRepo.UpdateTotpActivityByTotpId(ctxWithTrace, totpId, false)
 			if err != nil {
-				return nil, httpErrors.NewInternalServerError(errors.Wrap(err, "totpUC.Disable.totpRepo.UpdateTotpActivityByTotpId(totpId)"))
+				return nil, ErrorUpdateActivityByTotpId
 			}
 			return &models.TOTPDisable{Status: "OK"}, nil
 		}
@@ -259,7 +259,7 @@ func (t totpUC) Disable(ctx context.Context, totpId uuid.UUID, userId uuid.UUID)
 			}
 			err = t.totpRepo.UpdateTotpActivityByTotpId(ctxWithTrace, totpCfg.Id, false)
 			if err != nil {
-				return nil, httpErrors.NewInternalServerError(errors.Wrap(err, "totpUC.Disable.totpRepo.UpdateTotpActivityByTotpId(totpId)"))
+				return nil, ErrorUpdateActivityByTotpId
 			}
 			return &models.TOTPDisable{Status: "OK"}, nil
 		}
