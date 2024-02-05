@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/opentracing/opentracing-go"
-	"github.com/pkg/errors"
 )
 
 type totpRepo struct {
@@ -30,7 +29,7 @@ func (t totpRepo) CreateConfig(ctx context.Context, totpConfig models.TOTPConfig
 		&totpConfig.Secret,
 		&totpConfig.URL,
 	).StructScan(&s); err != nil {
-		return errors.Wrap(err, "totpRepo.CreateConfig.QueryRowxContext")
+		return ErrorCreateConfig
 	}
 	return nil
 }
@@ -45,7 +44,7 @@ func (t totpRepo) GetActiveConfig(ctx context.Context, userId uuid.UUID) (*model
 		getActiveConfig,
 		&userId,
 	).StructScan(&s); err != nil {
-		return nil, errors.Wrap(err, "totpRepo.GetActiveConfig.QueryRowContext")
+		return nil, ErrorGetActiveConfig
 	}
 	return &s, nil
 }
@@ -60,7 +59,7 @@ func (t totpRepo) GetConfigByTotpId(ctx context.Context, totpId uuid.UUID) (*mod
 		getConfigByTotpId,
 		&totpId,
 	).StructScan(&s); err != nil {
-		return nil, errors.Wrap(err, "totpRepo.GetConfigByTotpId.QueryRowContext")
+		return nil, ErrorGetConfigByTotpId
 	}
 	return &s, nil
 }
@@ -75,7 +74,7 @@ func (t totpRepo) UpdateTotpActivityByTotpId(ctx context.Context, totpId uuid.UU
 		status,
 	)
 	if err != nil {
-		return err
+		return ErrorUpdateTotpActivityByTotpId
 	}
 	return nil
 }
@@ -90,7 +89,7 @@ func (t totpRepo) GetConfigByUserId(ctx context.Context, userId uuid.UUID) (*mod
 		getConfigByUserId,
 		&userId,
 	).StructScan(&s); err != nil {
-		return nil, errors.Wrap(err, "totpRepo.GetConfigByUserId.QueryRowContext")
+		return nil, ErrorGetConfiByUserId
 	}
 	return &s, nil
 }
@@ -105,7 +104,7 @@ func (t totpRepo) GetLastDisabledConfig(ctx context.Context, userId uuid.UUID) (
 		getLastDisabledConfig,
 		&userId,
 	).StructScan(&s); err != nil {
-		return nil, errors.Wrap(err, "totpRepo.GetLastDisabledConfig.QueryRowContext")
+		return nil, ErrorGetLastDisabledConfig
 	}
 	return &s, nil
 }
