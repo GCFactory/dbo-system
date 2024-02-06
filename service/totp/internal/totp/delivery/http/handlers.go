@@ -78,8 +78,11 @@ func (t totpHandlers) Enroll() echo.HandlerFunc {
 			utils.LogResponseError(c, t.logger, err)
 			if errors.Is(err, totpErrors.ActiveTotp) {
 				return c.JSON(http.StatusForbidden, httpErrors.NewRestError(http.StatusForbidden, err.Error(), nil))
+			} else if errors.Is(err, totpErrors.NoUserName) ||
+				errors.Is(err, totpErrors.NoUserId) {
+				return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, err.Error(), nil))
 			} else {
-				return c.JSON(http.StatusInternalServerError, err)
+				return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, err.Error())))
 			}
 		}
 
