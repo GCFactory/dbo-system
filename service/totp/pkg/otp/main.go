@@ -2,10 +2,10 @@ package otp
 
 import (
 	"crypto/rand"
-	"errors"
 	"github.com/GCFactory/dbo-system/service/totp/pkg/hotp"
 	hotpConfig "github.com/GCFactory/dbo-system/service/totp/pkg/hotp/config"
 	"github.com/GCFactory/dbo-system/service/totp/pkg/otp/config"
+	totpConfig "github.com/GCFactory/dbo-system/service/totp/pkg/otp/config"
 	"math"
 	"net/url"
 	"sort"
@@ -14,9 +14,12 @@ import (
 	"time"
 )
 
+type TotpStruct struct {
+}
+
 // ValidateCustom validates a TOTP given a user specified time and custom options.
 // Most users should use Validate() to provide an interpolatable TOTP experience.
-func ValidateCustom(passcode string, secret string, t time.Time, opts config.ValidateOpts) (bool, error) {
+func (totp TotpStruct) ValidateCustom(passcode string, secret string, t time.Time, opts config.ValidateOpts) (bool, error) {
 	if opts.Period == 0 {
 		opts.Period = 30
 	}
@@ -51,8 +54,8 @@ func ValidateCustom(passcode string, secret string, t time.Time, opts config.Val
 // Validate a TOTP using the current time.
 // A shortcut for ValidateCustom, Validate uses a configuration
 // that is compatible with Google-Authenticator and most clients.
-func Validate(passcode string, secret string) bool {
-	rv, _ := ValidateCustom(
+func (totp TotpStruct) Validate(passcode string, secret string) bool {
+	rv, _ := totp.ValidateCustom(
 		passcode,
 		secret,
 		time.Now().UTC(),
@@ -69,7 +72,7 @@ func Validate(passcode string, secret string) bool {
 // GenerateCodeCustom takes a timepoint and produces a passcode using a
 // secret and the provided opts. (Under the hood, this is making an adapted
 // call to hotp.GenerateCodeCustom)
-func GenerateCodeCustom(secret string, t time.Time, opts config.ValidateOpts) (passcode string, err error) {
+func (totp TotpStruct) GenerateCodeCustom(secret string, t time.Time, opts config.ValidateOpts) (passcode string, err error) {
 	if opts.Period == 0 {
 		opts.Period = 30
 	}
@@ -87,8 +90,8 @@ func GenerateCodeCustom(secret string, t time.Time, opts config.ValidateOpts) (p
 // GenerateCode creates a TOTP token using the current time.
 // A shortcut for GenerateCodeCustom, GenerateCode uses a configuration
 // that is compatible with Google-Authenticator and most clients.
-func GenerateCode(secret string, t time.Time) (string, error) {
-	return GenerateCodeCustom(secret, t, config.ValidateOpts{
+func (totp TotpStruct) GenerateCode(secret string, t time.Time) (string, error) {
+	return totp.GenerateCodeCustom(secret, t, config.ValidateOpts{
 		Period:    30,
 		Skew:      1,
 		Digits:    config.DigitsSix,
@@ -96,14 +99,14 @@ func GenerateCode(secret string, t time.Time) (string, error) {
 	})
 }
 
-func Generate(opts config.GenerateOpts) (*string, *string, error) {
+func (totp TotpStruct) Generate(opts config.GenerateOpts) (*string, *string, error) {
 	// url encode the Issuer/AccountName
 	if opts.Issuer == "" {
-		return nil, nil, errors.New("Missing issuer")
+		return nil, nil, totpConfig.ErrGenerateMissingIssuer
 	}
 
 	if opts.AccountName == "" {
-		return nil, nil, errors.New("Missing account name")
+		return nil, nil, totpConfig.ErrGenerateMissingAccountName
 	}
 
 	if opts.Period == 0 {
@@ -145,7 +148,7 @@ func Generate(opts config.GenerateOpts) (*string, *string, error) {
 		Scheme:   "otpauth",
 		Host:     "totp",
 		Path:     "/" + opts.Issuer + ":" + opts.AccountName,
-		RawQuery: EncodeQuery(v),
+		RawQuery: totp.EncodeQuery(v),
 	}
 	str1 := u.String()
 	str2 := v.Get("secret")
@@ -153,7 +156,7 @@ func Generate(opts config.GenerateOpts) (*string, *string, error) {
 	return &str2, &str1, nil
 }
 
-func EncodeQuery(v url.Values) string {
+func (totp TotpStruct) EncodeQuery(v url.Values) string {
 	if v == nil {
 		return ""
 	}

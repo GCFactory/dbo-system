@@ -45,7 +45,9 @@ func (t totpUC) Enroll(ctx context.Context, totpConfig models.TOTPConfig) (*mode
 	totpConfig.IsActive = true
 	totpConfig.Issuer = "dbo.gcfactory.space"
 
-	secret, url, err := totpPkg.Generate(totpPkgConfig.GenerateOpts{
+	totp := totpPkg.TotpStruct{}
+
+	secret, url, err := totp.Generate(totpPkgConfig.GenerateOpts{
 		Issuer:      totpConfig.Issuer,
 		AccountName: totpConfig.AccountName,
 		SecretSize:  totpPkgConfig.DefaultSecretLength,
@@ -185,7 +187,9 @@ func (t totpUC) Validate(ctx context.Context, id uuid.UUID, code string) (*model
 
 	validateOpts.Algorithm = algorithm
 
-	serverCode, err := totpPkg.GenerateCodeCustom(secret, time.Now(), validateOpts)
+	totp := totpPkg.TotpStruct{}
+
+	serverCode, err := totp.GenerateCodeCustom(secret, time.Now(), validateOpts)
 	if err != nil {
 		return nil, httpErrors.NewInternalServerError(errors.Wrap(err, "totpUC.Validate.GenerateCodeCustom"))
 	}
