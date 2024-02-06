@@ -20,9 +20,10 @@ import (
 )
 
 type totpUC struct {
-	cfg      *config.Config
-	totpRepo totp.Repository
-	logger   logger.Logger
+	cfg       *config.Config
+	totpRepo  totp.Repository
+	totpLogic totpPkg.TotpStruct
+	logger    logger.Logger
 }
 
 func (t totpUC) Enroll(ctx context.Context, totpConfig models.TOTPConfig) (*models.TOTPEnroll, error) {
@@ -45,9 +46,7 @@ func (t totpUC) Enroll(ctx context.Context, totpConfig models.TOTPConfig) (*mode
 	totpConfig.IsActive = true
 	totpConfig.Issuer = "dbo.gcfactory.space"
 
-	totp := totpPkg.TotpStruct{}
-
-	secret, url, err := totp.Generate(totpPkgConfig.GenerateOpts{
+	secret, url, err := t.totpLogic.Generate(totpPkgConfig.GenerateOpts{
 		Issuer:      totpConfig.Issuer,
 		AccountName: totpConfig.AccountName,
 		SecretSize:  totpPkgConfig.DefaultSecretLength,
@@ -187,9 +186,7 @@ func (t totpUC) Validate(ctx context.Context, id uuid.UUID, code string) (*model
 
 	validateOpts.Algorithm = algorithm
 
-	totp := totpPkg.TotpStruct{}
-
-	serverCode, err := totp.GenerateCodeCustom(secret, time.Now(), validateOpts)
+	serverCode, err := t.totpLogic.GenerateCodeCustom(secret, time.Now(), validateOpts)
 	if err != nil {
 		return nil, httpErrors.NewInternalServerError(errors.Wrap(err, "totpUC.Validate.GenerateCodeCustom"))
 	}

@@ -8,6 +8,8 @@ import (
 	"github.com/GCFactory/dbo-system/service/totp/internal/totp/mock"
 	totpRepo "github.com/GCFactory/dbo-system/service/totp/internal/totp/repository"
 	totpErrors "github.com/GCFactory/dbo-system/service/totp/pkg/errors"
+	otpPkg "github.com/GCFactory/dbo-system/service/totp/pkg/otp"
+	totpPkgConfig "github.com/GCFactory/dbo-system/service/totp/pkg/otp/config"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/opentracing/opentracing-go"
@@ -25,6 +27,70 @@ var (
 		},
 	}
 )
+
+func TestTotpUC_Enroll(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	apiLogger := logger.NewServerLogger(testCfg)
+	apiLogger.InitLogger()
+	mockRepo := mock.NewMockRepository(ctrl)
+	mockTotp := mock.NewMockTotp(ctrl)
+	totpUC := NewTOTPUseCase(testCfg, mockRepo, apiLogger)
+
+	t.Parallel()
+	// Supress output
+	null, _ := os.Open(os.DevNull)
+	sout := os.Stdout
+	serr := os.Stderr
+	os.Stdout = null
+	os.Stderr = null
+	defer func() {
+		defer null.Close()
+		os.Stdout = sout
+		os.Stderr = serr
+	}()
+	userId := uuid.New()
+	userName := "Rueie"
+	issuer := "dbo.gcfactory.space"
+	t.Run("Valid", func(t *testing.T) {
+		genOpts := totpPkgConfig.GenerateOpts{
+			Issuer:      issuer,
+			AccountName: userName,
+			SecretSize:  totpPkgConfig.DefaultSecretLength,
+			Algorithm:   totpPkgConfig.DefaultAlgorithm,
+		}
+		tmp := otpPkg.TotpStruct{}
+		secret, url, err := tmp.Generate(genOpts)
+		totpCfg := models.TOTPConfig{
+			UserId:      userId,
+			Id:          uuid.New(),
+			IsActive:    true,
+			AccountName: userName,
+			Issuer:      issuer,
+			Secret:      *secret,
+			URL:         *url,
+		}
+
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Enroll")
+		defer span.Finish()
+
+		mockRepo.EXPECT().GetActiveConfig(ctxWithTrace, gomock.Eq(userId)).Return(nil, totpRepo.ErrorGetActiveConfig)
+		mockTotp.EXPECT().Generate(gomock.Eq(genOpts)).Return(secret, url, nil)
+		mockRepo.EXPECT().CreateConfig(ctxWithTrace, gomock.Eq(totpCfg)).Return(nil)
+
+		result, err := totpUC.Enroll(ctx, totpCfg)
+		require.Nil(t, err)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		require.Equal(t, result, &models.TOTPEnroll{
+			TotpId:     totpCfg.Id.String(),
+			TotpSecret: *secret,
+			TotpUrl:    *url,
+		})
+	})
+}
 
 //
 //func TestVerify(t *testing.T) {
