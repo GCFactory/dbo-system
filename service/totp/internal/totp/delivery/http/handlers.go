@@ -250,7 +250,7 @@ func (t totpHandlers) Enable() echo.HandlerFunc {
 			} else if errors.Is(err, totpErrors.TotpIsActive) {
 				return c.JSON(http.StatusBadRequest, totpEnable)
 			} else {
-				return c.JSON(httpErrors.ErrorResponse(err))
+				return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, err.Error())))
 			}
 		}
 		return c.JSON(http.StatusOK, totpEnable)

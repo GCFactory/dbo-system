@@ -189,41 +189,57 @@ func (t totpUC) Validate(ctx context.Context, id uuid.UUID, code string) (*model
 }
 
 func (t totpUC) Enable(ctx context.Context, totpId uuid.UUID, userId uuid.UUID) (*models.TOTPEnable, error) {
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Enable")
+	defer span.Finish()
+
+	totpCfg := &models.TOTPConfig{
+		Id: uuid.Nil,
+	}
+	var err error
+
+	if totpId != uuid.Nil && userId != uuid.Nil {
+		totpCfg, err = t.totpRepo.GetConfigByTotpId(ctxWithTrace, totpId)
+		if err != nil || totpCfg.UserId != userId {
+			return &models.TOTPEnable{Status: totpErrors.NoId.Error()}, totpErrors.NoId
+		}
+	}
 	if totpId != uuid.Nil {
-		config, err := t.totpRepo.GetConfigByTotpId(ctx, totpId)
-		if err != nil && userId == uuid.Nil {
+		if totpCfg.Id == uuid.Nil {
+			totpCfg, err = t.totpRepo.GetConfigByTotpId(ctxWithTrace, totpId)
+		}
+		if err != nil {
 			return &models.TOTPEnable{Status: totpErrors.NoTotpId.Error()}, totpErrors.NoTotpId
-		} else if err == nil {
-			if config.IsActive == true {
+		} else {
+			if totpCfg.IsActive == true {
 				return &models.TOTPEnable{Status: totpErrors.TotpIsActive.Error()}, totpErrors.TotpIsActive
 			}
-			activeConfig, err := t.totpRepo.GetActiveConfig(ctx, config.UserId)
+			activeConfig, err := t.totpRepo.GetActiveConfig(ctxWithTrace, totpCfg.UserId)
 			if err == nil && activeConfig.IsActive == true {
 				return &models.TOTPEnable{Status: totpErrors.TotpIsActive.Error()}, totpErrors.TotpIsActive
 			}
-			err = t.totpRepo.UpdateTotpActivityByTotpId(ctx, totpId, true)
+			err = t.totpRepo.UpdateTotpActivityByTotpId(ctxWithTrace, totpId, true)
 			if err != nil {
-				return nil, httpErrors.NewInternalServerError(errors.Wrap(err, "totpUC.Enable.totpRepo.UpdateTotpActivityByTotpId(totpId)"))
+				return nil, ErrorUpdateActivityByTotpId
 			}
 			return &models.TOTPEnable{Status: "OK"}, nil
 		}
 	}
 	if userId != uuid.Nil {
-		config, err := t.totpRepo.GetConfigByUserId(ctx, userId)
+		totpCfg, err = t.totpRepo.GetConfigByUserId(ctxWithTrace, userId)
 		if err != nil {
-			return &models.TOTPEnable{Status: totpErrors.NoId.Error()}, totpErrors.NoId
+			return &models.TOTPEnable{Status: totpErrors.NoUserId.Error()}, totpErrors.NoUserId
 		}
-		config, err = t.totpRepo.GetActiveConfig(ctx, userId)
+		totpCfg, err = t.totpRepo.GetActiveConfig(ctxWithTrace, userId)
 		if err == nil {
 			return &models.TOTPEnable{Status: totpErrors.TotpIsActive.Error()}, totpErrors.TotpIsActive
 		}
-		config, err = t.totpRepo.GetLastDisabledConfig(ctx, userId)
+		totpCfg, err = t.totpRepo.GetLastDisabledConfig(ctxWithTrace, userId)
 		if err != nil {
-			return nil, err
+			return &models.TOTPEnable{Status: totpErrors.TotpIsActive.Error()}, totpErrors.TotpIsActive
 		}
-		err = t.totpRepo.UpdateTotpActivityByTotpId(ctx, config.Id, true)
+		err = t.totpRepo.UpdateTotpActivityByTotpId(ctxWithTrace, totpCfg.Id, true)
 		if err != nil {
-			return nil, httpErrors.NewInternalServerError(errors.Wrap(err, "totpUC.Disable.totpRepo.UpdateTotpActivityByTotpId(userId)"))
+			return nil, ErrorUpdateActivityByTotpId
 		}
 		return &models.TOTPEnable{Status: "OK"}, nil
 	}
@@ -234,7 +250,9 @@ func (t totpUC) Disable(ctx context.Context, totpId uuid.UUID, userId uuid.UUID)
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Disable")
 	defer span.Finish()
 
-	totpCfg := &models.TOTPConfig{}
+	totpCfg := &models.TOTPConfig{
+		Id: uuid.Nil,
+	}
 
 	var err error
 
