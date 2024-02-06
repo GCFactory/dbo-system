@@ -26,7 +26,7 @@ type totpUC struct {
 }
 
 func (t totpUC) Enroll(ctx context.Context, totpConfig models.TOTPConfig) (*models.TOTPEnroll, error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "totpUC.Enroll")
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Enroll")
 	defer span.Finish()
 
 	if totpConfig.UserId == uuid.Nil {
@@ -36,7 +36,7 @@ func (t totpUC) Enroll(ctx context.Context, totpConfig models.TOTPConfig) (*mode
 		return nil, totpErrors.NoUserName
 	}
 
-	_, err := t.totpRepo.GetActiveConfig(ctx, totpConfig.UserId)
+	_, err := t.totpRepo.GetActiveConfig(ctxWithTrace, totpConfig.UserId)
 	if err == nil {
 		return nil, totpErrors.ActiveTotp
 	}
@@ -58,7 +58,7 @@ func (t totpUC) Enroll(ctx context.Context, totpConfig models.TOTPConfig) (*mode
 	totpConfig.Secret = *secret
 	totpConfig.URL = *url
 
-	err = t.totpRepo.CreateConfig(ctx, totpConfig)
+	err = t.totpRepo.CreateConfig(ctxWithTrace, totpConfig)
 	if err != nil {
 		return nil, ErrorCreateConfig
 	}
