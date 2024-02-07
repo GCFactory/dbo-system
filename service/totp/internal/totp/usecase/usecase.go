@@ -7,8 +7,8 @@ import (
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/service/totp/internal/models"
 	"github.com/GCFactory/dbo-system/service/totp/internal/totp"
+	totpPkg "github.com/GCFactory/dbo-system/service/totp/pkg"
 	totpErrors "github.com/GCFactory/dbo-system/service/totp/pkg/errors"
-	totpPkg "github.com/GCFactory/dbo-system/service/totp/pkg/otp"
 	totpPkgConfig "github.com/GCFactory/dbo-system/service/totp/pkg/otp/config"
 	"github.com/google/uuid"
 	"github.com/opentracing/opentracing-go"
@@ -22,7 +22,7 @@ import (
 type totpUC struct {
 	cfg       *config.Config
 	totpRepo  totp.Repository
-	totpLogic totpPkg.TotpStruct
+	totpLogic totpPkg.Totp
 	logger    logger.Logger
 }
 
@@ -96,7 +96,10 @@ func (t totpUC) Verify(ctx context.Context, url string) (*models.TOTPVerify, err
 }
 
 func (t totpUC) Validate(ctx context.Context, id uuid.UUID, code string) (*models.TOTPValidate, error) {
-	activeConfig, err := t.totpRepo.GetActiveConfig(ctx, id)
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Validate")
+	defer span.Finish()
+
+	activeConfig, err := t.totpRepo.GetActiveConfig(ctxWithTrace, id)
 	if err != nil {
 		return &models.TOTPValidate{Status: totpErrors.NoUserId.Error()}, totpErrors.NoUserId
 	}
@@ -306,6 +309,6 @@ func (t totpUC) Disable(ctx context.Context, totpId uuid.UUID, userId uuid.UUID)
 	return &models.TOTPDisable{Status: totpErrors.NoId.Error()}, totpErrors.NoId
 }
 
-func NewTOTPUseCase(cfg *config.Config, totpRepo totp.Repository, log logger.Logger) totp.UseCase {
-	return &totpUC{cfg: cfg, totpRepo: totpRepo, logger: log}
+func NewTOTPUseCase(cfg *config.Config, totpRepo totp.Repository, totpLogic totpPkg.Totp, log logger.Logger) totp.UseCase {
+	return &totpUC{cfg: cfg, totpRepo: totpRepo, totpLogic: totpLogic, logger: log}
 }

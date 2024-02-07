@@ -10,6 +10,7 @@ import (
 	totpHttp "github.com/GCFactory/dbo-system/service/totp/internal/totp/delivery/http"
 	totpRepository "github.com/GCFactory/dbo-system/service/totp/internal/totp/repository"
 	totpUsecase "github.com/GCFactory/dbo-system/service/totp/internal/totp/usecase"
+
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	echoSwagger "github.com/swaggo/echo-swagger"
@@ -32,6 +33,8 @@ func (s *Server) MapHandlers(e *echo.Echo) error {
 	tRepo := totpRepository.NewTOTPRepository(s.db)
 	//sRepo := sessionRepository.NewSessionRepository(s.redisClient, s.cfg)
 	//newsRedisRepo := newsRepository.NewNewsRedisRepo(s.redisClient)
+
+	tLogic :=
 
 	// Init useCases
 	tUC := totpUsecase.NewTOTPUseCase(s.cfg, tRepo, s.logger)
