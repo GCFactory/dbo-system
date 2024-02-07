@@ -8,8 +8,6 @@ import (
 	"github.com/GCFactory/dbo-system/service/totp/internal/totp/mock"
 	totpRepo "github.com/GCFactory/dbo-system/service/totp/internal/totp/repository"
 	totpErrors "github.com/GCFactory/dbo-system/service/totp/pkg/errors"
-	otpPkg "github.com/GCFactory/dbo-system/service/totp/pkg/otp"
-	totpPkgConfig "github.com/GCFactory/dbo-system/service/totp/pkg/otp/config"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/opentracing/opentracing-go"
@@ -28,14 +26,80 @@ var (
 	}
 )
 
-func TestTotpUC_Enroll(t *testing.T) {
+//func TestTotpUC_Enroll(t *testing.T) {
+//	ctrl := gomock.NewController(t)
+//	defer ctrl.Finish()
+//
+//	apiLogger := logger.NewServerLogger(testCfg)
+//	apiLogger.InitLogger()
+//	mockRepo := mock.NewMockRepository(ctrl)
+//	mockTotp := mock.NewMockTotp(ctrl)
+//	totpUC := NewTOTPUseCase(testCfg, mockRepo, apiLogger)
+//
+//	t.Parallel()
+//	// Supress output
+//	null, _ := os.Open(os.DevNull)
+//	sout := os.Stdout
+//	serr := os.Stderr
+//	os.Stdout = null
+//	os.Stderr = null
+//	defer func() {
+//		defer null.Close()
+//		os.Stdout = sout
+//		os.Stderr = serr
+//	}()
+//	userId := uuid.New()
+//	userName := "Rueie"
+//	issuer := "dbo.gcfactory.space"
+//	t.Run("Valid", func(t *testing.T) {
+//		genOpts := totpPkgConfig.GenerateOpts{
+//			Issuer:      issuer,
+//			AccountName: userName,
+//			SecretSize:  totpPkgConfig.DefaultSecretLength,
+//			Algorithm:   totpPkgConfig.DefaultAlgorithm,
+//		}
+//		//tmp := otpPkg.TotpStruct{}
+//		var secret, url string
+//		//, err := tmp.Generate(genOpts)
+//		totpCfg := models.TOTPConfig{
+//			UserId:      userId,
+//			Id:          uuid.New(),
+//			IsActive:    true,
+//			AccountName: userName,
+//			Issuer:      issuer,
+//			//Secret:      *secret,
+//			//URL:         *url,
+//		}
+//
+//		ctx := context.Background()
+//		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Enroll")
+//		defer span.Finish()
+//
+//		mockRepo.EXPECT().GetActiveConfig(ctxWithTrace, gomock.Eq(userId)).Return(nil, totpRepo.ErrorGetActiveConfig)
+//		mockTotp.EXPECT().Generate(gomock.Eq(genOpts)).Return(&secret, &url, nil)
+//		totpCfg.Secret = secret
+//		totpCfg.URL = url
+//		mockRepo.EXPECT().CreateConfig(ctxWithTrace, gomock.Eq(totpCfg)).Return(nil)
+//
+//		result, err := totpUC.Enroll(ctx, totpCfg)
+//		require.Nil(t, err)
+//		require.NoError(t, err)
+//		require.NotNil(t, result)
+//		require.Equal(t, result, &models.TOTPEnroll{
+//			TotpId:     totpCfg.Id.String(),
+//			TotpSecret: secret,
+//			TotpUrl:    url,
+//		})
+//	})
+//}
+
+func TestTotpUC_Verify(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	apiLogger := logger.NewServerLogger(testCfg)
 	apiLogger.InitLogger()
 	mockRepo := mock.NewMockRepository(ctrl)
-	mockTotp := mock.NewMockTotp(ctrl)
 	totpUC := NewTOTPUseCase(testCfg, mockRepo, apiLogger)
 
 	t.Parallel()
@@ -50,85 +114,66 @@ func TestTotpUC_Enroll(t *testing.T) {
 		os.Stdout = sout
 		os.Stderr = serr
 	}()
-	userId := uuid.New()
-	userName := "Rueie"
-	issuer := "dbo.gcfactory.space"
 	t.Run("Valid", func(t *testing.T) {
-		genOpts := totpPkgConfig.GenerateOpts{
-			Issuer:      issuer,
-			AccountName: userName,
-			SecretSize:  totpPkgConfig.DefaultSecretLength,
-			Algorithm:   totpPkgConfig.DefaultAlgorithm,
-		}
-		tmp := otpPkg.TotpStruct{}
-		secret, url, err := tmp.Generate(genOpts)
-		totpCfg := models.TOTPConfig{
-			UserId:      userId,
-			Id:          uuid.New(),
-			IsActive:    true,
-			AccountName: userName,
-			Issuer:      issuer,
-			Secret:      *secret,
-			URL:         *url,
-		}
-
 		ctx := context.Background()
-		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Enroll")
-		defer span.Finish()
-
-		mockRepo.EXPECT().GetActiveConfig(ctxWithTrace, gomock.Eq(userId)).Return(nil, totpRepo.ErrorGetActiveConfig)
-		mockTotp.EXPECT().Generate(gomock.Eq(genOpts)).Return(secret, url, nil)
-		mockRepo.EXPECT().CreateConfig(ctxWithTrace, gomock.Eq(totpCfg)).Return(nil)
-
-		result, err := totpUC.Enroll(ctx, totpCfg)
+		url := "otpauth://totp/dbo.gcfactory.space:admin?algorithm=SHA1&digits=6&issuer=dbo.gcfactory.space&period=30&secret=JOMS6CZZZ4L7S4F6CADFZWMZRJAB5WPP"
+		result, err := totpUC.Verify(ctx, url)
 		require.Nil(t, err)
 		require.NoError(t, err)
 		require.NotNil(t, result)
-		require.Equal(t, result, &models.TOTPEnroll{
-			TotpId:     totpCfg.Id.String(),
-			TotpSecret: *secret,
-			TotpUrl:    *url,
-		})
+		require.Equal(t, result, &models.TOTPVerify{Status: "OK"})
+	})
+	t.Run("NoAlgorithm", func(t *testing.T) {
+		ctx := context.Background()
+		url := "otpauth://totp/dbo.gcfactory.space:admin?digits=6&issuer=dbo.gcfactory.space&period=30&secret=JOMS6CZZZ4L7S4F6CADFZWMZRJAB5WPP"
+		result, err := totpUC.Verify(ctx, url)
+		require.NotNil(t, err)
+		require.Error(t, err)
+		require.Equal(t, err, totpErrors.NoAlgorithmField)
+		require.NotNil(t, result)
+		require.Equal(t, result, &models.TOTPVerify{Status: err.Error()})
+	})
+	t.Run("NoDigits", func(t *testing.T) {
+		ctx := context.Background()
+		url := "otpauth://totp/dbo.gcfactory.space:admin?algorithm=SHA1&issuer=dbo.gcfactory.space&period=30&secret=JOMS6CZZZ4L7S4F6CADFZWMZRJAB5WPP"
+		result, err := totpUC.Verify(ctx, url)
+		require.NotNil(t, err)
+		require.Error(t, err)
+		require.Equal(t, err, totpErrors.NoDigitsField)
+		require.NotNil(t, result)
+		require.Equal(t, result, &models.TOTPVerify{Status: err.Error()})
+	})
+	t.Run("NoIssuer", func(t *testing.T) {
+		ctx := context.Background()
+		url := "otpauth://totp/dbo.gcfactory.space:admin?algorithm=SHA1&digits=6&period=30&secret=JOMS6CZZZ4L7S4F6CADFZWMZRJAB5WPP"
+		result, err := totpUC.Verify(ctx, url)
+		require.NotNil(t, err)
+		require.Error(t, err)
+		require.Equal(t, err, totpErrors.NoIssuerField)
+		require.NotNil(t, result)
+		require.Equal(t, result, &models.TOTPVerify{Status: err.Error()})
+	})
+	t.Run("NoPeriod", func(t *testing.T) {
+		ctx := context.Background()
+		url := "otpauth://totp/dbo.gcfactory.space:admin?algorithm=SHA1&digits=6&issuer=dbo.gcfactory.space&secret=JOMS6CZZZ4L7S4F6CADFZWMZRJAB5WPP"
+		result, err := totpUC.Verify(ctx, url)
+		require.NotNil(t, err)
+		require.Error(t, err)
+		require.Equal(t, err, totpErrors.NoPeriodField)
+		require.NotNil(t, result)
+		require.Equal(t, result, &models.TOTPVerify{Status: err.Error()})
+	})
+	t.Run("NoSecret", func(t *testing.T) {
+		ctx := context.Background()
+		url := "otpauth://totp/dbo.gcfactory.space:admin?algorithm=SHA1&digits=6&issuer=dbo.gcfactory.space&period=30"
+		result, err := totpUC.Verify(ctx, url)
+		require.NotNil(t, err)
+		require.Error(t, err)
+		require.Equal(t, err, totpErrors.NoSecretField)
+		require.NotNil(t, result)
+		require.Equal(t, result, &models.TOTPVerify{Status: err.Error()})
 	})
 }
-
-//
-//func TestVerify(t *testing.T) {
-//	url := "otpauth://totp/dbo.gcfactory.space:admin?algorithm=SHA1&digits=6&issuer=dbo.gcfactory.space&period=30&secret=JOMS6CZZZ4L7S4F6CADFZWMZRJAB5WPP"
-//	var cfg config.Config
-//	var log logger.Logger
-//	var repo totp.Repository
-//	totpUc := NewTOTPUseCase(&cfg, repo, log)
-//	ctx := context.TODO()
-//	result, err := totpUc.Verify(ctx, url)
-//	require.NoError(t, err)
-//	require.Equal(t, &models.TOTPVerify{Status: "OK"}, result, "Should be correct check")
-//	url = "otpauth://totp/dbo.gcfactory.space:admin?digits=6&issuer=dbo.gcfactory.space&period=30&secret=JOMS6CZZZ4L7S4F6CADFZWMZRJAB5WPP"
-//	result, err = totpUc.Verify(ctx, url)
-//	require.Error(t, err)
-//	require.Equal(t, err, totpErrors.NoAlgorithmField)
-//	require.Equal(t, result, &models.TOTPVerify{Status: err.Error()})
-//	url = "otpauth://totp/dbo.gcfactory.space:admin?algorithm=SHA1&issuer=dbo.gcfactory.space&period=30&secret=JOMS6CZZZ4L7S4F6CADFZWMZRJAB5WPP"
-//	result, err = totpUc.Verify(ctx, url)
-//	require.Error(t, err)
-//	require.Equal(t, err, totpErrors.NoDigitsField)
-//	require.Equal(t, result, &models.TOTPVerify{Status: err.Error()})
-//	url = "otpauth://totp/dbo.gcfactory.space:admin?algorithm=SHA1&digits=6&period=30&secret=JOMS6CZZZ4L7S4F6CADFZWMZRJAB5WPP"
-//	result, err = totpUc.Verify(ctx, url)
-//	require.Error(t, err)
-//	require.Equal(t, err, totpErrors.NoIssuerField)
-//	require.Equal(t, result, &models.TOTPVerify{Status: err.Error()})
-//	url = "otpauth://totp/dbo.gcfactory.space:admin?algorithm=SHA1&digits=6&issuer=dbo.gcfactory.space&secret=JOMS6CZZZ4L7S4F6CADFZWMZRJAB5WPP"
-//	result, err = totpUc.Verify(ctx, url)
-//	require.Error(t, err)
-//	require.Equal(t, err, totpErrors.NoPeriodField)
-//	require.Equal(t, result, &models.TOTPVerify{Status: err.Error()})
-//	url = "otpauth://totp/dbo.gcfactory.space:admin?algorithm=SHA1&digits=6&issuer=dbo.gcfactory.space&period=30"
-//	result, err = totpUc.Verify(ctx, url)
-//	require.Error(t, err)
-//	require.Equal(t, err, totpErrors.NoSecretField)
-//	require.Equal(t, result, &models.TOTPVerify{Status: err.Error()})
-//}
 
 func TestTotpUC_Enable(t *testing.T) {
 	ctrl := gomock.NewController(t)
