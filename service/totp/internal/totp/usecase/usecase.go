@@ -24,15 +24,15 @@ type totpUC struct {
 	logger    logger.Logger
 }
 
-func (t totpUC) Enroll(ctx context.Context, totpConfig models.TOTPConfig) (*models.TOTPEnroll, error) {
+func (t totpUC) Enroll(ctx context.Context, totpConfig models.TOTPConfig, totpId uuid.UUID) (*models.TOTPEnroll, error) {
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Enroll")
 	defer span.Finish()
 
-	if totpConfig.UserId == uuid.Nil {
-		return nil, totpErrors.NoUserId
-	}
 	if totpConfig.AccountName == "" {
 		return nil, totpErrors.NoUserName
+	}
+	if totpConfig.UserId == uuid.Nil {
+		return nil, totpErrors.EmptyUserId
 	}
 
 	_, err := t.totpRepo.GetActiveConfig(ctxWithTrace, totpConfig.UserId)
@@ -40,7 +40,16 @@ func (t totpUC) Enroll(ctx context.Context, totpConfig models.TOTPConfig) (*mode
 		return nil, totpErrors.ActiveTotp
 	}
 
-	totpConfig.Id = uuid.New()
+	if totpId == uuid.Nil {
+		return nil, totpErrors.EmptyTotpId
+	}
+
+	_, err = t.totpRepo.GetConfigByTotpId(ctxWithTrace, totpId)
+	if err == nil {
+		return nil, totpErrors.TotpIdIsExisted
+	}
+
+	totpConfig.Id = totpId
 	totpConfig.IsActive = true
 	totpConfig.Issuer = "dbo.gcfactory.space"
 

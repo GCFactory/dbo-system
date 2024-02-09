@@ -9,7 +9,7 @@ import (
 )
 
 type UseCase interface {
-	Enroll(ctx context.Context, totp models.TOTPConfig) (*models.TOTPEnroll, error)
+	Enroll(ctx context.Context, totp models.TOTPConfig, totpId uuid.UUID) (*models.TOTPEnroll, error)
 	Verify(ctx context.Context, url string) (*models.TOTPVerify, error)
 	Validate(ctx context.Context, id uuid.UUID, code string, time time.Time) (*models.TOTPValidate, error)
 	Enable(ctx context.Context, totpId uuid.UUID, userId uuid.UUID) (*models.TOTPEnable, error)

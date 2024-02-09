@@ -16,4 +16,7 @@ var (
 	NoId             = errors.New("No such user and totp ids")
 	TotpIsActive     = errors.New("Totp is active yet")
 	NoUserName       = errors.New("No user name")
+	TotpIdIsExisted  = errors.New("Totp id is existed")
+	EmptyTotpId      = errors.New("Empty totp id")
+	EmptyUserId      = errors.New("Empty user id")
 )

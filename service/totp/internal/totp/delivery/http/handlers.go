@@ -74,13 +74,14 @@ func (t totpHandlers) Enroll() echo.HandlerFunc {
 		totpEnroll, err := t.totpUC.Enroll(ctx, models.TOTPConfig{
 			UserId:      userId,
 			AccountName: user.UserName,
-		})
+		}, uuid.New())
 		if err != nil {
 			utils.LogResponseError(c, t.logger, err)
 			if errors.Is(err, totpErrors.ActiveTotp) {
 				return c.JSON(http.StatusForbidden, httpErrors.NewRestError(http.StatusForbidden, err.Error(), nil))
 			} else if errors.Is(err, totpErrors.NoUserName) ||
-				errors.Is(err, totpErrors.NoUserId) {
+				errors.Is(err, totpErrors.NoUserId) ||
+				errors.Is(err, totpErrors.TotpIdIsExisted) {
 				return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, err.Error(), nil))
 			} else {
 				return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, err.Error())))
