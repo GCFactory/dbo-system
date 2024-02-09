@@ -8,12 +8,15 @@ import (
 	"github.com/GCFactory/dbo-system/service/totp/internal/totp/mock"
 	totpRepo "github.com/GCFactory/dbo-system/service/totp/internal/totp/repository"
 	totpErrors "github.com/GCFactory/dbo-system/service/totp/pkg/errors"
+	otpPkg "github.com/GCFactory/dbo-system/service/totp/pkg/otp"
+	totpPkgConfig "github.com/GCFactory/dbo-system/service/totp/pkg/otp/config"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/opentracing/opentracing-go"
 	"github.com/stretchr/testify/require"
 	"os"
 	"testing"
+	"time"
 )
 
 var (
@@ -26,72 +29,77 @@ var (
 	}
 )
 
-//func TestTotpUC_Enroll(t *testing.T) {
-//	ctrl := gomock.NewController(t)
-//	defer ctrl.Finish()
-//
-//	apiLogger := logger.NewServerLogger(testCfg)
-//	apiLogger.InitLogger()
-//	mockRepo := mock.NewMockRepository(ctrl)
-//	mockTotp := mock.NewMockTotp(ctrl)
-//	totpUC := NewTOTPUseCase(testCfg, mockRepo, apiLogger)
-//
-//	t.Parallel()
-//	// Supress output
-//	null, _ := os.Open(os.DevNull)
-//	sout := os.Stdout
-//	serr := os.Stderr
-//	os.Stdout = null
-//	os.Stderr = null
-//	defer func() {
-//		defer null.Close()
-//		os.Stdout = sout
-//		os.Stderr = serr
-//	}()
-//	userId := uuid.New()
-//	userName := "Rueie"
-//	issuer := "dbo.gcfactory.space"
-//	t.Run("Valid", func(t *testing.T) {
-//		genOpts := totpPkgConfig.GenerateOpts{
-//			Issuer:      issuer,
-//			AccountName: userName,
-//			SecretSize:  totpPkgConfig.DefaultSecretLength,
-//			Algorithm:   totpPkgConfig.DefaultAlgorithm,
-//		}
-//		//tmp := otpPkg.TotpStruct{}
-//		var secret, url string
-//		//, err := tmp.Generate(genOpts)
-//		totpCfg := models.TOTPConfig{
-//			UserId:      userId,
-//			Id:          uuid.New(),
-//			IsActive:    true,
-//			AccountName: userName,
-//			Issuer:      issuer,
-//			//Secret:      *secret,
-//			//URL:         *url,
-//		}
-//
-//		ctx := context.Background()
-//		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Enroll")
-//		defer span.Finish()
-//
-//		mockRepo.EXPECT().GetActiveConfig(ctxWithTrace, gomock.Eq(userId)).Return(nil, totpRepo.ErrorGetActiveConfig)
-//		mockTotp.EXPECT().Generate(gomock.Eq(genOpts)).Return(&secret, &url, nil)
-//		totpCfg.Secret = secret
-//		totpCfg.URL = url
-//		mockRepo.EXPECT().CreateConfig(ctxWithTrace, gomock.Eq(totpCfg)).Return(nil)
-//
-//		result, err := totpUC.Enroll(ctx, totpCfg)
-//		require.Nil(t, err)
-//		require.NoError(t, err)
-//		require.NotNil(t, result)
-//		require.Equal(t, result, &models.TOTPEnroll{
-//			TotpId:     totpCfg.Id.String(),
-//			TotpSecret: secret,
-//			TotpUrl:    url,
-//		})
-//	})
-//}
+func TestTotpUC_Enroll(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	apiLogger := logger.NewServerLogger(testCfg)
+	apiLogger.InitLogger()
+	mockRepo := mock.NewMockRepository(ctrl)
+	mockTotp := mock.NewMockTotp(ctrl)
+	totpUC := NewTOTPUseCase(testCfg, mockRepo, mockTotp, apiLogger)
+
+	t.Parallel()
+	// Supress output
+	null, _ := os.Open(os.DevNull)
+	sout := os.Stdout
+	serr := os.Stderr
+	os.Stdout = null
+	os.Stderr = null
+	defer func() {
+		defer null.Close()
+		os.Stdout = sout
+		os.Stderr = serr
+	}()
+	userId := uuid.New()
+	userName := "Rueie"
+	issuer := "dbo.gcfactory.space"
+	t.Run("Valid", func(t *testing.T) {
+		inputCfg := models.TOTPConfig{
+			UserId:      userId,
+			AccountName: userName,
+		}
+		genOpts := totpPkgConfig.GenerateOpts{
+			Issuer:      issuer,
+			AccountName: userName,
+			SecretSize:  totpPkgConfig.DefaultSecretLength,
+			Algorithm:   totpPkgConfig.DefaultAlgorithm,
+		}
+		tmp := otpPkg.TotpStruct{}
+		secret, url, err := tmp.Generate(genOpts)
+		require.Nil(t, err)
+		require.NoError(t, err)
+		require.NotNil(t, secret)
+		require.NotNil(t, url)
+		totpCfg := models.TOTPConfig{
+			UserId: userId,
+			//Id:          uuid.New(),
+			IsActive:    true,
+			AccountName: userName,
+			Issuer:      issuer,
+			Secret:      *secret,
+			URL:         *url,
+		}
+
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Enroll")
+		defer span.Finish()
+
+		mockRepo.EXPECT().GetActiveConfig(ctxWithTrace, gomock.Eq(userId)).Return(nil, totpRepo.ErrorGetActiveConfig)
+		mockTotp.EXPECT().Generate(gomock.Eq(genOpts)).Return(secret, url, nil)
+		mockRepo.EXPECT().CreateConfig(ctxWithTrace, gomock.Eq(totpCfg)).Return(nil)
+
+		result, err := totpUC.Enroll(ctx, inputCfg)
+		require.Nil(t, err)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		require.Equal(t, result, &models.TOTPEnroll{
+			TotpId:     totpCfg.Id.String(),
+			TotpSecret: *secret,
+			TotpUrl:    *url,
+		})
+	})
+}
 
 func TestTotpUC_Verify(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -100,7 +108,8 @@ func TestTotpUC_Verify(t *testing.T) {
 	apiLogger := logger.NewServerLogger(testCfg)
 	apiLogger.InitLogger()
 	mockRepo := mock.NewMockRepository(ctrl)
-	totpUC := NewTOTPUseCase(testCfg, mockRepo, apiLogger)
+	mockTotp := mock.NewMockTotp(ctrl)
+	totpUC := NewTOTPUseCase(testCfg, mockRepo, mockTotp, apiLogger)
 
 	t.Parallel()
 	// Supress output
@@ -175,6 +184,264 @@ func TestTotpUC_Verify(t *testing.T) {
 	})
 }
 
+func TestTotpUC_Validate(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	apiLogger := logger.NewServerLogger(testCfg)
+	apiLogger.InitLogger()
+	mockRepo := mock.NewMockRepository(ctrl)
+	mockTotp := mock.NewMockTotp(ctrl)
+	totpUC := NewTOTPUseCase(testCfg, mockRepo, mockTotp, apiLogger)
+
+	t.Parallel()
+	// Supress output
+	null, _ := os.Open(os.DevNull)
+	sout := os.Stdout
+	serr := os.Stderr
+	os.Stdout = null
+	os.Stderr = null
+	defer func() {
+		defer null.Close()
+		os.Stdout = sout
+		os.Stderr = serr
+	}()
+	userId := uuid.New()
+	t.Run("Valid", func(t *testing.T) {
+		secret := "JOMS6CZZZ4L7S4F6CADFZWMZRJAB5WPP"
+		time := time.Now()
+		code, err := otpPkg.TotpStruct{}.GenerateCode(secret, time)
+		require.Nil(t, err)
+		require.NoError(t, err)
+		require.NotNil(t, code)
+		totpCfg := models.TOTPConfig{
+			UserId: userId,
+			URL:    "otpauth://totp/dbo.gcfactory.space:admin?algorithm=SHA1&digits=6&issuer=dbo.gcfactory.space&period=30&secret=JOMS6CZZZ4L7S4F6CADFZWMZRJAB5WPP",
+			Secret: secret,
+		}
+		validOpts := totpPkgConfig.ValidateOpts{
+			Digits:    totpPkgConfig.DefaultDigits,
+			Algorithm: totpPkgConfig.DefaultAlgorithm,
+			Period:    totpPkgConfig.DefaultPeriod,
+		}
+
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Validate")
+		defer span.Finish()
+
+		mockRepo.EXPECT().GetActiveConfig(ctxWithTrace, gomock.Eq(userId)).Return(&totpCfg, nil)
+		mockTotp.EXPECT().GenerateCodeCustom(gomock.Eq(secret), gomock.Eq(time), gomock.Eq(validOpts)).Return(code, nil)
+
+		result, err := totpUC.Validate(ctx, userId, code, time)
+		require.Nil(t, err)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		require.Equal(t, result, &models.TOTPValidate{Status: "OK"})
+	})
+	t.Run("NotFound", func(t *testing.T) {
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Validate")
+		defer span.Finish()
+
+		mockRepo.EXPECT().GetActiveConfig(ctxWithTrace, gomock.Eq(userId)).Return(nil, totpRepo.ErrorGetActiveConfig)
+
+		result, err := totpUC.Validate(ctx, userId, "", time.Now())
+		require.NotNil(t, err)
+		require.Error(t, err)
+		require.Equal(t, err, totpErrors.NoUserId)
+		require.NotNil(t, result)
+		require.Equal(t, result, &models.TOTPValidate{Status: err.Error()})
+	})
+	t.Run("ErrorGenerateCode", func(t *testing.T) {
+		secret := "JOMS6CZZZ4L7S4F6CADFZWMZRJAB5WPP"
+		time := time.Now()
+		totpCfg := models.TOTPConfig{
+			UserId: userId,
+			URL:    "otpauth://totp/dbo.gcfactory.space:admin?algorithm=SHA1&digits=6&issuer=dbo.gcfactory.space&period=30&secret=JOMS6CZZZ4L7S4F6CADFZWMZRJAB5WPP",
+			Secret: secret,
+		}
+		validOpts := totpPkgConfig.ValidateOpts{
+			Digits:    totpPkgConfig.DefaultDigits,
+			Algorithm: totpPkgConfig.DefaultAlgorithm,
+			Period:    totpPkgConfig.DefaultPeriod,
+		}
+
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Validate")
+		defer span.Finish()
+
+		mockRepo.EXPECT().GetActiveConfig(ctxWithTrace, gomock.Eq(userId)).Return(&totpCfg, nil)
+		mockTotp.EXPECT().GenerateCodeCustom(gomock.Eq(secret), gomock.Eq(time), gomock.Eq(validOpts)).Return("", totpPkgConfig.ErrValidateSecretInvalidBase32)
+
+		result, err := totpUC.Validate(ctx, userId, "", time)
+		require.NotNil(t, err)
+		require.Error(t, err)
+		require.Equal(t, err, ErrorGenCodeCustom)
+		require.Nil(t, result)
+	})
+	t.Run("WrongTotp", func(t *testing.T) {
+		secret := "JOMS6CZZZ4L7S4F6CADFZWMZRJAB5WPP"
+		wrongSecret := "JOMS6CZZZ4L7S4F6CADFZWMZRJAB5WPA"
+		time := time.Now()
+		code, err := otpPkg.TotpStruct{}.GenerateCode(secret, time)
+		require.Nil(t, err)
+		require.NoError(t, err)
+		require.NotNil(t, code)
+		wrongCode, err := otpPkg.TotpStruct{}.GenerateCode(wrongSecret, time)
+		require.Nil(t, err)
+		require.NoError(t, err)
+		require.NotNil(t, wrongCode)
+		totpCfg := models.TOTPConfig{
+			UserId: userId,
+			URL:    "otpauth://totp/dbo.gcfactory.space:admin?algorithm=SHA1&digits=6&issuer=dbo.gcfactory.space&period=30&secret=JOMS6CZZZ4L7S4F6CADFZWMZRJAB5WPP",
+			Secret: secret,
+		}
+		validOpts := totpPkgConfig.ValidateOpts{
+			Digits:    totpPkgConfig.DefaultDigits,
+			Algorithm: totpPkgConfig.DefaultAlgorithm,
+			Period:    totpPkgConfig.DefaultPeriod,
+		}
+
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Validate")
+		defer span.Finish()
+
+		mockRepo.EXPECT().GetActiveConfig(ctxWithTrace, gomock.Eq(userId)).Return(&totpCfg, nil)
+		mockTotp.EXPECT().GenerateCodeCustom(gomock.Eq(secret), gomock.Eq(time), gomock.Eq(validOpts)).Return(code, nil)
+
+		result, err := totpUC.Validate(ctx, userId, wrongCode, time)
+		require.NotNil(t, err)
+		require.Error(t, err)
+		require.Equal(t, err, totpErrors.WrongTotpCode)
+		require.NotNil(t, result)
+		require.Equal(t, result, &models.TOTPValidate{Status: err.Error()})
+	})
+	t.Run("OnlySecretInUrl", func(t *testing.T) {
+		secret := "JOMS6CZZZ4L7S4F6CADFZWMZRJAB5WPP"
+		time := time.Now()
+		code, err := otpPkg.TotpStruct{}.GenerateCode(secret, time)
+		require.Nil(t, err)
+		require.NoError(t, err)
+		require.NotNil(t, code)
+		totpCfg := models.TOTPConfig{
+			UserId: userId,
+			URL:    "otpauth://totp/dbo.gcfactory.space:admin?secret=JOMS6CZZZ4L7S4F6CADFZWMZRJAB5WPP",
+			Secret: secret,
+		}
+		validOpts := totpPkgConfig.ValidateOpts{
+			Digits:    totpPkgConfig.DefaultDigits,
+			Algorithm: totpPkgConfig.DefaultAlgorithm,
+			Period:    totpPkgConfig.DefaultPeriod,
+		}
+
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Validate")
+		defer span.Finish()
+
+		mockRepo.EXPECT().GetActiveConfig(ctxWithTrace, gomock.Eq(userId)).Return(&totpCfg, nil)
+		mockTotp.EXPECT().GenerateCodeCustom(gomock.Eq(secret), gomock.Eq(time), gomock.Eq(validOpts)).Return(code, nil)
+
+		result, err := totpUC.Validate(ctx, userId, code, time)
+		require.Nil(t, err)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		require.Equal(t, result, &models.TOTPValidate{Status: "OK"})
+	})
+	t.Run("UseMD5", func(t *testing.T) {
+		secret := "JOMS6CZZZ4L7S4F6CADFZWMZRJAB5WPP"
+		time := time.Now()
+		code, err := otpPkg.TotpStruct{}.GenerateCode(secret, time)
+		require.Nil(t, err)
+		require.NoError(t, err)
+		require.NotNil(t, code)
+		totpCfg := models.TOTPConfig{
+			UserId: userId,
+			URL:    "otpauth://totp/dbo.gcfactory.space:admin?secret=JOMS6CZZZ4L7S4F6CADFZWMZRJAB5WPP&algorithm=MD5",
+			Secret: secret,
+		}
+		validOpts := totpPkgConfig.ValidateOpts{
+			Digits:    totpPkgConfig.DefaultDigits,
+			Algorithm: totpPkgConfig.AlgorithmMD5,
+			Period:    totpPkgConfig.DefaultPeriod,
+		}
+
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Validate")
+		defer span.Finish()
+
+		mockRepo.EXPECT().GetActiveConfig(ctxWithTrace, gomock.Eq(userId)).Return(&totpCfg, nil)
+		mockTotp.EXPECT().GenerateCodeCustom(gomock.Eq(secret), gomock.Eq(time), gomock.Eq(validOpts)).Return(code, nil)
+
+		result, err := totpUC.Validate(ctx, userId, code, time)
+		require.Nil(t, err)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		require.Equal(t, result, &models.TOTPValidate{Status: "OK"})
+	})
+	t.Run("UseSHA256", func(t *testing.T) {
+		secret := "JOMS6CZZZ4L7S4F6CADFZWMZRJAB5WPP"
+		time := time.Now()
+		code, err := otpPkg.TotpStruct{}.GenerateCode(secret, time)
+		require.Nil(t, err)
+		require.NoError(t, err)
+		require.NotNil(t, code)
+		totpCfg := models.TOTPConfig{
+			UserId: userId,
+			URL:    "otpauth://totp/dbo.gcfactory.space:admin?secret=JOMS6CZZZ4L7S4F6CADFZWMZRJAB5WPP&algorithm=SHA256",
+			Secret: secret,
+		}
+		validOpts := totpPkgConfig.ValidateOpts{
+			Digits:    totpPkgConfig.DefaultDigits,
+			Algorithm: totpPkgConfig.AlgorithmSHA256,
+			Period:    totpPkgConfig.DefaultPeriod,
+		}
+
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Validate")
+		defer span.Finish()
+
+		mockRepo.EXPECT().GetActiveConfig(ctxWithTrace, gomock.Eq(userId)).Return(&totpCfg, nil)
+		mockTotp.EXPECT().GenerateCodeCustom(gomock.Eq(secret), gomock.Eq(time), gomock.Eq(validOpts)).Return(code, nil)
+
+		result, err := totpUC.Validate(ctx, userId, code, time)
+		require.Nil(t, err)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		require.Equal(t, result, &models.TOTPValidate{Status: "OK"})
+	})
+	t.Run("UseSHA512", func(t *testing.T) {
+		secret := "JOMS6CZZZ4L7S4F6CADFZWMZRJAB5WPP"
+		time := time.Now()
+		code, err := otpPkg.TotpStruct{}.GenerateCode(secret, time)
+		require.Nil(t, err)
+		require.NoError(t, err)
+		require.NotNil(t, code)
+		totpCfg := models.TOTPConfig{
+			UserId: userId,
+			URL:    "otpauth://totp/dbo.gcfactory.space:admin?secret=JOMS6CZZZ4L7S4F6CADFZWMZRJAB5WPP&algorithm=SHA512",
+			Secret: secret,
+		}
+		validOpts := totpPkgConfig.ValidateOpts{
+			Digits:    totpPkgConfig.DefaultDigits,
+			Algorithm: totpPkgConfig.AlgorithmSHA512,
+			Period:    totpPkgConfig.DefaultPeriod,
+		}
+
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Validate")
+		defer span.Finish()
+
+		mockRepo.EXPECT().GetActiveConfig(ctxWithTrace, gomock.Eq(userId)).Return(&totpCfg, nil)
+		mockTotp.EXPECT().GenerateCodeCustom(gomock.Eq(secret), gomock.Eq(time), gomock.Eq(validOpts)).Return(code, nil)
+
+		result, err := totpUC.Validate(ctx, userId, code, time)
+		require.Nil(t, err)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		require.Equal(t, result, &models.TOTPValidate{Status: "OK"})
+	})
+}
+
 func TestTotpUC_Enable(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -182,7 +449,8 @@ func TestTotpUC_Enable(t *testing.T) {
 	apiLogger := logger.NewServerLogger(testCfg)
 	apiLogger.InitLogger()
 	mockRepo := mock.NewMockRepository(ctrl)
-	totpUC := NewTOTPUseCase(testCfg, mockRepo, apiLogger)
+	mockTotp := mock.NewMockTotp(ctrl)
+	totpUC := NewTOTPUseCase(testCfg, mockRepo, mockTotp, apiLogger)
 
 	t.Parallel()
 	// Supress output
@@ -485,7 +753,8 @@ func TestTotpUC_Disable(t *testing.T) {
 	apiLogger := logger.NewServerLogger(testCfg)
 	apiLogger.InitLogger()
 	mockRepo := mock.NewMockRepository(ctrl)
-	totpUC := NewTOTPUseCase(testCfg, mockRepo, apiLogger)
+	mockTotp := mock.NewMockTotp(ctrl)
+	totpUC := NewTOTPUseCase(testCfg, mockRepo, mockTotp, apiLogger)
 
 	t.Parallel()
 	// Supress output

@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"github.com/GCFactory/dbo-system/platform/config"
-	"github.com/GCFactory/dbo-system/platform/pkg/httpErrors"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/service/totp/internal/models"
 	"github.com/GCFactory/dbo-system/service/totp/internal/totp"
@@ -12,7 +11,6 @@ import (
 	totpPkgConfig "github.com/GCFactory/dbo-system/service/totp/pkg/otp/config"
 	"github.com/google/uuid"
 	"github.com/opentracing/opentracing-go"
-	"github.com/pkg/errors"
 	"regexp"
 	"strconv"
 	"strings"
@@ -95,7 +93,7 @@ func (t totpUC) Verify(ctx context.Context, url string) (*models.TOTPVerify, err
 	return &models.TOTPVerify{Status: "OK"}, nil
 }
 
-func (t totpUC) Validate(ctx context.Context, id uuid.UUID, code string) (*models.TOTPValidate, error) {
+func (t totpUC) Validate(ctx context.Context, id uuid.UUID, code string, time time.Time) (*models.TOTPValidate, error) {
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Validate")
 	defer span.Finish()
 
@@ -111,7 +109,7 @@ func (t totpUC) Validate(ctx context.Context, id uuid.UUID, code string) (*model
 	//Extract secret
 	reg_expr, err := regexp.Compile("secret=([\\d\\w]{32})")
 	if err != nil {
-		return nil, httpErrors.NewInternalServerError(errors.Wrap(err, "totpUC.Validate.regexp(secret).Compile"))
+		return nil, ErrorRegexCompile
 	}
 
 	secret := reg_expr.FindString(url)
@@ -120,7 +118,7 @@ func (t totpUC) Validate(ctx context.Context, id uuid.UUID, code string) (*model
 	//Extract period
 	reg_expr, err = regexp.Compile("period=(\\d{1,2})")
 	if err != nil {
-		return nil, httpErrors.NewInternalServerError(errors.Wrap(err, "totpUC.Validate.regexp(period).Compile"))
+		return nil, ErrorRegexCompile
 	}
 
 	var period uint
@@ -132,7 +130,7 @@ func (t totpUC) Validate(ctx context.Context, id uuid.UUID, code string) (*model
 		period_str = period_str[7:]
 		tmp, err := strconv.ParseUint(period_str, 10, 32)
 		if err != nil {
-			return nil, httpErrors.NewInternalServerError(errors.Wrap(err, "totpUC.Validate.strconv.ParseUint"))
+			return nil, ErrorRegexCompile
 		}
 		period = uint(tmp)
 	}
@@ -142,7 +140,7 @@ func (t totpUC) Validate(ctx context.Context, id uuid.UUID, code string) (*model
 	//Extract digits
 	reg_expr, err = regexp.Compile("digits=(6|8)")
 	if err != nil {
-		return nil, httpErrors.NewInternalServerError(errors.Wrap(err, "totpUC.Validate.regexp(digits).Compile"))
+		return nil, ErrorRegexCompile
 	}
 
 	var digits totpPkgConfig.Digits
@@ -154,7 +152,7 @@ func (t totpUC) Validate(ctx context.Context, id uuid.UUID, code string) (*model
 		digits_str = digits_str[7:]
 		tmp, err := strconv.ParseInt(digits_str, 10, 8)
 		if err != nil {
-			return nil, httpErrors.NewInternalServerError(errors.Wrap(err, "totpUC.Validate.strconv.ParseInt"))
+			return nil, ErrorRegexCompile
 		}
 		digits = totpPkgConfig.Digits(tmp)
 	}
@@ -164,7 +162,7 @@ func (t totpUC) Validate(ctx context.Context, id uuid.UUID, code string) (*model
 	//Extract algorithm
 	reg_expr, err = regexp.Compile("algorithm=([\\d\\w]{2,6})")
 	if err != nil {
-		return nil, httpErrors.NewInternalServerError(errors.Wrap(err, "totpUC.Validate.regexp(algorithm).Compile"))
+		return nil, ErrorRegexCompile
 	}
 
 	var algorithm totpPkgConfig.Algorithm
@@ -182,16 +180,14 @@ func (t totpUC) Validate(ctx context.Context, id uuid.UUID, code string) (*model
 			algorithm = totpPkgConfig.AlgorithmSHA256
 		} else if algorithm_str == "SHA512" {
 			algorithm = totpPkgConfig.AlgorithmSHA512
-		} else {
-			algorithm = totpPkgConfig.DefaultAlgorithm
 		}
 	}
 
 	validateOpts.Algorithm = algorithm
 
-	serverCode, err := t.totpLogic.GenerateCodeCustom(secret, time.Now(), validateOpts)
+	serverCode, err := t.totpLogic.GenerateCodeCustom(secret, time, validateOpts)
 	if err != nil {
-		return nil, httpErrors.NewInternalServerError(errors.Wrap(err, "totpUC.Validate.GenerateCodeCustom"))
+		return nil, ErrorGenCodeCustom
 	}
 	if serverCode != code {
 		return &models.TOTPValidate{Status: totpErrors.WrongTotpCode.Error()}, totpErrors.WrongTotpCode

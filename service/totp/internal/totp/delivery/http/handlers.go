@@ -13,6 +13,7 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"net/http"
+	"time"
 )
 
 type httpError struct {
@@ -179,14 +180,14 @@ func (t totpHandlers) Validate() echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.Validate.uuid.Parse")))
 		}
 
-		totpValidate, err := t.totpUC.Validate(ctx, userId, input.TotpCode)
+		totpValidate, err := t.totpUC.Validate(ctx, userId, input.TotpCode, time.Now())
 		if err != nil {
 			if errors.Is(err, totpErrors.NoUserId) {
 				return c.JSON(http.StatusNotFound, totpValidate)
 			} else if errors.Is(err, totpErrors.WrongTotpCode) {
 				return c.JSON(http.StatusBadRequest, totpValidate)
 			} else {
-				return c.JSON(httpErrors.ErrorResponse(err))
+				return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, err.Error())))
 			}
 		}
 
