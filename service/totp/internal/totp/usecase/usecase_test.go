@@ -55,7 +55,6 @@ func TestTotpUC_Enroll(t *testing.T) {
 	userName := "Rueie"
 	issuer := "dbo.gcfactory.space"
 	t.Run("Valid", func(t *testing.T) {
-		totpId := uuid.New()
 		inputCfg := models.TOTPConfig{
 			UserId:      userId,
 			AccountName: userName,
@@ -72,34 +71,22 @@ func TestTotpUC_Enroll(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, secret)
 		require.NotNil(t, url)
-		totpCfg := models.TOTPConfig{
-			UserId:      userId,
-			Id:          totpId,
-			IsActive:    true,
-			AccountName: userName,
-			Issuer:      issuer,
-			Secret:      *secret,
-			URL:         *url,
-		}
 
 		ctx := context.Background()
 		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Enroll")
 		defer span.Finish()
 
 		mockRepo.EXPECT().GetActiveConfig(ctxWithTrace, gomock.Eq(userId)).Return(nil, totpRepo.ErrorGetActiveConfig)
-		mockRepo.EXPECT().GetConfigByTotpId(ctxWithTrace, gomock.Eq(totpId)).Return(nil, totpRepo.ErrorGetConfigByTotpId)
 		mockTotp.EXPECT().Generate(gomock.Eq(genOpts)).Return(secret, url, nil)
-		mockRepo.EXPECT().CreateConfig(ctxWithTrace, gomock.Eq(totpCfg)).Return(nil)
+		mockRepo.EXPECT().CreateConfig(ctxWithTrace, gomock.Any()).Return(nil)
 
-		result, err := totpUC.Enroll(ctx, inputCfg, totpId)
+		result, err := totpUC.Enroll(ctx, inputCfg)
 		require.Nil(t, err)
 		require.NoError(t, err)
 		require.NotNil(t, result)
-		require.Equal(t, result, &models.TOTPEnroll{
-			TotpId:     totpCfg.Id.String(),
-			TotpSecret: *secret,
-			TotpUrl:    *url,
-		})
+		require.NotEqual(t, result.TotpId, "")
+		require.Equal(t, *secret, result.TotpSecret)
+		require.Equal(t, *url, result.TotpUrl)
 	})
 	t.Run("UserIsActive", func(t *testing.T) {
 		totpCfg := models.TOTPConfig{
@@ -114,7 +101,7 @@ func TestTotpUC_Enroll(t *testing.T) {
 
 		mockRepo.EXPECT().GetActiveConfig(ctxWithTrace, gomock.Eq(userId)).Return(&totpCfg, nil)
 
-		result, err := totpUC.Enroll(ctx, models.TOTPConfig{UserId: userId, AccountName: userName}, uuid.Nil)
+		result, err := totpUC.Enroll(ctx, models.TOTPConfig{UserId: userId, AccountName: userName})
 		require.NotNil(t, err)
 		require.Error(t, err)
 		require.Equal(t, err, totpErrors.ActiveTotp)
@@ -122,7 +109,7 @@ func TestTotpUC_Enroll(t *testing.T) {
 	})
 	t.Run("NoUserName", func(t *testing.T) {
 		ctx := context.Background()
-		result, err := totpUC.Enroll(ctx, models.TOTPConfig{UserId: userId}, uuid.Nil)
+		result, err := totpUC.Enroll(ctx, models.TOTPConfig{UserId: userId})
 		require.NotNil(t, err)
 		require.Error(t, err)
 		require.Equal(t, err, totpErrors.NoUserName)
@@ -130,57 +117,13 @@ func TestTotpUC_Enroll(t *testing.T) {
 	})
 	t.Run("EmptyUserId", func(t *testing.T) {
 		ctx := context.Background()
-		result, err := totpUC.Enroll(ctx, models.TOTPConfig{AccountName: userName}, uuid.Nil)
+		result, err := totpUC.Enroll(ctx, models.TOTPConfig{AccountName: userName})
 		require.NotNil(t, err)
 		require.Error(t, err)
 		require.Equal(t, err, totpErrors.EmptyUserId)
 		require.Nil(t, result)
 	})
-	t.Run("EmptyTotpId", func(t *testing.T) {
-		totpCfg := models.TOTPConfig{
-			UserId:      userId,
-			AccountName: userName,
-		}
-
-		ctx := context.Background()
-		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Enroll")
-		defer span.Finish()
-
-		mockRepo.EXPECT().GetActiveConfig(ctxWithTrace, gomock.Eq(userId)).Return(nil, totpRepo.ErrorGetActiveConfig)
-
-		result, err := totpUC.Enroll(ctx, totpCfg, uuid.Nil)
-		require.NotNil(t, err)
-		require.Error(t, err)
-		require.Equal(t, err, totpErrors.EmptyTotpId)
-		require.Nil(t, result)
-	})
-	t.Run("TotpIdIsExist", func(t *testing.T) {
-		totpId := uuid.New()
-		totpCfg := models.TOTPConfig{
-			UserId:      userId,
-			AccountName: userName,
-		}
-		existedCfg := models.TOTPConfig{
-			UserId:      userId,
-			AccountName: userName,
-			Id:          totpId,
-		}
-
-		ctx := context.Background()
-		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Enroll")
-		defer span.Finish()
-
-		mockRepo.EXPECT().GetActiveConfig(ctxWithTrace, gomock.Eq(userId)).Return(nil, totpRepo.ErrorGetActiveConfig)
-		mockRepo.EXPECT().GetConfigByTotpId(ctxWithTrace, gomock.Eq(totpId)).Return(&existedCfg, nil)
-
-		result, err := totpUC.Enroll(ctx, totpCfg, totpId)
-		require.NotNil(t, err)
-		require.Error(t, err)
-		require.Equal(t, err, totpErrors.TotpIdIsExisted)
-		require.Nil(t, result)
-	})
 	t.Run("ErrorGenTotp", func(t *testing.T) {
-		totpId := uuid.New()
 		inputCfg := models.TOTPConfig{
 			UserId:      userId,
 			AccountName: userName,
@@ -203,17 +146,15 @@ func TestTotpUC_Enroll(t *testing.T) {
 		defer span.Finish()
 
 		mockRepo.EXPECT().GetActiveConfig(ctxWithTrace, gomock.Eq(userId)).Return(nil, totpRepo.ErrorGetActiveConfig)
-		mockRepo.EXPECT().GetConfigByTotpId(ctxWithTrace, gomock.Eq(totpId)).Return(nil, totpRepo.ErrorGetConfigByTotpId)
 		mockTotp.EXPECT().Generate(gomock.Eq(genOpts)).Return(nil, nil, totpPkgConfig.ErrGenerateMissingIssuer)
 
-		result, err := totpUC.Enroll(ctx, inputCfg, totpId)
+		result, err := totpUC.Enroll(ctx, inputCfg)
 		require.NotNil(t, err)
 		require.Error(t, err)
 		require.Equal(t, err, ErrorGenTotp)
 		require.Nil(t, result)
 	})
 	t.Run("ErrorCreateConfig", func(t *testing.T) {
-		totpId := uuid.New()
 		inputCfg := models.TOTPConfig{
 			UserId:      userId,
 			AccountName: userName,
@@ -230,26 +171,16 @@ func TestTotpUC_Enroll(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, secret)
 		require.NotNil(t, url)
-		totpCfg := models.TOTPConfig{
-			UserId:      userId,
-			Id:          totpId,
-			IsActive:    true,
-			AccountName: userName,
-			Issuer:      issuer,
-			Secret:      *secret,
-			URL:         *url,
-		}
 
 		ctx := context.Background()
 		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Enroll")
 		defer span.Finish()
 
 		mockRepo.EXPECT().GetActiveConfig(ctxWithTrace, gomock.Eq(userId)).Return(nil, totpRepo.ErrorGetActiveConfig)
-		mockRepo.EXPECT().GetConfigByTotpId(ctxWithTrace, gomock.Eq(totpId)).Return(nil, totpRepo.ErrorGetConfigByTotpId)
 		mockTotp.EXPECT().Generate(gomock.Eq(genOpts)).Return(secret, url, nil)
-		mockRepo.EXPECT().CreateConfig(ctxWithTrace, gomock.Eq(totpCfg)).Return(totpRepo.ErrorCreateConfig)
+		mockRepo.EXPECT().CreateConfig(ctxWithTrace, gomock.Any()).Return(totpRepo.ErrorCreateConfig)
 
-		result, err := totpUC.Enroll(ctx, inputCfg, totpId)
+		result, err := totpUC.Enroll(ctx, inputCfg)
 		require.NotNil(t, err)
 		require.Error(t, err)
 		require.Equal(t, err, ErrorCreateConfig)

@@ -24,7 +24,7 @@ type totpUC struct {
 	logger    logger.Logger
 }
 
-func (t totpUC) Enroll(ctx context.Context, totpConfig models.TOTPConfig, totpId uuid.UUID) (*models.TOTPEnroll, error) {
+func (t totpUC) Enroll(ctx context.Context, totpConfig models.TOTPConfig) (*models.TOTPEnroll, error) {
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Enroll")
 	defer span.Finish()
 
@@ -40,14 +40,7 @@ func (t totpUC) Enroll(ctx context.Context, totpConfig models.TOTPConfig, totpId
 		return nil, totpErrors.ActiveTotp
 	}
 
-	if totpId == uuid.Nil {
-		return nil, totpErrors.EmptyTotpId
-	}
-
-	_, err = t.totpRepo.GetConfigByTotpId(ctxWithTrace, totpId)
-	if err == nil {
-		return nil, totpErrors.TotpIdIsExisted
-	}
+	totpId := uuid.New()
 
 	totpConfig.Id = totpId
 	totpConfig.IsActive = true
