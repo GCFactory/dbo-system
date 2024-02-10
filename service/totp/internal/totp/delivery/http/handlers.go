@@ -212,7 +212,7 @@ func (t totpHandlers) Enable() echo.HandlerFunc {
 		TotpId string `json:"totp_id"`
 	}
 	return func(c echo.Context) error {
-		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "auth.Login")
+		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "totpUC.Enable")
 		defer span.Finish()
 
 		input := &Input{}
@@ -223,7 +223,7 @@ func (t totpHandlers) Enable() echo.HandlerFunc {
 
 		if input.TotpId == "" && input.UserId == "" {
 			utils.LogResponseError(c, t.logger, errors.New("No user_id and totp_id fields"))
-			return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, "No user_id and totp_id fields", nil))
+			return c.JSON(httpErrors.ErrorResponse(ErrorNoBothId))
 		}
 
 		var userId uuid.UUID = uuid.Nil

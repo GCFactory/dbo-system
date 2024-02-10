@@ -10,4 +10,5 @@ var (
 	ErrorNoUserName = httpErrors.NewRestError(http.StatusBadRequest, "No user_name field", nil)
 	ErrorNoUrl      = httpErrors.NewRestError(http.StatusBadRequest, "No totp_url field", nil)
 	ErrorNoTotpCode = httpErrors.NewRestError(http.StatusBadRequest, "No totp_code field", nil)
+	ErrorNoBothId   = httpErrors.NewRestError(http.StatusBadRequest, "No user_id and totp_id fields", nil)
 )
