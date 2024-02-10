@@ -1037,8 +1037,8 @@ func TestTotpHandlers_Disable(t *testing.T) {
 	apiLogger := logger.NewServerLogger(testCfg)
 	apiLogger.InitLogger()
 
-	mockTOTP := mock.NewMockUseCase(ctrl)
-	tHandlers := NewTOTPHandlers(testCfg, mockTOTP, apiLogger)
+	mockUC := mock.NewMockUseCase(ctrl)
+	tHandlers := NewTOTPHandlers(testCfg, mockUC, apiLogger)
 
 	t.Parallel()
 	// Supress output
@@ -1134,9 +1134,9 @@ func TestTotpHandlers_Disable(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, totpId)
 
-		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "auth.Login")
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Disable")
 		defer span.Finish()
-		mockTOTP.EXPECT().Disable(ctxWithTrace, gomock.Eq(totpId), gomock.Eq(userId)).Return(&totpDisable, nil)
+		mockUC.EXPECT().Disable(ctxWithTrace, gomock.Eq(totpId), gomock.Eq(userId)).Return(&totpDisable, nil)
 
 		expectedBody, _ := json.Marshal(totpDisable)
 		// Echo outputs JSON with \n
@@ -1178,9 +1178,9 @@ func TestTotpHandlers_Disable(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, userId)
 
-		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "auth.Login")
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Disable")
 		defer span.Finish()
-		mockTOTP.EXPECT().Disable(ctxWithTrace, gomock.Eq(totpId), gomock.Eq(userId)).Return(&totpDisable, nil)
+		mockUC.EXPECT().Disable(ctxWithTrace, gomock.Eq(totpId), gomock.Eq(userId)).Return(&totpDisable, nil)
 
 		expectedBody, _ := json.Marshal(totpDisable)
 		// Echo outputs JSON with \n
@@ -1222,9 +1222,9 @@ func TestTotpHandlers_Disable(t *testing.T) {
 
 		userId := uuid.Nil
 
-		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "auth.Login")
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Disable")
 		defer span.Finish()
-		mockTOTP.EXPECT().Disable(ctxWithTrace, gomock.Eq(totpId), gomock.Eq(userId)).Return(&totpDisable, nil)
+		mockUC.EXPECT().Disable(ctxWithTrace, gomock.Eq(totpId), gomock.Eq(userId)).Return(&totpDisable, nil)
 
 		expectedBody, _ := json.Marshal(totpDisable)
 		// Echo outputs JSON with \n
@@ -1269,9 +1269,9 @@ func TestTotpHandlers_Disable(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, totpId)
 
-		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "auth.Login")
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Disable")
 		defer span.Finish()
-		mockTOTP.EXPECT().Disable(ctxWithTrace, gomock.Eq(totpId), gomock.Eq(userId)).Return(&totpDisable, totpErrors.NoTotpId)
+		mockUC.EXPECT().Disable(ctxWithTrace, gomock.Eq(totpId), gomock.Eq(userId)).Return(&totpDisable, totpErrors.NoTotpId)
 
 		expectedBody, _ := json.Marshal(totpDisable)
 		// Echo outputs JSON with \n
@@ -1316,9 +1316,9 @@ func TestTotpHandlers_Disable(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, totpId)
 
-		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "auth.Login")
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Disable")
 		defer span.Finish()
-		mockTOTP.EXPECT().Disable(ctxWithTrace, gomock.Eq(totpId), gomock.Eq(userId)).Return(&totpDisable, totpErrors.TotpIsDisabled)
+		mockUC.EXPECT().Disable(ctxWithTrace, gomock.Eq(totpId), gomock.Eq(userId)).Return(&totpDisable, totpErrors.TotpIsDisabled)
 
 		expectedBody, _ := json.Marshal(totpDisable)
 		// Echo outputs JSON with \n
@@ -1327,5 +1327,90 @@ func TestTotpHandlers_Disable(t *testing.T) {
 		err = handlerFunc(c)
 		require.Equal(t, http.StatusBadRequest, rec.Code)
 		require.Equal(t, rec.Body.Bytes(), expectedBody)
+	})
+
+	t.Run("InternalTotpIdParseError", func(t *testing.T) {
+		inputBody := inputStruct{
+			UserId: "",
+			TotpId: "!",
+		}
+
+		buf, err := converter.AnyToBytesBuffer(inputBody)
+		require.NoError(t, err)
+		require.NotNil(t, buf)
+		require.Nil(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/totp/disable", strings.NewReader(buf.String()))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+
+		e := echo.New()
+		c := e.NewContext(req, rec)
+		handlerFunc := tHandlers.Disable()
+
+		err = handlerFunc(c)
+		require.Nil(t, err)
+		require.Equal(t, rec.Code, http.StatusInternalServerError)
+		require.Equal(t, rec.Body.String(), "{\"status\":500,\"error\":\"Internal Server Error\"}\n")
+	})
+
+	t.Run("InternalUserIdParseError", func(t *testing.T) {
+		inputBody := inputStruct{
+			UserId: "!",
+			TotpId: "",
+		}
+
+		buf, err := converter.AnyToBytesBuffer(inputBody)
+		require.NoError(t, err)
+		require.NotNil(t, buf)
+		require.Nil(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/totp/disable", strings.NewReader(buf.String()))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+
+		e := echo.New()
+		c := e.NewContext(req, rec)
+		handlerFunc := tHandlers.Disable()
+
+		err = handlerFunc(c)
+		require.Nil(t, err)
+		require.Equal(t, rec.Code, http.StatusInternalServerError)
+		require.Equal(t, rec.Body.String(), "{\"status\":500,\"error\":\"Internal Server Error\"}\n")
+	})
+
+	t.Run("InternalDisableError", func(t *testing.T) {
+		inputBody := inputStruct{
+			UserId: "",
+			TotpId: uuid.New().String(),
+		}
+
+		buf, err := converter.AnyToBytesBuffer(inputBody)
+		require.NoError(t, err)
+		require.NotNil(t, buf)
+		require.Nil(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/totp/disable", strings.NewReader(buf.String()))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+
+		e := echo.New()
+		c := e.NewContext(req, rec)
+		handlerFunc := tHandlers.Disable()
+
+		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "totpUC.Disable")
+		defer span.Finish()
+
+		totpId, err := uuid.Parse(inputBody.TotpId)
+		require.Nil(t, err)
+		require.NotNil(t, totpId)
+		require.NotEqual(t, totpId, uuid.Nil)
+
+		mockUC.EXPECT().Disable(ctx, gomock.Eq(totpId), gomock.Eq(uuid.Nil)).Return(nil, totpUseCase.ErrorUpdateActivityByTotpId)
+
+		err = handlerFunc(c)
+		require.Nil(t, err)
+		require.Equal(t, rec.Code, http.StatusInternalServerError)
+		require.Equal(t, rec.Body.String(), "{\"status\":500,\"error\":\"Internal Server Error\"}\n")
 	})
 }

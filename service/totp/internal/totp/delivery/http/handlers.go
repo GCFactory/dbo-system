@@ -278,7 +278,7 @@ func (t totpHandlers) Disable() echo.HandlerFunc {
 		TotpId string `json:"totp_id"`
 	}
 	return func(c echo.Context) error {
-		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "auth.Login")
+		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "totpUC.Disable")
 		defer span.Finish()
 
 		input := &Input{}
