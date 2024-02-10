@@ -130,7 +130,7 @@ func TestTOTPHandlers_Enroll(t *testing.T) {
 	})
 	t.Run("InternalUuidParseError", func(t *testing.T) {
 		inputBody := inputStruct{
-			UserId:   "“8e258b27-c787-49ef-9539-11461b251ffad",
+			UserId:   "8e258b27-c787-49ef-9539-11461b251ffad",
 			UserName: userName,
 		}
 
@@ -478,6 +478,265 @@ func TestTotpHandlers_Verify(t *testing.T) {
 
 		err = handleFunc(c)
 		require.NoError(t, err)
+		require.Nil(t, err)
+		require.Equal(t, rec.Code, http.StatusInternalServerError)
+		require.Equal(t, rec.Body.String(), "{\"status\":500,\"error\":\"Internal Server Error\"}\n")
+	})
+}
+
+func TestTotpHandlers_Validate(t *testing.T) {
+	t.Parallel()
+	type inputStruct struct {
+		UserId   string `json:"user_id"`
+		TotpCode string `json:"totp_code"`
+	}
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	apiLoggger := logger.NewServerLogger(testCfg)
+	apiLoggger.InitLogger()
+
+	mockUC := mock.NewMockUseCase(ctrl)
+	tHandlers := NewTOTPHandlers(testCfg, mockUC, apiLoggger)
+
+	null, _ := os.Open(os.DevNull)
+	sout := os.Stdout
+	serr := os.Stderr
+	os.Stdout = null
+	os.Stderr = null
+	defer func() {
+		defer null.Close()
+		os.Stdout = sout
+		os.Stderr = serr
+	}()
+	t.Run("EmptyBody", func(t *testing.T) {
+		inputBody := ""
+
+		buf, err := converter.AnyToBytesBuffer(inputBody)
+		require.NoError(t, err)
+		require.Nil(t, err)
+		require.NotNil(t, buf)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/totp/validate", strings.NewReader(buf.String()))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+
+		e := echo.New()
+		c := e.NewContext(req, rec)
+		handlerFunc := tHandlers.Validate()
+
+		err = handlerFunc(c)
+		require.NoError(t, err)
+		require.Nil(t, err)
+		require.Equal(t, http.StatusInternalServerError, rec.Code)
+		require.Equal(t, rec.Body.String(), "{\"status\":500,\"error\":\"Internal Server Error\"}\n")
+	})
+	t.Run("NoUserId", func(t *testing.T) {
+		inputBody := inputStruct{}
+
+		buf, err := converter.AnyToBytesBuffer(inputBody)
+		require.Nil(t, err)
+		require.NotNil(t, buf)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/totp/validate", strings.NewReader(buf.String()))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+
+		e := echo.New()
+		c := e.NewContext(req, rec)
+		handleFunc := tHandlers.Validate()
+
+		err = handleFunc(c)
+		require.Nil(t, err)
+		require.Equal(t, rec.Code, http.StatusBadRequest)
+		require.Equal(t, rec.Body.String(), "{\"status\":400,\"error\":\"No user_id field\"}\n")
+	})
+	t.Run("NoTotpCode", func(t *testing.T) {
+		inputBody := inputStruct{
+			UserId: uuid.New().String(),
+		}
+
+		buf, err := converter.AnyToBytesBuffer(inputBody)
+		require.Nil(t, err)
+		require.NotNil(t, buf)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/totp/validate", strings.NewReader(buf.String()))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+
+		e := echo.New()
+		c := e.NewContext(req, rec)
+		handleFunc := tHandlers.Validate()
+
+		err = handleFunc(c)
+		require.Nil(t, err)
+		require.Equal(t, rec.Code, http.StatusBadRequest)
+		require.Equal(t, rec.Body.String(), "{\"status\":400,\"error\":\"No totp_code field\"}\n")
+	})
+	t.Run("InternalErrorParseUserId", func(t *testing.T) {
+		inputBody := inputStruct{
+			UserId:   "8e258b27-c787-49ef-9539-11461b251ffad",
+			TotpCode: "123456",
+		}
+
+		buf, err := converter.AnyToBytesBuffer(inputBody)
+		require.Nil(t, err)
+		require.NotNil(t, buf)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/totp/validate", strings.NewReader(buf.String()))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+
+		e := echo.New()
+		c := e.NewContext(req, rec)
+		handleFunc := tHandlers.Validate()
+
+		err = handleFunc(c)
+		require.Nil(t, err)
+		require.Equal(t, rec.Code, http.StatusInternalServerError)
+		require.Equal(t, rec.Body.String(), "{\"status\":500,\"error\":\"Internal Server Error\"}\n")
+	})
+	t.Run("OK", func(t *testing.T) {
+		inputBody := inputStruct{
+			UserId:   uuid.New().String(),
+			TotpCode: "123456",
+		}
+
+		buf, err := converter.AnyToBytesBuffer(inputBody)
+		require.Nil(t, err)
+		require.NotNil(t, buf)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/totp/validate", strings.NewReader(buf.String()))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+
+		e := echo.New()
+		c := e.NewContext(req, rec)
+		handleFunc := tHandlers.Validate()
+
+		userId, err := uuid.Parse(inputBody.UserId)
+		require.Nil(t, err)
+		require.NotNil(t, userId)
+		require.NotEqual(t, userId, uuid.Nil)
+
+		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "totpUC.Validate")
+		defer span.Finish()
+
+		validateResult := models.TOTPValidate{
+			Status: "OK",
+		}
+
+		mockUC.EXPECT().Validate(ctx, gomock.Eq(userId), gomock.Eq(inputBody.TotpCode), gomock.Any()).Return(&validateResult, nil)
+
+		err = handleFunc(c)
+		require.Nil(t, err)
+		require.Equal(t, rec.Code, http.StatusOK)
+		require.Equal(t, rec.Body.String(), "{\"status\":\"OK\"}\n")
+	})
+	t.Run("UserNotFound", func(t *testing.T) {
+		inputBody := inputStruct{
+			UserId:   uuid.New().String(),
+			TotpCode: "123456",
+		}
+
+		buf, err := converter.AnyToBytesBuffer(inputBody)
+		require.Nil(t, err)
+		require.NotNil(t, buf)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/totp/validate", strings.NewReader(buf.String()))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+
+		e := echo.New()
+		c := e.NewContext(req, rec)
+		handleFunc := tHandlers.Validate()
+
+		userId, err := uuid.Parse(inputBody.UserId)
+		require.Nil(t, err)
+		require.NotNil(t, userId)
+		require.NotEqual(t, userId, uuid.Nil)
+
+		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "totpUC.Validate")
+		defer span.Finish()
+
+		validateResult := models.TOTPValidate{
+			Status: totpErrors.NoUserId.Error(),
+		}
+
+		mockUC.EXPECT().Validate(ctx, gomock.Eq(userId), gomock.Eq(inputBody.TotpCode), gomock.Any()).Return(&validateResult, totpErrors.NoUserId)
+
+		err = handleFunc(c)
+		require.Nil(t, err)
+		require.Equal(t, rec.Code, http.StatusNotFound)
+		require.Equal(t, rec.Body.String(), "{\"status\":\"No totp for this user id\"}\n")
+	})
+	t.Run("WrongTotpCode", func(t *testing.T) {
+		inputBody := inputStruct{
+			UserId:   uuid.New().String(),
+			TotpCode: "123456",
+		}
+
+		buf, err := converter.AnyToBytesBuffer(inputBody)
+		require.Nil(t, err)
+		require.NotNil(t, buf)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/totp/validate", strings.NewReader(buf.String()))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+
+		e := echo.New()
+		c := e.NewContext(req, rec)
+		handleFunc := tHandlers.Validate()
+
+		userId, err := uuid.Parse(inputBody.UserId)
+		require.Nil(t, err)
+		require.NotNil(t, userId)
+		require.NotEqual(t, userId, uuid.Nil)
+
+		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "totpUC.Validate")
+		defer span.Finish()
+
+		validateResult := models.TOTPValidate{
+			Status: totpErrors.WrongTotpCode.Error(),
+		}
+
+		mockUC.EXPECT().Validate(ctx, gomock.Eq(userId), gomock.Eq(inputBody.TotpCode), gomock.Any()).Return(&validateResult, totpErrors.WrongTotpCode)
+
+		err = handleFunc(c)
+		require.Nil(t, err)
+		require.Equal(t, rec.Code, http.StatusBadRequest)
+		require.Equal(t, rec.Body.String(), "{\"status\":\"Wrong totp code\"}\n")
+	})
+	t.Run("InternalValidateError", func(t *testing.T) {
+		inputBody := inputStruct{
+			UserId:   uuid.New().String(),
+			TotpCode: "123456",
+		}
+
+		buf, err := converter.AnyToBytesBuffer(inputBody)
+		require.Nil(t, err)
+		require.NotNil(t, buf)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/totp/validate", strings.NewReader(buf.String()))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+
+		e := echo.New()
+		c := e.NewContext(req, rec)
+		handleFunc := tHandlers.Validate()
+
+		userId, err := uuid.Parse(inputBody.UserId)
+		require.Nil(t, err)
+		require.NotNil(t, userId)
+		require.NotEqual(t, userId, uuid.Nil)
+
+		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "totpUC.Validate")
+		defer span.Finish()
+
+		mockUC.EXPECT().Validate(ctx, gomock.Eq(userId), gomock.Eq(inputBody.TotpCode), gomock.Any()).Return(nil, totpUseCase.ErrorRegexCompile)
+
+		err = handleFunc(c)
 		require.Nil(t, err)
 		require.Equal(t, rec.Code, http.StatusInternalServerError)
 		require.Equal(t, rec.Body.String(), "{\"status\":500,\"error\":\"Internal Server Error\"}\n")

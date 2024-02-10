@@ -155,7 +155,7 @@ func (t totpHandlers) Validate() echo.HandlerFunc {
 		TotpCode string `json:"totp_code"`
 	}
 	return func(c echo.Context) error {
-		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "auth.Login")
+		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "totpUC.Validate")
 		defer span.Finish()
 
 		input := &Input{}
@@ -166,12 +166,12 @@ func (t totpHandlers) Validate() echo.HandlerFunc {
 
 		if input.UserId == "" {
 			utils.LogResponseError(c, t.logger, errors.New("No user_id field"))
-			return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, "No user_id field", nil))
+			return c.JSON(httpErrors.ErrorResponse(ErrorNoUserId))
 		}
 
 		if input.TotpCode == "" {
 			utils.LogResponseError(c, t.logger, errors.New("No totp_code field"))
-			return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, "No totp_code field", nil))
+			return c.JSON(httpErrors.ErrorResponse(ErrorNoTotpCode))
 		}
 
 		userId, err := uuid.Parse(input.UserId)
