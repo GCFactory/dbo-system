@@ -7,6 +7,7 @@ package mock
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	models "github.com/GCFactory/dbo-system/service/totp/internal/models"
 	gomock "github.com/golang/mock/gomock"
@@ -82,18 +83,18 @@ func (mr *MockUseCaseMockRecorder) Enroll(ctx, totp interface{}) *gomock.Call {
 }
 
 // Validate mocks base method.
-func (m *MockUseCase) Validate(ctx context.Context, id uuid.UUID, code string) (*models.TOTPValidate, error) {
+func (m *MockUseCase) Validate(ctx context.Context, id uuid.UUID, code string, time time.Time) (*models.TOTPValidate, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Validate", ctx, id, code)
+	ret := m.ctrl.Call(m, "Validate", ctx, id, code, time)
 	ret0, _ := ret[0].(*models.TOTPValidate)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Validate indicates an expected call of Validate.
-func (mr *MockUseCaseMockRecorder) Validate(ctx, id, code interface{}) *gomock.Call {
+func (mr *MockUseCaseMockRecorder) Validate(ctx, id, code, time interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Validate", reflect.TypeOf((*MockUseCase)(nil).Validate), ctx, id, code)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Validate", reflect.TypeOf((*MockUseCase)(nil).Validate), ctx, id, code, time)
 }
 
 // Verify mocks base method.

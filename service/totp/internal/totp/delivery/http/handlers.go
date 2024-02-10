@@ -46,7 +46,7 @@ func (t totpHandlers) Enroll() echo.HandlerFunc {
 		UserId   string `json:"user_id"`
 	}
 	return func(c echo.Context) error {
-		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "auth.Login")
+		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "totpH.Enroll")
 		defer span.Finish()
 
 		user := &User{}
@@ -57,12 +57,12 @@ func (t totpHandlers) Enroll() echo.HandlerFunc {
 
 		if user.UserId == "" {
 			utils.LogResponseError(c, t.logger, errors.New("No user_id field"))
-			return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, "No user_id field", nil))
+			return c.JSON(httpErrors.ErrorResponse(ErrorNoUserId))
 		}
 
 		if user.UserName == "" {
 			utils.LogResponseError(c, t.logger, errors.New("No user_name field"))
-			return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, "No user_name field", nil))
+			return c.JSON(httpErrors.ErrorResponse(ErrorNoUserName))
 		}
 
 		userId, err := uuid.Parse(user.UserId)
@@ -74,14 +74,13 @@ func (t totpHandlers) Enroll() echo.HandlerFunc {
 		totpEnroll, err := t.totpUC.Enroll(ctx, models.TOTPConfig{
 			UserId:      userId,
 			AccountName: user.UserName,
-		}, uuid.New())
+		})
 		if err != nil {
 			utils.LogResponseError(c, t.logger, err)
 			if errors.Is(err, totpErrors.ActiveTotp) {
 				return c.JSON(http.StatusForbidden, httpErrors.NewRestError(http.StatusForbidden, err.Error(), nil))
 			} else if errors.Is(err, totpErrors.NoUserName) ||
-				errors.Is(err, totpErrors.NoUserId) ||
-				errors.Is(err, totpErrors.TotpIdIsExisted) {
+				errors.Is(err, totpErrors.NoUserId) {
 				return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, err.Error(), nil))
 			} else {
 				return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, err.Error())))
