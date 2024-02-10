@@ -9,6 +9,7 @@ import (
 	"github.com/GCFactory/dbo-system/service/totp/internal/models"
 	"github.com/GCFactory/dbo-system/service/totp/internal/totp/mock"
 	totpRepo "github.com/GCFactory/dbo-system/service/totp/internal/totp/repository"
+	totpUseCase "github.com/GCFactory/dbo-system/service/totp/internal/totp/usecase"
 	totpErrors "github.com/GCFactory/dbo-system/service/totp/pkg/errors"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
@@ -310,6 +311,173 @@ func TestTOTPHandlers_Enroll(t *testing.T) {
 		})).Return(nil, totpRepo.ErrorCreateConfig)
 
 		err = handleFunc(c)
+		require.Nil(t, err)
+		require.Equal(t, rec.Code, http.StatusInternalServerError)
+		require.Equal(t, rec.Body.String(), "{\"status\":500,\"error\":\"Internal Server Error\"}\n")
+	})
+}
+
+func TestTotpHandlers_Verify(t *testing.T) {
+	t.Parallel()
+	type inputStruct struct {
+		TotpUrl string `json:"totp_url"`
+	}
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	apiLoggger := logger.NewServerLogger(testCfg)
+	apiLoggger.InitLogger()
+
+	mockUC := mock.NewMockUseCase(ctrl)
+	tHandlers := NewTOTPHandlers(testCfg, mockUC, apiLoggger)
+
+	null, _ := os.Open(os.DevNull)
+	sout := os.Stdout
+	serr := os.Stderr
+	os.Stdout = null
+	os.Stderr = null
+	defer func() {
+		defer null.Close()
+		os.Stdout = sout
+		os.Stderr = serr
+	}()
+	url := "otpauth://totp/dbo.gcfactory.space:admin?algorithm=SHA1&digits=6&issuer=dbo.gcfactory.space&period=30&secret=JOMS6CZZZ4L7S4F6CADFZWMZRJAB5WPP"
+	t.Run("EmptyBody", func(t *testing.T) {
+		inputBody := ""
+
+		buf, err := converter.AnyToBytesBuffer(inputBody)
+		require.NoError(t, err)
+		require.Nil(t, err)
+		require.NotNil(t, buf)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/totp/verify", strings.NewReader(buf.String()))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+
+		e := echo.New()
+		c := e.NewContext(req, rec)
+		handlerFunc := tHandlers.Verify()
+
+		err = handlerFunc(c)
+		require.NoError(t, err)
+		require.Nil(t, err)
+		require.Equal(t, http.StatusInternalServerError, rec.Code)
+		require.Equal(t, rec.Body.String(), "{\"status\":500,\"error\":\"Internal Server Error\"}\n")
+	})
+	t.Run("NoUrl", func(t *testing.T) {
+		inputBody := inputStruct{}
+
+		buf, err := converter.AnyToBytesBuffer(inputBody)
+		require.NoError(t, err)
+		require.Nil(t, err)
+		require.NotNil(t, buf)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/totp/verify", strings.NewReader(buf.String()))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+
+		e := echo.New()
+		c := e.NewContext(req, rec)
+		handleFunc := tHandlers.Verify()
+
+		err = handleFunc(c)
+		require.NoError(t, err)
+		require.Nil(t, err)
+		require.Equal(t, rec.Code, http.StatusBadRequest)
+		require.Equal(t, rec.Body.String(), "{\"status\":400,\"error\":\"No totp_url field\"}\n")
+	})
+	t.Run("OK", func(t *testing.T) {
+		inputBody := inputStruct{
+			TotpUrl: url,
+		}
+
+		buf, err := converter.AnyToBytesBuffer(inputBody)
+		require.NoError(t, err)
+		require.Nil(t, err)
+		require.NotNil(t, buf)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/totp/verify", strings.NewReader(buf.String()))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+
+		e := echo.New()
+		c := e.NewContext(req, rec)
+		handleFunc := tHandlers.Verify()
+
+		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "totpUC.Verify")
+		defer span.Finish()
+
+		verifyResult := models.TOTPVerify{
+			Status: "OK",
+		}
+
+		mockUC.EXPECT().Verify(ctx, gomock.Eq(inputBody.TotpUrl)).Return(&verifyResult, nil)
+
+		err = handleFunc(c)
+		require.NoError(t, err)
+		require.Nil(t, err)
+		require.Equal(t, rec.Code, http.StatusOK)
+		require.Equal(t, rec.Body.String(), "{\"status\":\"OK\"}\n")
+	})
+	t.Run("BadRequest", func(t *testing.T) {
+		inputBody := inputStruct{
+			TotpUrl: "otpauth://totp/dbo.gcfactory.space:admin?algorithm=SHA1&digits=6&issuer=dbo.gcfactory.space&period=30",
+		}
+
+		buf, err := converter.AnyToBytesBuffer(inputBody)
+		require.NoError(t, err)
+		require.Nil(t, err)
+		require.NotNil(t, buf)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/totp/verify", strings.NewReader(buf.String()))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+
+		e := echo.New()
+		c := e.NewContext(req, rec)
+		handleFunc := tHandlers.Verify()
+
+		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "totpUC.Verify")
+		defer span.Finish()
+
+		verifyResult := models.TOTPVerify{
+			Status: totpErrors.NoSecretField.Error(),
+		}
+
+		mockUC.EXPECT().Verify(ctx, gomock.Eq(inputBody.TotpUrl)).Return(&verifyResult, totpErrors.NoSecretField)
+
+		err = handleFunc(c)
+		require.NoError(t, err)
+		require.Nil(t, err)
+		require.Equal(t, rec.Code, http.StatusBadRequest)
+		require.Equal(t, rec.Body.String(), "{\"status\":\"No secret field\"}\n")
+	})
+	t.Run("InternalServerError", func(t *testing.T) {
+		inputBody := inputStruct{
+			TotpUrl: "otpauth://totp/dbo.gcfactory.space:admin?algorithm=SHA1&digits=6&issuer=dbo.gcfactory.space&period=30",
+		}
+
+		buf, err := converter.AnyToBytesBuffer(inputBody)
+		require.NoError(t, err)
+		require.Nil(t, err)
+		require.NotNil(t, buf)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/totp/verify", strings.NewReader(buf.String()))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+
+		e := echo.New()
+		c := e.NewContext(req, rec)
+		handleFunc := tHandlers.Verify()
+
+		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "totpUC.Verify")
+		defer span.Finish()
+
+		mockUC.EXPECT().Verify(ctx, gomock.Eq(inputBody.TotpUrl)).Return(nil, totpUseCase.ErrorRegexCompile)
+
+		err = handleFunc(c)
+		require.NoError(t, err)
 		require.Nil(t, err)
 		require.Equal(t, rec.Code, http.StatusInternalServerError)
 		require.Equal(t, rec.Body.String(), "{\"status\":500,\"error\":\"Internal Server Error\"}\n")

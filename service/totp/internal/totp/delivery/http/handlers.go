@@ -106,7 +106,7 @@ func (t totpHandlers) Verify() echo.HandlerFunc {
 		TotpUrl string `json:"totp_url"`
 	}
 	return func(c echo.Context) error {
-		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "auth.Login")
+		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "totpUC.Verify")
 		defer span.Finish()
 
 		input := &Url{}
@@ -117,7 +117,7 @@ func (t totpHandlers) Verify() echo.HandlerFunc {
 
 		if input.TotpUrl == "" {
 			utils.LogResponseError(c, t.logger, errors.New("No totp_url field"))
-			return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, "No totp_url field", nil))
+			return c.JSON(httpErrors.ErrorResponse(ErrorNoUrl))
 		}
 
 		url := input.TotpUrl

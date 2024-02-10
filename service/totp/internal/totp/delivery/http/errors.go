@@ -8,4 +8,5 @@ import (
 var (
 	ErrorNoUserId   = httpErrors.NewRestError(http.StatusBadRequest, "No user_id field", nil)
 	ErrorNoUserName = httpErrors.NewRestError(http.StatusBadRequest, "No user_name field", nil)
+	ErrorNoUrl      = httpErrors.NewRestError(http.StatusBadRequest, "No totp_url field", nil)
 )
