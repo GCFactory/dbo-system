@@ -7,7 +7,7 @@
 package registration
 
 import (
-	platform "./platform"
+	platform "github.com/GCFactory/dbo-system/service/registration/proto/platform"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
