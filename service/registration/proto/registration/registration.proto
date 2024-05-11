@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package registration;
+
+option go_package = "./registration";
+
+import "platform/platform.proto";
+
+//  Персональные данные пользователя
+message UserData{
+    string inn = 1;                	//  ИНН
+    string snils = 2;              	//  СНИЛС
+    platform.Passport passport = 3;	//  Паспорт
+}
+
+//  Данные для начала регистрации
+message RegestrationData{
+    UserData user_data = 1;          		//  Персональные данные пользователя
+    platform.ActivityType activity_type = 2; 	//  Тип деятельности
+    platform.TaxationType taxation_type = 3; 	//  Тип налогообложения
+}
+
+//  Ответ на gateway
+message RegistrationResult{
+    string request_uuid = 1;    //  UUID запроса
+    uint32 status = 2;          //  Статус запроса
+    string info = 3;            //  Дополнительная информация по запросу
+}
+
+//  Данные event-а
+message EventData{
+    string saga_uuid = 1;       //  UUID sag-и
+    oneof data{
+        UserData user_data = 2; //  Персональные данные пользователя
+        //  Сюда можно будет ещё что-то вставлять
+    }
+}
+
+//  Результат event-а
+message EventStatus{
+    string saga_uuid = 1;   //  UUID sag-и
+    uint32 status = 2;      //  Статус event-а
+    string info = 3;        //  Дополнительная информация по event-у
+}
+
+//  Сервис регистрации
+service RegistrationService{
+    //  Регистрация пользователя
+    rpc RegistrateUser(RegestrationData) returns (RegistrationResult);
+    //  Запуск event-а
+    rpc StartEvent(EventData) returns (EventStatus);
+    //  Откад event-а
+    rpc RollBackEvent(EventData) returns (EventStatus);
+}

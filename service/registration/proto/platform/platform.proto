@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package platform;
+
+option go_package = "./platform";
+
+import "google/protobuf/timestamp.proto";
+
+//  ФИО
+message FCs{
+    string name = 1;        //  Имя
+    string surname = 2;     //  Фамилия
+    string patronymic = 3;  //  Отчество
+}
+
+//  Вид деятельности
+enum ActivityType{
+    UNKNOWNACTTYPE = 0;         //  Неизвестный
+    AGRICULTUREINDUSTRY = 1;    //  Сельское хозяйство
+    MININGINDUSTRY = 2;         //  Добывающая отрасль
+    PRODUCTION = 3;             //  Произвоство
+    CONSTRUCTION = 4;           //  Строительство
+    TRADING = 5;                //  Торговля
+    SERVICESECTOR = 6;          //  Сфера услуг
+    SOCHIALSHPERE = 7;          //  Социально-значимые сферы
+}
+
+//  Тип налогообложения
+enum TaxationType{
+    UNKNOWNTAXTYPE = 0; //  Неизвестный
+    OSNO = 1;       	//  ОСНО
+    USH = 2;        	//  УСН
+    PSN = 3;        	//  ПСН
+    NPD = 4;        	//  НПД
+    ESXH = 5;       	//  УСХН
+}
+
+//  Паспорт
+message Passport{
+    string series = 1;              			//  Серия
+    string number = 2;              			//  Номер
+    FCs fcs = 3;                    			//  ФИО
+    google.protobuf.Timestamp birth_date = 4;   	//  Дата рождения
+    string birth_location = 5;      			//  Место рождения
+    string pick_up_point = 6;       			//  Пункт выдачи паспорта
+    uint32 authority = 7;	    			//  Код пункта выдачи
+    google.protobuf.Timestamp authority_date = 8;   	//  Дата выдачи пасорта
+    string registration_adress = 9; 			//  Адресс регистрации
+}
