@@ -9,8 +9,7 @@ import (
 
 type Repository interface {
 	CreateSaga(ctx context.Context, saga models.Saga) error
-	ChangeSagaStatus(ctx context.Context, saga_uuid uuid.UUID, saga_status uint) error
-	RemoveEventFromSaga(ctx context.Context, saga_uuid uuid.UUID, event_name string) error
-	AddEventInToSaga(ctx context.Context, saga_uuid uuid.UUID, event_name string) error
-	GetSagaById(ctx context.Context, saga_uuid uuid.UUID) (models.Saga, error)
+	GetSagaById(ctx context.Context, saga_uuid uuid.UUID) (*models.Saga, error)
+	UpdateSagaStatus(ctx context.Context, saga_uuid uuid.UUID, saga_status uint) error
+	UpdateSagaEvents(ctx context.Context, saga_uuid uuid.UUID, event_name string) error
 }

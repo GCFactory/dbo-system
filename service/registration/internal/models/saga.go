@@ -9,3 +9,11 @@ type Saga struct {
 	Saga_name           string    `json:"saga_name" db:"saga_name" validate:"max=50 required"`
 	Saga_list_of_events string    `json:"saga_list_of_events" db:"saga_list_of_events" validate:"json required"`
 }
+
+type SagaEvent struct {
+	Name string `validate:"max=100 required"`
+}
+
+type SagaListEvents struct {
+	EventList []*SagaEvent `json:"list of events" validate:"required"`
+}
