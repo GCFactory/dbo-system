@@ -14,19 +14,19 @@ type registrationRepo struct {
 }
 
 func (repo registrationRepo) CreateSaga(ctx context.Context, saga models.Saga) error {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "registrationRepo.CreateSaga")
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.CreateSaga")
 	defer span.Finish()
 
-	_, err := repo.db.ExecContext(ctx,
+	var res models.Saga
+
+	if err := repo.db.QueryRowxContext(ctxWithTrace,
 		CreateSaga,
 		&saga.Saga_uuid,
 		&saga.Saga_status,
 		&saga.Saga_type,
 		&saga.Saga_name,
 		&saga.Saga_list_of_events,
-	)
-
-	if err != nil {
+	).StructScan(&res); err != nil {
 		return ErrorCreateSaga
 	}
 
@@ -34,12 +34,12 @@ func (repo registrationRepo) CreateSaga(ctx context.Context, saga models.Saga) e
 }
 
 func (repo registrationRepo) GetSagaById(ctx context.Context, saga_uuid uuid.UUID) (*models.Saga, error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "registrationRepo.GetSagaById")
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.GetSagaById")
 	defer span.Finish()
 
 	var saga models.Saga
 
-	if err := repo.db.QueryRowxContext(ctx,
+	if err := repo.db.QueryRowxContext(ctxWithTrace,
 		GetSaga,
 		saga_uuid,
 	).StructScan(&saga); err != nil {
@@ -49,10 +49,10 @@ func (repo registrationRepo) GetSagaById(ctx context.Context, saga_uuid uuid.UUI
 }
 
 func (repo registrationRepo) UpdateSagaStatus(ctx context.Context, saga_uuid uuid.UUID, saga_status uint) error {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "registrationRepo.UpdateSagaStatus")
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.UpdateSagaStatus")
 	defer span.Finish()
 
-	_, err := repo.db.ExecContext(ctx,
+	_, err := repo.db.ExecContext(ctxWithTrace,
 		UpdateSagaStatus,
 		saga_uuid,
 		saga_status,
@@ -65,14 +65,14 @@ func (repo registrationRepo) UpdateSagaStatus(ctx context.Context, saga_uuid uui
 	return nil
 }
 
-func (repo registrationRepo) UpdateSagaEvents(ctx context.Context, saga_uuid uuid.UUID, event_name string) error {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "registrationRepo.UpdateSagaEvents")
+func (repo registrationRepo) UpdateSagaEvents(ctx context.Context, saga_uuid uuid.UUID, events string) error {
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.UpdateSagaEvents")
 	defer span.Finish()
 
-	_, err := repo.db.ExecContext(ctx,
+	_, err := repo.db.ExecContext(ctxWithTrace,
 		UpdateSagaEvents,
 		saga_uuid,
-		event_name,
+		events,
 	)
 
 	if err != nil {

@@ -11,5 +11,5 @@ type Repository interface {
 	CreateSaga(ctx context.Context, saga models.Saga) error
 	GetSagaById(ctx context.Context, saga_uuid uuid.UUID) (*models.Saga, error)
 	UpdateSagaStatus(ctx context.Context, saga_uuid uuid.UUID, saga_status uint) error
-	UpdateSagaEvents(ctx context.Context, saga_uuid uuid.UUID, event_name string) error
+	UpdateSagaEvents(ctx context.Context, saga_uuid uuid.UUID, events string) error
 }
