@@ -89,7 +89,70 @@ func (regUC *registrationUC) AddSagaEvent(ctx context.Context, saga_uuid uuid.UU
 }
 
 func (regUC *registrationUC) RemoveSagaEvent(ctx context.Context, saga_uuid uuid.UUID, event_name string) error {
-	// TODO: реализовать
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.RemoveSagaEvent")
+	defer span.Finish()
+
+	//	Проверка на пустоту строки
+	if event_name == "" {
+		return ErrorEmptySagaName
+	}
+
+	//	Проверка на то, что такое название event-а вообще возможно
+	err := regUC.ValidateEventName(ctxWithTrace, event_name)
+	if err != nil {
+		return err
+	}
+
+	//	Проверка на существование saga с таким id
+	saga, err := regUC.registrationRepo.GetSagaById(ctxWithTrace, saga_uuid)
+	if err != nil {
+		return ErrorNoSaga
+	}
+
+	err = regUC.ValidateEventNameForSagaType(ctxWithTrace, saga.Saga_type, event_name)
+	if err != nil {
+		return err
+	}
+
+	list_of_events_str := saga.Saga_list_of_events
+
+	var list_of_events models.SagaListEvents
+
+	err = json.Unmarshal([]byte(list_of_events_str), &list_of_events)
+	if err != nil {
+		return ErrorUnmarshal
+	}
+
+	var flag_exist = false
+	var position int
+
+	//	Проверка на то, что в saga есть такой же event
+	for i := 0; i < len(list_of_events.EventList); i++ {
+		if list_of_events.EventList[i] == event_name {
+			flag_exist = true
+			position = i
+			break
+		}
+	}
+
+	if flag_exist == false {
+		return ErrorNoEvent
+	}
+
+	list_of_events.EventList[position] = list_of_events.EventList[len(list_of_events.EventList)-1]
+	list_of_events.EventList[len(list_of_events.EventList)-1] = ""
+	list_of_events.EventList = list_of_events.EventList[:len(list_of_events.EventList)-1]
+
+	result_list_of_events_str, err := json.Marshal(list_of_events)
+	if err != nil {
+		return ErrorMarshal
+	}
+
+	err = regUC.registrationRepo.UpdateSagaEvents(ctxWithTrace, saga_uuid, string(result_list_of_events_str))
+	if err != nil {
+		return ErrorUpdateSagaEvents
+	}
+
 	return nil
 }
 
@@ -105,8 +168,8 @@ func (regUC *registrationUC) ValidateEventName(ctx context.Context, event_name s
 	var flag_exist = false
 
 	for i := 0; i < len(PossibleEventsList); i++ {
-		tmp_str := "-" + PossibleEventsList[i]
-		if PossibleEventsList[i] == event_name || tmp_str == event_name {
+		inv_possiple_event := "-" + PossibleEventsList[i]
+		if PossibleEventsList[i] == event_name || inv_possiple_event == event_name {
 			flag_exist = true
 			break
 		}
