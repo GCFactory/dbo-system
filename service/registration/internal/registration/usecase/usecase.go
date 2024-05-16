@@ -22,6 +22,11 @@ func (regUC *registrationUC) CreateSaga(ctx context.Context, saga models.Saga) e
 	return nil
 }
 
+func (regUC *registrationUC) DeleteSaga(ctx context.Context, saga_uuid uuid.UUID) error {
+	//	TODO: реализовать
+	return nil
+}
+
 func (regUC *registrationUC) AddSagaEvent(ctx context.Context, saga_uuid uuid.UUID, event_name string) error {
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.AddSagaEvent")
 	defer span.Finish()
@@ -157,7 +162,17 @@ func (regUC *registrationUC) RemoveSagaEvent(ctx context.Context, saga_uuid uuid
 }
 
 func (regUC *registrationUC) FallBackSaga(ctx context.Context, saga_uuid uuid.UUID) error {
-	// TODO: реализовать
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.FallBackSaga")
+	defer span.Finish()
+
+	saga, err := regUC.registrationRepo.GetSagaById(ctxWithTrace, saga_uuid)
+	if err != nil {
+		return ErrorNoSaga
+	}
+
+	saga = saga
+	//	TODO: доделать
+
 	return nil
 }
 

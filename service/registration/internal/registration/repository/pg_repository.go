@@ -33,6 +33,22 @@ func (repo registrationRepo) CreateSaga(ctx context.Context, saga models.Saga) e
 	return nil
 }
 
+func (repo registrationRepo) DeleteSaga(ctx context.Context, saga_uuid uuid.UUID) error {
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.DeleteSaga")
+	defer span.Finish()
+
+	_, err := repo.db.ExecContext(ctxWithTrace,
+		DeleteSaga,
+		saga_uuid,
+	)
+
+	if err != nil {
+		return ErrorDeleteSaga
+	}
+
+	return nil
+}
+
 func (repo registrationRepo) GetSagaById(ctx context.Context, saga_uuid uuid.UUID) (*models.Saga, error) {
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.GetSagaById")
 	defer span.Finish()

@@ -114,6 +114,37 @@ func TestRegistrationRepo_CreateSaga(t *testing.T) {
 	})
 }
 
+func TestRegistrationRepo_DeleteSaga(t *testing.T) {
+	t.Parallel()
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	require.NoError(t, err)
+
+	sqlxDB := sqlx.NewDb(db, "slqmock")
+	defer sqlxDB.Close()
+
+	regRepo := repository.NewRegistrationRepository(sqlxDB)
+
+	t.Run("Success", func(t *testing.T) {
+		saga_uuid := uuid.New()
+
+		mock.ExpectExec(repository.DeleteSaga).WithArgs(saga_uuid).WillReturnResult(sqlmock.NewResult(1, 1))
+
+		err = regRepo.DeleteSaga(context.Background(), saga_uuid)
+
+		require.Nil(t, err)
+	})
+	t.Run("WrongData", func(t *testing.T) {
+		saga_uuid := uuid.New()
+
+		mock.ExpectExec(repository.DeleteSaga).WithArgs(saga_uuid).WillReturnError(err)
+
+		err = regRepo.DeleteSaga(context.Background(), saga_uuid)
+
+		require.NotNil(t, err)
+		require.Equal(t, err, repository.ErrorDeleteSaga)
+	})
+}
+
 func TestRegistrationRepo_GetSagaById(t *testing.T) {
 	t.Parallel()
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
