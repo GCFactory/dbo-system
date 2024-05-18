@@ -1,8 +1,8 @@
 package usecase
 
 const (
-	AntiFrod      = "AntiFrod"
-	ReserveNumber = "ReserveNumber"
+	AntiFrod      string = "AntiFrod"
+	ReserveNumber string = "ReserveNumber"
 )
 
 var PossibleEventsList = [...]string{
@@ -11,7 +11,7 @@ var PossibleEventsList = [...]string{
 }
 
 var PossibleEventsListForSagaType = map[uint][...]string{
-	0: {
+	SagaRegistration: {
 		AntiFrod,
 		ReserveNumber,
 	},

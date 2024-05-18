@@ -50,6 +50,20 @@ func (mr *MockRepositoryMockRecorder) CreateSaga(ctx, saga interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSaga", reflect.TypeOf((*MockRepository)(nil).CreateSaga), ctx, saga)
 }
 
+// DeleteSaga mocks base method.
+func (m *MockRepository) DeleteSaga(ctx context.Context, saga_uuid uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteSaga", ctx, saga_uuid)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteSaga indicates an expected call of DeleteSaga.
+func (mr *MockRepositoryMockRecorder) DeleteSaga(ctx, saga_uuid interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSaga", reflect.TypeOf((*MockRepository)(nil).DeleteSaga), ctx, saga_uuid)
+}
+
 // GetSagaById mocks base method.
 func (m *MockRepository) GetSagaById(ctx context.Context, saga_uuid uuid.UUID) (*models.Saga, error) {
 	m.ctrl.T.Helper()

@@ -9,7 +9,7 @@ import (
 type UseCase interface {
 	CreateSaga(ctx context.Context, saga models.Saga) error
 	DeleteSaga(ctx context.Context, saga_uuid uuid.UUID) error
-	AddSagaEvent(ctx context.Context, saga_uuid uuid.UUID, event_name string) error
 	RemoveSagaEvent(ctx context.Context, saga_uuid uuid.UUID, event_name string) error
-	FallBackSaga(ctx context.Context, saga_uuid uuid.UUID) error
+	FallBackSaga(ctx context.Context, saga_uuid uuid.UUID, event_name string) error
+	FallBackEvent(ctx context.Context, saga *models.Saga, event_name string) (*models.Saga, error)
 }
