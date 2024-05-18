@@ -10,7 +10,7 @@ var PossibleEventsList = [...]string{
 	ReserveNumber,
 }
 
-var PossibleEventsListForSagaType = map[uint][...]string{
+var PossibleEventsListForSagaType = map[uint][]string{
 	SagaRegistration: {
 		AntiFrod,
 		ReserveNumber,

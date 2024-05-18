@@ -68,7 +68,7 @@ func (regUC *registrationUC) DeleteSaga(ctx context.Context, saga_uuid uuid.UUID
 	}
 
 	list_of_events := models.SagaListEvents{}
-	err = json.Unmarshal([]byte(saga.Saga_list_of_events), list_of_events)
+	err = json.Unmarshal([]byte(saga.Saga_list_of_events), &list_of_events)
 	if err != nil {
 		return ErrorUnmarshal
 	}
