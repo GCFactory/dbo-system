@@ -276,3 +276,355 @@ func TestRegistrationUC_DeleteSaga(t *testing.T) {
 	})
 
 }
+
+func TestRegistrationUC_RemoveSagaEvent(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	apiLogger := logger.NewServerLogger(testCfgUC)
+	apiLogger.InitLogger()
+
+	mockRepo := mock.NewMockRepository(ctrl)
+	registrationUC := usecase.NewRegistrationUseCase(testCfgUC, mockRepo, apiLogger)
+
+	t.Parallel()
+	saga_uuid := uuid.New()
+	event_name := usecase.AntiFrod
+
+	t.Run("Wrong event name", func(t *testing.T) {
+
+		err := registrationUC.RemoveSagaEvent(context.Background(), saga_uuid, "some name")
+		require.Equal(t, err, usecase.ErrorWrongEventName)
+
+	})
+	t.Run("No saga with this id", func(t *testing.T) {
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.RemoveSagaEvent")
+		defer span.Finish()
+
+		mockRepo.EXPECT().GetSagaById(ctxWithTrace, gomock.Eq(saga_uuid)).Return(nil, repository.ErrorGetSaga)
+
+		err := registrationUC.RemoveSagaEvent(ctx, saga_uuid, event_name)
+		require.Equal(t, err, usecase.ErrorNoSaga)
+
+	})
+	t.Run("Wrong event name for this saga type", func(t *testing.T) {
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.RemoveSagaEvent")
+		defer span.Finish()
+
+		saga := models.Saga{
+			Saga_uuid:           saga_uuid,
+			Saga_name:           "test saga",
+			Saga_type:           usecase.SagaRegistration,
+			Saga_status:         usecase.StatusInProcess,
+			Saga_list_of_events: "",
+		}
+
+		mockRepo.EXPECT().GetSagaById(ctxWithTrace, gomock.Eq(saga_uuid)).Return(&saga, nil)
+
+		err := registrationUC.RemoveSagaEvent(ctx, saga_uuid, usecase.TestEvent)
+		require.Equal(t, err, usecase.ErrorWrongEventNameForSagaType)
+
+	})
+	t.Run("Saga hasn't such event", func(t *testing.T) {
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.RemoveSagaEvent")
+		defer span.Finish()
+
+		list_of_events := models.SagaListEvents{}
+		list_of_events.EventList = append(list_of_events.EventList, usecase.ReserveNumber)
+		list_of_events_bytes, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotEmpty(t, list_of_events_bytes)
+
+		saga := models.Saga{
+			Saga_uuid:           saga_uuid,
+			Saga_name:           "test saga",
+			Saga_type:           usecase.SagaRegistration,
+			Saga_status:         usecase.StatusInProcess,
+			Saga_list_of_events: string(list_of_events_bytes),
+		}
+
+		mockRepo.EXPECT().GetSagaById(ctxWithTrace, gomock.Eq(saga_uuid)).Return(&saga, nil)
+
+		err = registrationUC.RemoveSagaEvent(ctx, saga_uuid, usecase.AntiFrod)
+		require.Equal(t, err, usecase.ErrorNoEvent)
+
+	})
+	t.Run("Update saga events error", func(t *testing.T) {
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.RemoveSagaEvent")
+		defer span.Finish()
+
+		list_of_events := models.SagaListEvents{}
+		list_of_events.EventList = append(list_of_events.EventList, usecase.ReserveNumber)
+
+		list_of_events_bytes_end, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotEmpty(t, list_of_events_bytes_end)
+
+		list_of_events.EventList = append(list_of_events.EventList, usecase.AntiFrod)
+
+		list_of_events_bytes, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotEmpty(t, list_of_events_bytes)
+
+		saga := models.Saga{
+			Saga_uuid:           saga_uuid,
+			Saga_name:           "test saga",
+			Saga_type:           usecase.SagaRegistration,
+			Saga_status:         usecase.StatusInProcess,
+			Saga_list_of_events: string(list_of_events_bytes),
+		}
+
+		mockRepo.EXPECT().GetSagaById(ctxWithTrace, gomock.Eq(saga_uuid)).Return(&saga, nil)
+		mockRepo.EXPECT().UpdateSagaEvents(ctxWithTrace, gomock.Eq(saga_uuid), gomock.Eq(string(list_of_events_bytes_end))).Return(repository.ErrorUpdateSagaEvents)
+
+		err = registrationUC.RemoveSagaEvent(ctx, saga_uuid, usecase.AntiFrod)
+		require.Equal(t, err, usecase.ErrorUpdateSagaEvents)
+
+	})
+	t.Run("Update saga status error with empty events list with in process status", func(t *testing.T) {
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.RemoveSagaEvent")
+		defer span.Finish()
+
+		list_of_events := models.SagaListEvents{}
+
+		list_of_events.EventList = append(list_of_events.EventList, usecase.AntiFrod)
+
+		list_of_events_bytes, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotEmpty(t, list_of_events_bytes)
+
+		list_of_events.EventList = list_of_events.EventList[:0]
+
+		list_of_events_bytes_end, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotEmpty(t, list_of_events_bytes_end)
+
+		saga := models.Saga{
+			Saga_uuid:           saga_uuid,
+			Saga_name:           "test saga",
+			Saga_type:           usecase.SagaRegistration,
+			Saga_status:         usecase.StatusInProcess,
+			Saga_list_of_events: string(list_of_events_bytes),
+		}
+
+		mockRepo.EXPECT().GetSagaById(ctxWithTrace, gomock.Eq(saga_uuid)).Return(&saga, nil)
+		mockRepo.EXPECT().UpdateSagaEvents(ctxWithTrace, gomock.Eq(saga_uuid), gomock.Eq(string(list_of_events_bytes_end))).Return(nil)
+		mockRepo.EXPECT().UpdateSagaStatus(ctxWithTrace, gomock.Eq(saga_uuid), gomock.Eq(usecase.StatusCompleted)).Return(repository.ErrorUpdateSagaStatus)
+
+		err = registrationUC.RemoveSagaEvent(ctx, saga_uuid, usecase.AntiFrod)
+		require.Equal(t, err, usecase.ErrorUpdateSagaStatus)
+
+	})
+	t.Run("Update saga status error with empty events list with fall back status", func(t *testing.T) {
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.RemoveSagaEvent")
+		defer span.Finish()
+
+		list_of_events := models.SagaListEvents{}
+
+		list_of_events.EventList = append(list_of_events.EventList, "-"+usecase.AntiFrod)
+
+		list_of_events_bytes, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotEmpty(t, list_of_events_bytes)
+
+		list_of_events.EventList = list_of_events.EventList[:0]
+
+		list_of_events_bytes_end, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotEmpty(t, list_of_events_bytes_end)
+
+		saga := models.Saga{
+			Saga_uuid:           saga_uuid,
+			Saga_name:           "test saga",
+			Saga_type:           usecase.SagaRegistration,
+			Saga_status:         usecase.StatusFallBack,
+			Saga_list_of_events: string(list_of_events_bytes),
+		}
+
+		mockRepo.EXPECT().GetSagaById(ctxWithTrace, gomock.Eq(saga_uuid)).Return(&saga, nil)
+		mockRepo.EXPECT().UpdateSagaEvents(ctxWithTrace, gomock.Eq(saga_uuid), gomock.Eq(string(list_of_events_bytes_end))).Return(nil)
+		mockRepo.EXPECT().UpdateSagaStatus(ctxWithTrace, gomock.Eq(saga_uuid), gomock.Eq(usecase.StatusError)).Return(repository.ErrorUpdateSagaStatus)
+
+		err = registrationUC.RemoveSagaEvent(ctx, saga_uuid, "-"+usecase.AntiFrod)
+		require.Equal(t, err, usecase.ErrorUpdateSagaStatus)
+
+	})
+	t.Run("Success with several usual events", func(t *testing.T) {
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.RemoveSagaEvent")
+		defer span.Finish()
+
+		list_of_events := models.SagaListEvents{}
+
+		list_of_events.EventList = append(list_of_events.EventList, usecase.ReserveNumber)
+
+		list_of_events_bytes_end, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotEmpty(t, list_of_events_bytes_end)
+
+		list_of_events.EventList = append(list_of_events.EventList, usecase.AntiFrod)
+
+		list_of_events_bytes, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotEmpty(t, list_of_events_bytes)
+
+		saga := models.Saga{
+			Saga_uuid:           saga_uuid,
+			Saga_name:           "test saga",
+			Saga_type:           usecase.SagaRegistration,
+			Saga_status:         usecase.StatusInProcess,
+			Saga_list_of_events: string(list_of_events_bytes),
+		}
+
+		mockRepo.EXPECT().GetSagaById(ctxWithTrace, gomock.Eq(saga_uuid)).Return(&saga, nil)
+		mockRepo.EXPECT().UpdateSagaEvents(ctxWithTrace, gomock.Eq(saga_uuid), gomock.Eq(string(list_of_events_bytes_end))).Return(nil)
+
+		err = registrationUC.RemoveSagaEvent(ctx, saga_uuid, usecase.AntiFrod)
+		require.Nil(t, err)
+
+	})
+	t.Run("Success with several inverse events and fall back event", func(t *testing.T) {
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.RemoveSagaEvent")
+		defer span.Finish()
+
+		list_of_events := models.SagaListEvents{}
+
+		list_of_events.EventList = append(list_of_events.EventList, usecase.ReserveNumber)
+
+		list_of_events_bytes_end, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotEmpty(t, list_of_events_bytes_end)
+
+		list_of_events.EventList = append(list_of_events.EventList, "-"+usecase.AntiFrod)
+
+		list_of_events_bytes, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotEmpty(t, list_of_events_bytes)
+
+		saga := models.Saga{
+			Saga_uuid:           saga_uuid,
+			Saga_name:           "test saga",
+			Saga_type:           usecase.SagaRegistration,
+			Saga_status:         usecase.StatusInProcess,
+			Saga_list_of_events: string(list_of_events_bytes),
+		}
+
+		mockRepo.EXPECT().GetSagaById(ctxWithTrace, gomock.Eq(saga_uuid)).Return(&saga, nil)
+		mockRepo.EXPECT().UpdateSagaEvents(ctxWithTrace, gomock.Eq(saga_uuid), gomock.Eq(string(list_of_events_bytes_end))).Return(nil)
+
+		err = registrationUC.RemoveSagaEvent(ctx, saga_uuid, "-"+usecase.AntiFrod)
+		require.Nil(t, err)
+
+	})
+	t.Run("Success with solo usual event", func(t *testing.T) {
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.RemoveSagaEvent")
+		defer span.Finish()
+
+		list_of_events := models.SagaListEvents{}
+
+		list_of_events.EventList = append(list_of_events.EventList, usecase.AntiFrod)
+
+		list_of_events_bytes, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotEmpty(t, list_of_events_bytes)
+
+		list_of_events.EventList = list_of_events.EventList[:0]
+
+		list_of_events_bytes_end, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotEmpty(t, list_of_events_bytes_end)
+
+		saga := models.Saga{
+			Saga_uuid:           saga_uuid,
+			Saga_name:           "test saga",
+			Saga_type:           usecase.SagaRegistration,
+			Saga_status:         usecase.StatusInProcess,
+			Saga_list_of_events: string(list_of_events_bytes),
+		}
+
+		mockRepo.EXPECT().GetSagaById(ctxWithTrace, gomock.Eq(saga_uuid)).Return(&saga, nil)
+		mockRepo.EXPECT().UpdateSagaEvents(ctxWithTrace, gomock.Eq(saga_uuid), gomock.Eq(string(list_of_events_bytes_end))).Return(nil)
+		mockRepo.EXPECT().UpdateSagaStatus(ctxWithTrace, gomock.Eq(saga_uuid), gomock.Eq(usecase.StatusCompleted)).Return(nil)
+
+		err = registrationUC.RemoveSagaEvent(ctx, saga_uuid, usecase.AntiFrod)
+		require.Nil(t, err)
+
+	})
+	t.Run("Success with solo inverse event and fall back event", func(t *testing.T) {
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.RemoveSagaEvent")
+		defer span.Finish()
+
+		list_of_events := models.SagaListEvents{}
+
+		list_of_events.EventList = append(list_of_events.EventList, "-"+usecase.AntiFrod)
+
+		list_of_events_bytes, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotEmpty(t, list_of_events_bytes)
+
+		list_of_events.EventList = list_of_events.EventList[:0]
+
+		list_of_events_bytes_end, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotEmpty(t, list_of_events_bytes_end)
+
+		saga := models.Saga{
+			Saga_uuid:           saga_uuid,
+			Saga_name:           "test saga",
+			Saga_type:           usecase.SagaRegistration,
+			Saga_status:         usecase.StatusFallBack,
+			Saga_list_of_events: string(list_of_events_bytes),
+		}
+
+		mockRepo.EXPECT().GetSagaById(ctxWithTrace, gomock.Eq(saga_uuid)).Return(&saga, nil)
+		mockRepo.EXPECT().UpdateSagaEvents(ctxWithTrace, gomock.Eq(saga_uuid), gomock.Eq(string(list_of_events_bytes_end))).Return(nil)
+		mockRepo.EXPECT().UpdateSagaStatus(ctxWithTrace, gomock.Eq(saga_uuid), gomock.Eq(usecase.StatusError)).Return(nil)
+
+		err = registrationUC.RemoveSagaEvent(ctx, saga_uuid, "-"+usecase.AntiFrod)
+		require.Nil(t, err)
+
+	})
+	t.Run("Success with solo inverse event and fall back event", func(t *testing.T) {
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.RemoveSagaEvent")
+		defer span.Finish()
+
+		list_of_events := models.SagaListEvents{}
+
+		list_of_events.EventList = append(list_of_events.EventList, usecase.AntiFrod)
+
+		list_of_events_bytes, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotEmpty(t, list_of_events_bytes)
+
+		list_of_events.EventList[0] = "-" + usecase.AntiFrod
+
+		list_of_events_bytes_end, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotEmpty(t, list_of_events_bytes_end)
+
+		saga := models.Saga{
+			Saga_uuid:           saga_uuid,
+			Saga_name:           "test saga",
+			Saga_type:           usecase.SagaRegistration,
+			Saga_status:         usecase.StatusFallBack,
+			Saga_list_of_events: string(list_of_events_bytes),
+		}
+
+		mockRepo.EXPECT().GetSagaById(ctxWithTrace, gomock.Eq(saga_uuid)).Return(&saga, nil)
+		mockRepo.EXPECT().UpdateSagaEvents(ctxWithTrace, gomock.Eq(saga_uuid), gomock.Eq(string(list_of_events_bytes_end))).Return(nil)
+
+		err = registrationUC.RemoveSagaEvent(ctx, saga_uuid, usecase.AntiFrod)
+		require.Nil(t, err)
+
+	})
+}

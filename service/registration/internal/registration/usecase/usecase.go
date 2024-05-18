@@ -89,11 +89,6 @@ func (regUC *registrationUC) RemoveSagaEvent(ctx context.Context, saga_uuid uuid
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.RemoveSagaEvent")
 	defer span.Finish()
 
-	//	Проверка на пустоту строки
-	if event_name == "" {
-		return ErrorEmptySagaName
-	}
-
 	//	Проверка на то, что такое название event-а вообще возможно
 	err := regUC.ValidateEventName(ctxWithTrace, event_name)
 	if err != nil {
@@ -157,11 +152,11 @@ func (regUC *registrationUC) RemoveSagaEvent(ctx context.Context, saga_uuid uuid
 	}
 
 	if len(list_of_events.EventList) == 0 {
-		if saga.Saga_type == StatusInProcess { //	Если saga была в процессе
+		if saga.Saga_status == StatusInProcess { //	Если saga была в процессе
 			if err = regUC.registrationRepo.UpdateSagaStatus(ctxWithTrace, saga_uuid, StatusCompleted); err != nil {
 				return ErrorUpdateSagaStatus
 			}
-		} else if saga.Saga_type == StatusFallBack { //	Если сага была в откатывании
+		} else if saga.Saga_status == StatusFallBack { //	Если сага была в откатывании
 			if err = regUC.registrationRepo.UpdateSagaStatus(ctxWithTrace, saga_uuid, StatusError); err != nil {
 				return ErrorUpdateSagaStatus
 			}
