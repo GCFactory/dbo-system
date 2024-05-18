@@ -183,9 +183,19 @@ func (regUC *registrationUC) FallBackSaga(ctx context.Context, saga_uuid uuid.UU
 
 	list_of_events := models.SagaListEvents{}
 
-	err = json.Unmarshal([]byte(saga.Saga_list_of_events), list_of_events)
+	err = json.Unmarshal([]byte(saga.Saga_list_of_events), &list_of_events)
 	if err != nil {
 		return ErrorUnmarshal
+	}
+
+	err = regUC.ValidateEventName(ctxWithTrace, event_name)
+	if err != nil {
+		return ErrorWrongEventName
+	}
+
+	err = regUC.ValidateEventNameForSagaType(ctxWithTrace, saga.Saga_type, event_name)
+	if err != nil {
+		return ErrorWrongEventNameForSagaType
 	}
 
 	for i := 0; i < len(PossibleEventsListForSagaType[saga.Saga_type]); i++ {
@@ -196,7 +206,7 @@ func (regUC *registrationUC) FallBackSaga(ctx context.Context, saga_uuid uuid.UU
 				flag_exist = true
 				break
 			} else if inv_event_name == list_of_events.EventList[j] {
-				return ErrorSagaAlreadyFallBack
+				return ErrorEventAlreadyFallBack
 			}
 		}
 		//	Если нет такого event-а или обратного ему, то добавляем обратный ему
@@ -271,10 +281,7 @@ func (regUC *registrationUC) FallBackEvent(ctx context.Context, saga *models.Sag
 		return nil, ErrorNoEvent
 	}
 
-	list_of_events.EventList[position] = list_of_events.EventList[len(list_of_events.EventList)-1]
-	list_of_events.EventList[len(list_of_events.EventList)-1] = ""
-	list_of_events.EventList = list_of_events.EventList[:len(list_of_events.EventList)-1]
-	list_of_events.EventList = append(list_of_events.EventList, inverse_event_name)
+	list_of_events.EventList[position] = inverse_event_name
 
 	list_of_events_bytes, err := json.Marshal(list_of_events)
 	if err != nil {

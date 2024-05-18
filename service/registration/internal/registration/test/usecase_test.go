@@ -741,3 +741,241 @@ func TestRegistrationUC_FallBackEvent(t *testing.T) {
 		require.Equal(t, result, saga_end)
 	})
 }
+
+func TestRegistrationUC_FallBackSaga(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	apiLogger := logger.NewServerLogger(testCfgUC)
+	apiLogger.InitLogger()
+
+	mockRepo := mock.NewMockRepository(ctrl)
+	registrationUC := usecase.NewRegistrationUseCase(testCfgUC, mockRepo, apiLogger)
+
+	t.Parallel()
+
+	t.Run("No saga", func(t *testing.T) {
+		saga_uuid := uuid.New()
+
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.FallBackSaga")
+		defer span.Finish()
+
+		mockRepo.EXPECT().GetSagaById(ctxWithTrace, gomock.Eq(saga_uuid)).Return(nil, repository.ErrorGetSaga)
+
+		err := registrationUC.FallBackSaga(ctx, saga_uuid, "smth")
+		require.Equal(t, err, usecase.ErrorNoSaga)
+	})
+	t.Run("Saga already fall back", func(t *testing.T) {
+		saga_uuid := uuid.New()
+
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.FallBackSaga")
+		defer span.Finish()
+
+		saga := models.Saga{
+			Saga_uuid:   saga_uuid,
+			Saga_status: usecase.StatusFallBack,
+		}
+
+		mockRepo.EXPECT().GetSagaById(ctxWithTrace, gomock.Eq(saga_uuid)).Return(&saga, nil)
+
+		err := registrationUC.FallBackSaga(ctx, saga_uuid, "smth")
+		require.Equal(t, err, usecase.ErrorSagaAlreadyFallBack)
+	})
+	t.Run("Saga has wrong status for beginning fall back", func(t *testing.T) {
+		saga_uuid := uuid.New()
+
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.FallBackSaga")
+		defer span.Finish()
+
+		saga := models.Saga{
+			Saga_uuid:   saga_uuid,
+			Saga_status: usecase.StatusCreated,
+		}
+
+		mockRepo.EXPECT().GetSagaById(ctxWithTrace, gomock.Eq(saga_uuid)).Return(&saga, nil)
+
+		err := registrationUC.FallBackSaga(ctx, saga_uuid, "smth")
+		require.Equal(t, err, usecase.ErrorWrongFallBackStatus)
+	})
+	t.Run("Wrong event name", func(t *testing.T) {
+		saga_uuid := uuid.New()
+
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.FallBackSaga")
+		defer span.Finish()
+
+		list_of_events := models.SagaListEvents{}
+		list_of_events.EventList = append(list_of_events.EventList, usecase.AntiFrod)
+
+		list_of_events_bytes, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotNil(t, list_of_events_bytes)
+
+		saga := models.Saga{
+			Saga_uuid:           saga_uuid,
+			Saga_status:         usecase.StatusInProcess,
+			Saga_list_of_events: string(list_of_events_bytes),
+		}
+
+		mockRepo.EXPECT().GetSagaById(ctxWithTrace, gomock.Eq(saga_uuid)).Return(&saga, nil)
+
+		err = registrationUC.FallBackSaga(ctx, saga_uuid, "smth")
+		require.Equal(t, err, usecase.ErrorWrongEventName)
+	})
+	t.Run("Wrong event name for this saga type", func(t *testing.T) {
+		saga_uuid := uuid.New()
+
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.FallBackSaga")
+		defer span.Finish()
+
+		list_of_events := models.SagaListEvents{}
+		list_of_events.EventList = append(list_of_events.EventList, usecase.AntiFrod)
+
+		list_of_events_bytes, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotNil(t, list_of_events_bytes)
+
+		saga := models.Saga{
+			Saga_uuid:           saga_uuid,
+			Saga_status:         usecase.StatusInProcess,
+			Saga_list_of_events: string(list_of_events_bytes),
+			Saga_type:           usecase.SagaRegistration,
+		}
+
+		mockRepo.EXPECT().GetSagaById(ctxWithTrace, gomock.Eq(saga_uuid)).Return(&saga, nil)
+
+		err = registrationUC.FallBackSaga(ctx, saga_uuid, usecase.TestEvent)
+		require.Equal(t, err, usecase.ErrorWrongEventNameForSagaType)
+	})
+	t.Run("Saga has inverse event", func(t *testing.T) {
+		saga_uuid := uuid.New()
+
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.FallBackSaga")
+		defer span.Finish()
+
+		list_of_events := models.SagaListEvents{}
+		list_of_events.EventList = append(list_of_events.EventList, "-"+usecase.AntiFrod)
+
+		list_of_events_bytes, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotNil(t, list_of_events_bytes)
+
+		saga := models.Saga{
+			Saga_uuid:           saga_uuid,
+			Saga_status:         usecase.StatusInProcess,
+			Saga_list_of_events: string(list_of_events_bytes),
+			Saga_type:           usecase.SagaRegistration,
+		}
+
+		mockRepo.EXPECT().GetSagaById(ctxWithTrace, gomock.Eq(saga_uuid)).Return(&saga, nil)
+
+		err = registrationUC.FallBackSaga(ctx, saga_uuid, usecase.AntiFrod)
+		require.Equal(t, err, usecase.ErrorEventAlreadyFallBack)
+	})
+	t.Run("Error update saga events", func(t *testing.T) {
+		saga_uuid := uuid.New()
+
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.FallBackSaga")
+		defer span.Finish()
+
+		list_of_events := models.SagaListEvents{}
+		list_of_events.EventList = append(list_of_events.EventList, usecase.AntiFrod)
+
+		list_of_events_bytes, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotNil(t, list_of_events_bytes)
+
+		list_of_events.EventList[0] = "-" + list_of_events.EventList[0]
+		list_of_events.EventList = append(list_of_events.EventList, "-"+usecase.ReserveNumber)
+		list_of_events_end_bytes, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotEmpty(t, list_of_events_end_bytes)
+
+		saga := models.Saga{
+			Saga_uuid:           saga_uuid,
+			Saga_status:         usecase.StatusInProcess,
+			Saga_list_of_events: string(list_of_events_bytes),
+			Saga_type:           usecase.SagaRegistration,
+		}
+
+		mockRepo.EXPECT().GetSagaById(ctxWithTrace, gomock.Eq(saga_uuid)).Return(&saga, nil)
+		mockRepo.EXPECT().UpdateSagaEvents(ctxWithTrace, gomock.Eq(saga_uuid), string(list_of_events_end_bytes)).Return(repository.ErrorUpdateSagaEvents)
+
+		err = registrationUC.FallBackSaga(ctx, saga_uuid, usecase.AntiFrod)
+		require.Equal(t, err, usecase.ErrorUpdateSagaEvents)
+	})
+	t.Run("Error update saga status", func(t *testing.T) {
+		saga_uuid := uuid.New()
+
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.FallBackSaga")
+		defer span.Finish()
+
+		list_of_events := models.SagaListEvents{}
+		list_of_events.EventList = append(list_of_events.EventList, usecase.AntiFrod)
+
+		list_of_events_bytes, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotNil(t, list_of_events_bytes)
+
+		list_of_events.EventList[0] = "-" + list_of_events.EventList[0]
+		list_of_events.EventList = append(list_of_events.EventList, "-"+usecase.ReserveNumber)
+		list_of_events_end_bytes, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotEmpty(t, list_of_events_end_bytes)
+
+		saga := models.Saga{
+			Saga_uuid:           saga_uuid,
+			Saga_status:         usecase.StatusInProcess,
+			Saga_list_of_events: string(list_of_events_bytes),
+			Saga_type:           usecase.SagaRegistration,
+		}
+
+		mockRepo.EXPECT().GetSagaById(ctxWithTrace, gomock.Eq(saga_uuid)).Return(&saga, nil)
+		mockRepo.EXPECT().UpdateSagaEvents(ctxWithTrace, gomock.Eq(saga_uuid), string(list_of_events_end_bytes)).Return(nil)
+		mockRepo.EXPECT().UpdateSagaStatus(ctxWithTrace, gomock.Eq(saga_uuid), gomock.Eq(usecase.StatusFallBack)).Return(repository.ErrorUpdateSagaStatus)
+
+		err = registrationUC.FallBackSaga(ctx, saga_uuid, usecase.AntiFrod)
+		require.Equal(t, err, usecase.ErrorUpdateSagaStatus)
+	})
+	t.Run("Success", func(t *testing.T) {
+		saga_uuid := uuid.New()
+
+		ctx := context.Background()
+		span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.FallBackSaga")
+		defer span.Finish()
+
+		list_of_events := models.SagaListEvents{}
+		list_of_events.EventList = append(list_of_events.EventList, usecase.AntiFrod)
+
+		list_of_events_bytes, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotNil(t, list_of_events_bytes)
+
+		list_of_events.EventList[0] = "-" + list_of_events.EventList[0]
+		list_of_events.EventList = append(list_of_events.EventList, "-"+usecase.ReserveNumber)
+		list_of_events_end_bytes, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotEmpty(t, list_of_events_end_bytes)
+
+		saga := models.Saga{
+			Saga_uuid:           saga_uuid,
+			Saga_status:         usecase.StatusInProcess,
+			Saga_list_of_events: string(list_of_events_bytes),
+			Saga_type:           usecase.SagaRegistration,
+		}
+
+		mockRepo.EXPECT().GetSagaById(ctxWithTrace, gomock.Eq(saga_uuid)).Return(&saga, nil)
+		mockRepo.EXPECT().UpdateSagaEvents(ctxWithTrace, gomock.Eq(saga_uuid), string(list_of_events_end_bytes)).Return(nil)
+		mockRepo.EXPECT().UpdateSagaStatus(ctxWithTrace, gomock.Eq(saga_uuid), gomock.Eq(usecase.StatusFallBack)).Return(nil)
+
+		err = registrationUC.FallBackSaga(ctx, saga_uuid, usecase.AntiFrod)
+		require.Nil(t, err)
+	})
+}
