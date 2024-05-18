@@ -628,3 +628,116 @@ func TestRegistrationUC_RemoveSagaEvent(t *testing.T) {
 
 	})
 }
+
+func TestRegistrationUC_FallBackEvent(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	apiLogger := logger.NewServerLogger(testCfgUC)
+	apiLogger.InitLogger()
+
+	mockRepo := mock.NewMockRepository(ctrl)
+	registrationUC := usecase.NewRegistrationUseCase(testCfgUC, mockRepo, apiLogger)
+
+	t.Parallel()
+
+	t.Run("Wrong saga status", func(t *testing.T) {
+		saga := &models.Saga{
+			Saga_status: usecase.StatusUndefined,
+		}
+
+		saga, err := registrationUC.FallBackEvent(context.Background(), saga, usecase.AntiFrod)
+		require.Equal(t, err, usecase.ErrorWrongFallBackStatusForFallBackEvent)
+		require.Nil(t, saga)
+	})
+	t.Run("Wrong event name", func(t *testing.T) {
+		saga := &models.Saga{
+			Saga_status: usecase.StatusFallBack,
+		}
+
+		saga, err := registrationUC.FallBackEvent(context.Background(), saga, "smth")
+		require.Equal(t, err, usecase.ErrorWrongEventName)
+		require.Nil(t, saga)
+	})
+	t.Run("Wrong event name for this saga type", func(t *testing.T) {
+		saga := &models.Saga{
+			Saga_status: usecase.StatusFallBack,
+		}
+
+		saga, err := registrationUC.FallBackEvent(context.Background(), saga, usecase.TestEvent)
+		require.Equal(t, err, usecase.ErrorWrongEventNameForSagaType)
+		require.Nil(t, saga)
+	})
+	t.Run("Get inverse event", func(t *testing.T) {
+		saga := &models.Saga{
+			Saga_status: usecase.StatusFallBack,
+		}
+
+		saga, err := registrationUC.FallBackEvent(context.Background(), saga, "-"+usecase.AntiFrod)
+		require.Equal(t, err, usecase.ErrorInversedEvent)
+		require.Nil(t, saga)
+	})
+	t.Run("Get usual event and saga already has this inversed saga too", func(t *testing.T) {
+		list_of_events := models.SagaListEvents{}
+		list_of_events.EventList = append(list_of_events.EventList, "-"+usecase.AntiFrod)
+
+		list_of_events_bytes, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotEmpty(t, list_of_events_bytes)
+
+		saga := &models.Saga{
+			Saga_status:         usecase.StatusFallBack,
+			Saga_list_of_events: string(list_of_events_bytes),
+		}
+
+		saga, err = registrationUC.FallBackEvent(context.Background(), saga, usecase.AntiFrod)
+		require.Equal(t, err, usecase.ErrorEventExist)
+		require.Nil(t, saga)
+	})
+	t.Run("No such event in current saga", func(t *testing.T) {
+		list_of_events := models.SagaListEvents{}
+		list_of_events.EventList = append(list_of_events.EventList, usecase.AntiFrod)
+
+		list_of_events_bytes, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotEmpty(t, list_of_events_bytes)
+
+		saga := &models.Saga{
+			Saga_status:         usecase.StatusFallBack,
+			Saga_list_of_events: string(list_of_events_bytes),
+		}
+
+		saga, err = registrationUC.FallBackEvent(context.Background(), saga, usecase.ReserveNumber)
+		require.Equal(t, err, usecase.ErrorNoEvent)
+		require.Nil(t, saga)
+	})
+	t.Run("Success", func(t *testing.T) {
+		list_of_events := models.SagaListEvents{}
+		list_of_events.EventList = append(list_of_events.EventList, usecase.AntiFrod)
+		list_of_events.EventList = append(list_of_events.EventList, usecase.ReserveNumber)
+
+		list_of_events_bytes, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotEmpty(t, list_of_events_bytes)
+
+		list_of_events.EventList = list_of_events.EventList[:1]
+		list_of_events.EventList = append(list_of_events.EventList, "-"+usecase.ReserveNumber)
+		list_of_events_end_bytes, err := json.Marshal(list_of_events)
+		require.Nil(t, err)
+		require.NotEmpty(t, list_of_events_end_bytes)
+
+		saga := &models.Saga{
+			Saga_status:         usecase.StatusFallBack,
+			Saga_list_of_events: string(list_of_events_bytes),
+		}
+
+		saga_end := &models.Saga{
+			Saga_status:         saga.Saga_status,
+			Saga_list_of_events: string(list_of_events_end_bytes),
+		}
+
+		result, err := registrationUC.FallBackEvent(context.Background(), saga, usecase.ReserveNumber)
+		require.Nil(t, err)
+		require.Equal(t, result, saga_end)
+	})
+}

@@ -254,7 +254,7 @@ func (regUC *registrationUC) FallBackEvent(ctx context.Context, saga *models.Sag
 	}
 
 	list_of_events := models.SagaListEvents{}
-	err = json.Unmarshal([]byte(saga.Saga_list_of_events), list_of_events)
+	err = json.Unmarshal([]byte(saga.Saga_list_of_events), &list_of_events)
 
 	position := -1
 
