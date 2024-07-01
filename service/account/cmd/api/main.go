@@ -5,7 +5,7 @@ import (
 	"github.com/GCFactory/dbo-system/platform/pkg/db/postgres"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/platform/pkg/utils"
-	//"github.com/GCFactory/dbo-system/service/account/internal/server"
+	"github.com/GCFactory/dbo-system/service/account/internal/server"
 	"github.com/golang-migrate/migrate/v4"
 	migratePostgres "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -59,8 +59,8 @@ func main() {
 
 	// driver объект подключения по типу psql
 	driver, err := migratePostgres.WithInstance(psqlDB.DB, &migratePostgres.Config{
-		MigrationsTable:       "\"registration_service\".\"schema_migration\"",
-		MigrationsTableQuoted: true,
+		MigrationsTable:       "schema_migration",
+		MigrationsTableQuoted: false,
 	})
 	if err != nil {
 		appLogger.Fatalf("Cannot create migration driver: %s", err)
