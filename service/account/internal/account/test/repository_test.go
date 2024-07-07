@@ -40,7 +40,7 @@ func TestAccountRepo_CreateAccount(t *testing.T) {
 	acc_corr_number := "01234567890123456789"
 	acc_bic := "123456789"
 	acc_cio := "123456789"
-	var acc_money_value uint = 0
+	var acc_money_value uint8 = 0
 
 	t.Run("Success", func(t *testing.T) {
 		account := models.Account{
@@ -147,7 +147,7 @@ func TestAccountRepo_GetAccountData(t *testing.T) {
 	acc_corr_number := "01234567890123456789"
 	acc_bic := "123456789"
 	acc_cio := "123456789"
-	var acc_money_value uint = 0
+	var acc_money_value uint8 = 0
 	var acc_money_amount float64 = 0.0
 	var acc_status uint8 = 0
 
