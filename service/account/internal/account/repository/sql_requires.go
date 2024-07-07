@@ -13,6 +13,6 @@ const (
 	AddReserveReason    = `INSERT INTO accounts_reserved (acc_uuid, reserve_reason)
 		VALUES($1, $2)
 		RETURNING *`
-	GetReserveReason    = `SELECT reserve_reason FROM accounts_reserved WHERE acc_uuid = $1`
+	GetReserveReason    = `SELECT * FROM accounts_reserved WHERE acc_uuid = $1`
 	DeleteReserveReason = `DELETE FROM accounts_reserved WHERE acc_uuid = $1`
 )

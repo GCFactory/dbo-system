@@ -44,9 +44,9 @@ func (repo accountRepo) DeleteAccount(ctx context.Context, acc_uuid uuid.UUID) e
 	)
 
 	if err == nil {
-		_, err = res.RowsAffected()
+		count, err := res.RowsAffected()
 
-		if err == nil {
+		if err != nil || count == 0 {
 			return ErrorDeleteAccount
 		}
 
@@ -72,17 +72,23 @@ func (repo accountRepo) GetAccountData(ctx context.Context, acc_uuid uuid.UUID) 
 	return &result, nil
 }
 
-func (repo accountRepo) UpdateAccountStatus(ctx context.Context, acc_uuid uuid.UUID) error {
+func (repo accountRepo) UpdateAccountStatus(ctx context.Context, acc_uuid uuid.UUID, new_status uint8) error {
 	span, local_ctx := opentracing.StartSpanFromContext(ctx, "accountRepo.UpdateAccountStatus")
 	defer span.Finish()
 
-	_, err := repo.db.ExecContext(local_ctx,
+	res, err := repo.db.ExecContext(local_ctx,
 		UpdateAccountStatus,
 		acc_uuid,
+		new_status,
 	)
 
 	if err != nil {
 		return ErrorUpdateAccountStatus
+	} else {
+		count, err := res.RowsAffected()
+		if err != nil || count == 0 {
+			return ErrorUpdateAccountStatus
+		}
 	}
 
 	return nil
@@ -92,7 +98,7 @@ func (repo accountRepo) GetAccountStatus(ctx context.Context, acc_uuid uuid.UUID
 	span, local_ctx := opentracing.StartSpanFromContext(ctx, "accountRepo.GetAccountStatus")
 	defer span.Finish()
 
-	var result uint8
+	var result models.Account
 
 	if err := repo.db.QueryRowxContext(local_ctx,
 		GetAccountStatus,
@@ -101,20 +107,25 @@ func (repo accountRepo) GetAccountStatus(ctx context.Context, acc_uuid uuid.UUID
 		return 0, ErrorGetAccountStatus
 	}
 
-	return result, nil
+	return result.Acc_status, nil
 }
 
-func (repo accountRepo) UpdateAccountAmount(ctx context.Context, acc_uuid uuid.UUID, acc_new_amount float32) error {
+func (repo accountRepo) UpdateAccountAmount(ctx context.Context, acc_uuid uuid.UUID, acc_new_amount float64) error {
 	span, local_ctx := opentracing.StartSpanFromContext(ctx, "accountRepo.UpdateAccountAmount")
 	defer span.Finish()
 
-	_, err := repo.db.ExecContext(local_ctx,
+	res, err := repo.db.ExecContext(local_ctx,
 		UpdateAccountAmount,
 		acc_uuid,
 		acc_new_amount,
 	)
 	if err != nil {
 		return ErrorUpdateAccountAmount
+	} else {
+		count, err := res.RowsAffected()
+		if err != nil || count == 0 {
+			return ErrorUpdateAccountAmount
+		}
 	}
 
 	return nil
@@ -124,7 +135,7 @@ func (repo accountRepo) GetAccountAmount(ctx context.Context, acc_uuid uuid.UUID
 	span, local_ctx := opentracing.StartSpanFromContext(ctx, "accountRepo.GetAccountAmount")
 	defer span.Finish()
 
-	var result float64
+	var result models.Account
 
 	if err := repo.db.QueryRowxContext(local_ctx,
 		GetAccountAmount,
@@ -133,7 +144,7 @@ func (repo accountRepo) GetAccountAmount(ctx context.Context, acc_uuid uuid.UUID
 		return 0, ErrorGetAccountAmount
 	}
 
-	return result, nil
+	return result.Acc_money_amount, nil
 }
 
 func (repo accountRepo) AddReserveReason(ctx context.Context, reason *models.ReserverReason) error {
@@ -163,9 +174,9 @@ func (repo accountRepo) DeleteReserveReason(ctx context.Context, acc_uuid uuid.U
 	)
 
 	if err == nil {
-		_, err = res.RowsAffected()
+		count, err := res.RowsAffected()
 
-		if err != nil {
+		if err != nil || count == 0 {
 			return ErrorDeleteReserveReason
 		}
 

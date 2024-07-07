@@ -153,7 +153,7 @@ func (mr *MockRepositoryMockRecorder) GetReserveReason(ctx, acc_uuid interface{}
 }
 
 // UpdateAccountAmount mocks base method.
-func (m *MockRepository) UpdateAccountAmount(ctx context.Context, acc_uuid uuid.UUID, acc_new_amount float32) error {
+func (m *MockRepository) UpdateAccountAmount(ctx context.Context, acc_uuid uuid.UUID, acc_new_amount float64) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateAccountAmount", ctx, acc_uuid, acc_new_amount)
 	ret0, _ := ret[0].(error)
@@ -167,15 +167,15 @@ func (mr *MockRepositoryMockRecorder) UpdateAccountAmount(ctx, acc_uuid, acc_new
 }
 
 // UpdateAccountStatus mocks base method.
-func (m *MockRepository) UpdateAccountStatus(ctx context.Context, acc_uuid uuid.UUID) error {
+func (m *MockRepository) UpdateAccountStatus(ctx context.Context, acc_uuid uuid.UUID, new_status uint8) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateAccountStatus", ctx, acc_uuid)
+	ret := m.ctrl.Call(m, "UpdateAccountStatus", ctx, acc_uuid, new_status)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateAccountStatus indicates an expected call of UpdateAccountStatus.
-func (mr *MockRepositoryMockRecorder) UpdateAccountStatus(ctx, acc_uuid interface{}) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) UpdateAccountStatus(ctx, acc_uuid, new_status interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAccountStatus", reflect.TypeOf((*MockRepository)(nil).UpdateAccountStatus), ctx, acc_uuid)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAccountStatus", reflect.TypeOf((*MockRepository)(nil).UpdateAccountStatus), ctx, acc_uuid, new_status)
 }
