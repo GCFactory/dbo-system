@@ -61,43 +61,166 @@ func (UC *accountUC) ReservAcc(ctx context.Context, acc_data *models.FullAccount
 }
 
 func (UC *accountUC) CreateAcc(ctx context.Context, acc_uuid uuid.UUID) error {
-	//	TODO: реализовать
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accountUC.CreateAcc")
+	defer span.Finish()
+
+	acc, err := UC.accountRepo.GetAccountData(ctxWithTrace, acc_uuid)
+	if err != nil {
+		return ErrorNoFoundAcc
+	}
+
+	if acc.Acc_status != AccStatusReserved {
+		return ErrorWrongAccReservedStatus
+	}
+
+	err = UC.accountRepo.UpdateAccountStatus(ctxWithTrace, acc_uuid, AccStatusCreated)
+	if err != nil {
+		return ErrorUpdateAccStatus
+	}
+
 	return nil
 
 }
 
 func (UC *accountUC) OpenAcc(ctx context.Context, acc_uuid uuid.UUID) error {
-	//	TODO: реализовать
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accountUC.OpenAcc")
+	defer span.Finish()
+
+	acc, err := UC.accountRepo.GetAccountData(ctxWithTrace, acc_uuid)
+	if err != nil {
+		return ErrorNoFoundAcc
+	}
+
+	if acc.Acc_status != AccStatusCreated {
+		return ErrorWrongAccOpenStatus
+	}
+
+	err = UC.accountRepo.UpdateAccountStatus(ctxWithTrace, acc_uuid, AccStatusOpen)
+	if err != nil {
+		return ErrorUpdateAccStatus
+	}
+
 	return nil
 
 }
 
 func (UC *accountUC) CloseAcc(ctx context.Context, acc_uuid uuid.UUID) error {
-	//	TODO: реализовать
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accountUC.CloseAcc")
+	defer span.Finish()
+
+	acc, err := UC.accountRepo.GetAccountData(ctxWithTrace, acc_uuid)
+	if err != nil {
+		return ErrorNoFoundAcc
+	}
+
+	if acc.Acc_status != AccStatusOpen {
+		return ErrorWrongAccCloseStatus
+	}
+
+	err = UC.accountRepo.UpdateAccountStatus(ctxWithTrace, acc_uuid, AccStatusClose)
+	if err != nil {
+		return ErrorUpdateAccStatus
+	}
+
 	return nil
 
 }
 
 func (UC *accountUC) BlockAcc(ctx context.Context, acc_uuid uuid.UUID) error {
-	//	TODO: реализовать
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accountUC.BlockAcc")
+	defer span.Finish()
+
+	acc, err := UC.accountRepo.GetAccountData(ctxWithTrace, acc_uuid)
+	if err != nil {
+		return ErrorNoFoundAcc
+	}
+
+	if acc.Acc_status != AccStatusOpen {
+		return ErrorWrongAccBlockStatus
+	}
+
+	err = UC.accountRepo.UpdateAccountStatus(ctxWithTrace, acc_uuid, AccStatusClose)
+	if err != nil {
+		return ErrorUpdateAccStatus
+	}
+
 	return nil
 
 }
 
 func (UC *accountUC) GetAccInfo(ctx context.Context, acc_uuid uuid.UUID) (*models.FullAccountData, error) {
-	//	TODO: реализовать
-	return nil, nil
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accountUC.GetAccInfo")
+	defer span.Finish()
+
+	acc, err := UC.accountRepo.GetAccountData(ctxWithTrace, acc_uuid)
+	if err != nil {
+		return nil, ErrorNoFoundAcc
+	}
+
+	reason, err := UC.accountRepo.GetReserveReason(ctxWithTrace, acc_uuid)
+	if err != nil {
+		return nil, ErrorGetAccReservedReason
+	}
+
+	result := models.FullAccountData{
+		Acc_uuid:         acc_uuid,
+		Reason:           reason.Reason,
+		Acc_money_amount: acc.Acc_money_amount,
+		Acc_money_value:  acc.Acc_money_value,
+		Acc_cio:          acc.Acc_cio,
+		Acc_bic:          acc.Acc_bic,
+		Acc_corr_number:  acc.Acc_corr_number,
+		Acc_culc_number:  acc.Acc_culc_number,
+		Acc_status:       acc.Acc_status,
+	}
+
+	return &result, nil
 
 }
 
 func (UC *accountUC) AddingAcc(ctx context.Context, acc_uuid uuid.UUID, add_value float64) error {
-	//	TODO: реализовать
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accountUC.AddingAcc")
+	defer span.Finish()
+
+	acc, err := UC.accountRepo.GetAccountData(ctxWithTrace, acc_uuid)
+	if err != nil {
+		return ErrorNoFoundAcc
+	}
+
+	new_value := acc.Acc_money_amount + add_value
+
+	if new_value < acc.Acc_money_amount {
+		return ErrorOverflowAmount
+	}
+
+	err = UC.accountRepo.UpdateAccountAmount(ctxWithTrace, acc_uuid, new_value)
+	if err != nil {
+		return ErrorUpdateAmountValue
+	}
+
 	return nil
 
 }
 
 func (UC *accountUC) WidthAcc(ctx context.Context, acc_uuid uuid.UUID, width_value float64) error {
-	//	TODO: реализовать
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accountUC.AddingAcc")
+	defer span.Finish()
+
+	acc, err := UC.accountRepo.GetAccountData(ctxWithTrace, acc_uuid)
+	if err != nil {
+		return ErrorNoFoundAcc
+	}
+
+	new_value := acc.Acc_money_amount - width_value
+	if new_value < 0 {
+		return ErrorNotEnoughMoneyAmount
+	}
+
+	err = UC.accountRepo.UpdateAccountAmount(ctxWithTrace, acc_uuid, new_value)
+	if err != nil {
+		return ErrorUpdateAmountValue
+	}
+
 	return nil
 
 }
@@ -128,6 +251,6 @@ func (UC *accountUC) ValidateAccMoneyValue(ctx context.Context, money_value uint
 	return ErrorWrongMoneyValue
 }
 
-func NewAccountUseCase(cfg *config.Config, registration_repo registration.Repository, log logger.Logger) registration.UseCase {
-	return &accountUC{cfg: cfg, accountRepo: registration_repo, logger: log}
+func NewAccountUseCase(cfg *config.Config, account_repo registration.Repository, log logger.Logger) registration.UseCase {
+	return &accountUC{cfg: cfg, accountRepo: account_repo, logger: log}
 }
