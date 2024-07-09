@@ -251,13 +251,17 @@ func (UC *accountUC) ValidateCulcNumber(ctx context.Context, culc_number string)
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accountUC.ValidateCulcNumber")
 	defer span.Finish()
 
-	//	TODO: доделать проверки снизу
 	owner := culc_number[0:2]
 	activity_field := culc_number[3:4]
+	//	TODO: доделать проверки снизу
 	currency := culc_number[5:7]
 	bank_filial := culc_number[9:12]
 
 	if err := UC.ValidateOwner(ctxWithTrace, owner); err != nil {
+		return err
+	}
+
+	if err := UC.ValidateActivity(ctxWithTrace, owner, activity_field); err != nil {
 		return err
 	}
 
@@ -272,7 +276,7 @@ func (UC *accountUC) ValidateOwner(ctx context.Context, owner string) error {
 		return ErrorWrongOwnerLen
 	}
 
-	values, ok := PossibleOwnerGroup[string(owner[0])]
+	values, ok := PossibleOwner[string(owner[0])]
 	if ok {
 		for i := 0; i < len(values); i++ {
 			if owner == values[i] {
@@ -284,17 +288,30 @@ func (UC *accountUC) ValidateOwner(ctx context.Context, owner string) error {
 	return ErrorWrongOwner
 }
 
-//func (UC *accountUC) ValidateActivity(ctx context.Context, activity string) error {
-//
-//	span, _ := opentracing.StartSpanFromContext(ctx, "accountUC.ValidateOwner")
-//	defer span.Finish()
-//
-//	if len(activity) != 2 {
-//		return ErrorWrongActivityLen
-//	}
-//
-//	return ErrorWrongActivity
-//}
+func (UC *accountUC) ValidateActivity(ctx context.Context, owner string, activity string) error {
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accountUC.ValidateOwner")
+	defer span.Finish()
+
+	if len(activity) != 2 {
+		return ErrorWrongActivityLen
+	}
+
+	values, ok := PossibleAccActivity[activity]
+	if err := UC.ValidateOwner(ctxWithTrace, owner); err != nil {
+		return err
+	} else if !ok {
+		return ErrorWrongActivity
+	} else {
+		for i := 0; i < len(values); i++ {
+			if activity == values[i] {
+				return nil
+			}
+		}
+	}
+
+	return ErrorWrongActivity
+}
 
 func NewAccountUseCase(cfg *config.Config, account_repo registration.Repository, log logger.Logger) registration.UseCase {
 	return &accountUC{cfg: cfg, accountRepo: account_repo, logger: log}

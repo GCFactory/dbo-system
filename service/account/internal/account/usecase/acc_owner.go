@@ -1,6 +1,6 @@
 package usecase
 
-var PossibleOwnerGroup = map[string][...]string{
+var PossibleOwner = map[string][...]string{
 	"1": { // Капитал
 		// капитал
 		"102",
