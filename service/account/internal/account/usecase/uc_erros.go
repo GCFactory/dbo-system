@@ -20,4 +20,8 @@ var (
 	ErrorOverflowAmount         = errors.New("Amount overflow!")
 	ErrorUpdateAmountValue      = errors.New("accountRepo.UpdateAccountAmount")
 	ErrorNotEnoughMoneyAmount   = errors.New("Not enough money amount!")
+	ErrorWrongOwnerLen          = errors.New("Owner has wrong len!")
+	ErrorWrongOwner             = errors.New("Owner cod is not existing")
+	ErrorWrongActivityLen       = errors.New("Wrong activity len")
+	ErrorWrongActivity          = errors.New("Activity is not existing")
 )

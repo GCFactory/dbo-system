@@ -20,10 +20,6 @@ func (UC *accountUC) ReservAcc(ctx context.Context, acc_data *models.FullAccount
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accountUC.ReservAcc")
 	defer span.Finish()
 
-	if UC.ValidateAccMoneyValue(ctxWithTrace, acc_data.Acc_money_value) != nil {
-		return ErrorWrongMoneyValue
-	}
-
 	acc, _ := UC.accountRepo.GetAccountData(ctxWithTrace, acc_data.Acc_uuid)
 	if acc != nil {
 		return ErrorAccIsExisting
@@ -250,6 +246,55 @@ func (UC *accountUC) ValidateAccMoneyValue(ctx context.Context, money_value uint
 
 	return ErrorWrongMoneyValue
 }
+
+func (UC *accountUC) ValidateCulcNumber(ctx context.Context, culc_number string) error {
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accountUC.ValidateCulcNumber")
+	defer span.Finish()
+
+	//	TODO: доделать проверки снизу
+	owner := culc_number[0:2]
+	activity_field := culc_number[3:4]
+	currency := culc_number[5:7]
+	bank_filial := culc_number[9:12]
+
+	if err := UC.ValidateOwner(ctxWithTrace, owner); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (UC *accountUC) ValidateOwner(ctx context.Context, owner string) error {
+	span, _ := opentracing.StartSpanFromContext(ctx, "accountUC.ValidateOwner")
+	defer span.Finish()
+
+	if len(owner) != 3 {
+		return ErrorWrongOwnerLen
+	}
+
+	values, ok := PossibleOwnerGroup[string(owner[0])]
+	if ok {
+		for i := 0; i < len(values); i++ {
+			if owner == values[i] {
+				return nil
+			}
+		}
+	}
+
+	return ErrorWrongOwner
+}
+
+//func (UC *accountUC) ValidateActivity(ctx context.Context, activity string) error {
+//
+//	span, _ := opentracing.StartSpanFromContext(ctx, "accountUC.ValidateOwner")
+//	defer span.Finish()
+//
+//	if len(activity) != 2 {
+//		return ErrorWrongActivityLen
+//	}
+//
+//	return ErrorWrongActivity
+//}
 
 func NewAccountUseCase(cfg *config.Config, account_repo registration.Repository, log logger.Logger) registration.UseCase {
 	return &accountUC{cfg: cfg, accountRepo: account_repo, logger: log}
