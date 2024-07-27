@@ -1,13 +1,14 @@
 package kafka
 
-import "github.com/IBM/sarama"
+import (
+	"github.com/IBM/sarama"
+)
 
-type KafkaConsumerGroup struct {
-	config   *sarama.Config
+type ConsumerGroup struct {
 	Consumer sarama.ConsumerGroup
 }
 
-func NewKafkaConsumer(brokerlist []string, groupid string) (*KafkaConsumerGroup, error) {
+func NewKafkaConsumer(brokerlist []string, groupid string) (*ConsumerGroup, error) {
 	cg, err := sarama.NewConsumerGroup(brokerlist, groupid, func() *sarama.Config {
 		consumer := sarama.NewConfig()
 		consumer.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.NewBalanceStrategyRoundRobin()}
@@ -18,7 +19,7 @@ func NewKafkaConsumer(brokerlist []string, groupid string) (*KafkaConsumerGroup,
 		return nil, err
 	}
 
-	return &KafkaConsumerGroup{
+	return &ConsumerGroup{
 		Consumer: cg,
 	}, nil
 }

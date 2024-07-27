@@ -111,14 +111,16 @@ func main() {
 	defer closer.Close()
 	appLogger.Info("Opentracing connected")
 
-	ks, err := kafka.NewKafkaConsumer(strings.Split(cfg.KafkaConsumer.Brokers, ";"), cfg.KafkaConsumer.GroupID)
+	kc, err := kafka.NewKafkaConsumer(strings.Split(cfg.KafkaConsumer.Brokers, ";"), cfg.KafkaConsumer.GroupID)
 	if err != nil {
 		appLogger.Fatal(err)
 	}
 	appLogger.Infof("Kafka consumer with group '%s' connected", cfg.KafkaConsumer.GroupID)
 
+	kp := kafka.NewKafkaProducer(cfg, appLogger)
+
 	//Run server
-	s := server.NewServer(cfg, ks, psqlDB, appLogger)
+	s := server.NewServer(cfg, kc, kp, psqlDB, appLogger)
 	if err = s.Run(); err != nil {
 		appLogger.Fatal(err)
 	}

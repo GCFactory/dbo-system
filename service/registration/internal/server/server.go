@@ -28,8 +28,8 @@ const (
 // Server struct
 type Server struct {
 	echo          *echo.Echo
-	kafkaProducer *sarama.SyncProducer
-	kafkaConsumer *kafka.KafkaConsumerGroup
+	kafkaProducer *kafka.ProducerProvider
+	kafkaConsumer *kafka.ConsumerGroup
 	cfg           *config.Config
 	db            *sqlx.DB
 	logger        logger.Logger
@@ -37,7 +37,7 @@ type Server struct {
 	kafkaConsumerChan chan int
 }
 
-func NewServer(cfg *config.Config, kConsumer *kafka.KafkaConsumerGroup, db *sqlx.DB, logger logger.Logger) *Server {
+func NewServer(cfg *config.Config, kConsumer *kafka.ConsumerGroup, kProducer *kafka.ProducerProvider, db *sqlx.DB, logger logger.Logger) *Server {
 	server := Server{
 		echo:              echo.New(),
 		cfg:               cfg,
@@ -45,6 +45,7 @@ func NewServer(cfg *config.Config, kConsumer *kafka.KafkaConsumerGroup, db *sqlx
 		logger:            logger,
 		kafkaConsumer:     kConsumer,
 		kafkaConsumerChan: make(chan int, 3),
+		kafkaProducer:     kProducer,
 	}
 	server.echo.HidePort = true
 	server.echo.HideBanner = true
@@ -92,6 +93,17 @@ func (s *Server) Run() error {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
 	go s.RunKafkaConsumer(ctxWithCancel, s.kafkaConsumerChan, s.kafkaConsumer.Consumer)
+	//// Remove example
+	go func() {
+		for i := 0; i < 10; i++ {
+			err := s.kafkaProducer.ProduceRecord("test", []byte("test message"))
+			if err != nil {
+				s.logger.Warnf("Error on produce: %v", err)
+			}
+			time.Sleep(time.Second * 10)
+		}
+	}()
+	//// Remove example
 
 	for {
 		select {
@@ -105,9 +117,9 @@ func (s *Server) Run() error {
 			s.kafkaConsumer.Consumer.PauseAll()
 			s.kafkaConsumer.Consumer.Close()
 			time.Sleep(time.Second * 15)
-			defer cancel()
-			defer close(quit)
-			defer close(s.kafkaConsumerChan)
+			cancel()
+			close(quit)
+			close(s.kafkaConsumerChan)
 			defer shutdown()
 
 			s.logger.Info("Server Exited Properly")
@@ -125,11 +137,12 @@ func (s *Server) RunKafkaConsumer(ctx context.Context, quitChan chan<- int, clie
 			if errors.Is(err, sarama.ErrClosedConsumerGroup) {
 				return
 			}
-			s.logger.Errorf("Error from consumer: %v", err)
 			quitChan <- 1
+			s.logger.Errorf("Error from consumer: %v", err)
 		}
 		// check if context was cancelled, signaling that the consumer should stop
 		if ctx.Err() != nil {
+			s.logger.Infof("Stopping kafka consumer: context close: %v", ctx.Err())
 			return
 		}
 		s.logger.Info("Stopping kafka consumer...")

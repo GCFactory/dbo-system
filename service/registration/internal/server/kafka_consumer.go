@@ -42,7 +42,7 @@ func (consumer *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 			/// ROUTE TOPICS AND MESSAGE TYPES HERE OR PASS ROUTE FUNCTION
 			//////////////////////////////////
 
-			fmt.Printf("Message claimed: value = %s, timestamp = %v, topic = %s", string(message.Value), message.Timestamp, message.Topic)
+			fmt.Printf("Message claimed: value = %s, timestamp = %v, topic = %s\n", string(message.Value), message.Timestamp, message.Topic)
 			// Mark message as consumed
 			session.MarkMessage(message, "")
 
