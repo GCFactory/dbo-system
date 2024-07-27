@@ -20,6 +20,9 @@ type Config struct {
 	Metrics Metrics `yaml:"metrics"`
 	Docs    Docs
 
+	KafkaConsumer KafkaConsumer `yaml:"kafkaConsumer"`
+	KafkaProducer KafkaProducer `yaml:"kafkaConsumer"`
+
 	RabbitMQ RabbitMQConfig `yaml:"rabbitmq,omitempty"`
 	Postgres PostgresConfig `yaml:"postgres,omitempty"`
 	Redis    RedisConfig    `yaml:"redis,omitempty"`

@@ -88,6 +88,7 @@ func (l *serverLogger) InitLogger() {
 	}
 
 	var encoder zapcore.Encoder
+	encoderCfg.EncodeTime = zapcore.RFC3339TimeEncoder
 	encoderCfg.LevelKey = "level"
 	encoderCfg.CallerKey = "caller"
 	encoderCfg.TimeKey = "timestamp"
