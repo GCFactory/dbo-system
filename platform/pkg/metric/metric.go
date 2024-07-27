@@ -61,6 +61,8 @@ func CreateMetrics(address string, name string) (Metrics, error) {
 
 	go func() {
 		router := echo.New()
+		router.HidePort = true
+		router.HideBanner = true
 		router.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
 		log.Printf("Metrics server is running on port: %s", address)
 		if err := router.Start(address); err != nil {
