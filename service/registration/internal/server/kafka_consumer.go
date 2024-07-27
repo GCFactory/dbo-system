@@ -1,8 +1,6 @@
 package server
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"github.com/IBM/sarama"
 )
@@ -10,26 +8,6 @@ import (
 // Consumer represents a Sarama consumer group consumer
 type Consumer struct {
 	ready chan bool
-}
-
-func (s *Server) RunKafkaConsumer(ctx context.Context, quitChan chan<- int, client sarama.ConsumerGroup) {
-	consumer := Consumer{
-		ready: make(chan bool),
-	}
-	for {
-		if err := client.Consume(ctx, s.cfg.KafkaConsumer.Topics, &consumer); err != nil {
-			if errors.Is(err, sarama.ErrClosedConsumerGroup) {
-				return
-			}
-			s.logger.DPanicf("Error from consumer: %v", err)
-		}
-		// check if context was cancelled, signaling that the consumer should stop
-		if ctx.Err() != nil {
-			quitChan <- 1
-			return
-		}
-		consumer.ready = make(chan bool)
-	}
 }
 
 // Setup is run at the beginning of a new session, before ConsumeClaim
@@ -59,9 +37,15 @@ func (consumer *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 				fmt.Printf("message channel was closed")
 				return nil
 			}
+
+			//////////////////////////////////
+			/// ROUTE TOPICS AND MESSAGE TYPES HERE OR PASS ROUTE FUNCTION
+			//////////////////////////////////
+
 			fmt.Printf("Message claimed: value = %s, timestamp = %v, topic = %s", string(message.Value), message.Timestamp, message.Topic)
 			// Mark message as consumed
 			session.MarkMessage(message, "")
+
 		// Should return when `session.Context()` is done.
 		// If not, will raise `ErrRebalanceInProgress` or `read tcp <ip>:<port>: i/o timeout` when kafka rebalance. see:
 		// https://github.com/IBM/sarama/issues/1192

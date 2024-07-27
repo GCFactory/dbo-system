@@ -21,6 +21,12 @@ kafkaConsumer:
   topics:
     - test
 
+kafkaProducer:
+  #brokers: localhost:9092;locahost:9091
+  brokers: localhost:9092
+  topics:
+    - test
+
 jaeger:
   Host: localhost:6831
   ServiceName: totp

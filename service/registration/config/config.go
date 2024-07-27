@@ -21,6 +21,7 @@ type Config struct {
 	Docs    Docs
 
 	KafkaConsumer KafkaConsumer `yaml:"kafkaConsumer"`
+	KafkaProducer KafkaProducer `yaml:"kafkaConsumer"`
 
 	Postgres platformConfig.PostgresConfig `yaml:"postgres,omitempty"`
 	AWS      AWS                           `yaml:"aws,omitempty"`

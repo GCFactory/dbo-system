@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/service/registration/config"
 	"github.com/GCFactory/dbo-system/service/registration/pkg/kafka"
@@ -52,6 +53,7 @@ func NewServer(cfg *config.Config, kConsumer *kafka.KafkaConsumerGroup, db *sqlx
 
 func (s *Server) Run() error {
 	ctxWithCancel, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	server := &http.Server{
 		Addr:           s.cfg.HTTPServer.Port,
@@ -63,7 +65,7 @@ func (s *Server) Run() error {
 	go func() {
 		s.logger.Infof("Server is listening on PORT: %s", s.cfg.HTTPServer.Port)
 		if err := s.echo.StartServer(server); err != nil {
-			s.logger.Fatalf("Error starting Server: ", err)
+			s.logger.Fatalf("Error starting Server: %s", err)
 		}
 	}()
 
@@ -100,7 +102,10 @@ func (s *Server) Run() error {
 		// Handle system interrupts
 		case <-quit:
 			ctx, shutdown := context.WithTimeout(context.Background(), ctxTimeout*time.Second)
-			cancel()
+			s.kafkaConsumer.Consumer.PauseAll()
+			s.kafkaConsumer.Consumer.Close()
+			time.Sleep(time.Second * 15)
+			defer cancel()
 			defer close(quit)
 			defer close(s.kafkaConsumerChan)
 			defer shutdown()
@@ -108,5 +113,26 @@ func (s *Server) Run() error {
 			s.logger.Info("Server Exited Properly")
 			return s.echo.Server.Shutdown(ctx)
 		}
+	}
+}
+
+func (s *Server) RunKafkaConsumer(ctx context.Context, quitChan chan<- int, client sarama.ConsumerGroup) {
+	consumer := Consumer{
+		ready: make(chan bool),
+	}
+	for {
+		if err := client.Consume(ctx, s.cfg.KafkaConsumer.Topics, &consumer); err != nil {
+			if errors.Is(err, sarama.ErrClosedConsumerGroup) {
+				return
+			}
+			s.logger.Errorf("Error from consumer: %v", err)
+			quitChan <- 1
+		}
+		// check if context was cancelled, signaling that the consumer should stop
+		if ctx.Err() != nil {
+			return
+		}
+		s.logger.Info("Stopping kafka consumer...")
+		consumer.ready = make(chan bool)
 	}
 }
