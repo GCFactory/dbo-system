@@ -131,6 +131,10 @@ func (s *Server) Run() error {
 func (s *Server) RunKafkaConsumer(ctx context.Context, quitChan chan<- int, client sarama.ConsumerGroup) {
 	consumer := Consumer{
 		ready: make(chan bool),
+		handlerFunc: func(message *sarama.ConsumerMessage) error {
+			/// DO IT
+			return nil
+		},
 	}
 	for {
 		if err := client.Consume(ctx, s.cfg.KafkaConsumer.Topics, &consumer); err != nil {

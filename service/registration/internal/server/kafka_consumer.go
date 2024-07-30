@@ -7,7 +7,8 @@ import (
 
 // Consumer represents a Sarama consumer group consumer
 type Consumer struct {
-	ready chan bool
+	ready       chan bool
+	handlerFunc func(*sarama.ConsumerMessage) error
 }
 
 // Setup is run at the beginning of a new session, before ConsumeClaim
@@ -38,9 +39,10 @@ func (consumer *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 				return nil
 			}
 
-			//////////////////////////////////
-			/// ROUTE TOPICS AND MESSAGE TYPES HERE OR PASS ROUTE FUNCTION
-			//////////////////////////////////
+			err := consumer.handlerFunc(message)
+			if err != nil {
+				return err
+			}
 
 			fmt.Printf("Message claimed: value = %s, timestamp = %v, topic = %s\n", string(message.Value), message.Timestamp, message.Topic)
 			// Mark message as consumed
