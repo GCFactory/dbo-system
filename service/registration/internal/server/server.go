@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/service/registration/config"
 	"github.com/GCFactory/dbo-system/service/registration/pkg/kafka"
@@ -92,7 +93,7 @@ func (s *Server) Run() error {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
-	go s.RunKafkaConsumer(ctxWithCancel, s.kafkaConsumerChan, s.kafkaConsumer.Consumer)
+	go s.RunKafkaConsumer(ctxWithCancel, s.kafkaConsumerChan)
 	//// Remove example
 	go func() {
 		for i := 0; i < 10; i++ {
@@ -110,7 +111,7 @@ func (s *Server) Run() error {
 		// If goroutine exit for any reason - restart
 		case <-s.kafkaConsumerChan:
 			s.logger.Warn("Received end of kafka consumer goroutine")
-			go s.RunKafkaConsumer(ctxWithCancel, s.kafkaConsumerChan, s.kafkaConsumer.Consumer)
+			go s.RunKafkaConsumer(ctxWithCancel, s.kafkaConsumerChan)
 		// Handle system interrupts
 		case <-quit:
 			ctx, shutdown := context.WithTimeout(context.Background(), ctxTimeout*time.Second)
@@ -128,16 +129,16 @@ func (s *Server) Run() error {
 	}
 }
 
-func (s *Server) RunKafkaConsumer(ctx context.Context, quitChan chan<- int, client sarama.ConsumerGroup) {
-	consumer := Consumer{
-		ready: make(chan bool),
-		handlerFunc: func(message *sarama.ConsumerMessage) error {
-			/// DO IT
+func (s *Server) RunKafkaConsumer(ctx context.Context, quitChan chan<- int) {
+	consumer := kafka.Consumer{
+		Ready: make(chan bool),
+		HandlerFunc: func(message *sarama.ConsumerMessage) error {
+			fmt.Printf("Message claimed: value = %s, timestamp = %v, topic = %s\n", string(message.Value), message.Timestamp, message.Topic)
 			return nil
 		},
 	}
 	for {
-		if err := client.Consume(ctx, s.cfg.KafkaConsumer.Topics, &consumer); err != nil {
+		if err := s.kafkaConsumer.Consumer.Consume(ctx, s.cfg.KafkaConsumer.Topics, &consumer); err != nil {
 			if errors.Is(err, sarama.ErrClosedConsumerGroup) {
 				return
 			}
@@ -150,6 +151,6 @@ func (s *Server) RunKafkaConsumer(ctx context.Context, quitChan chan<- int, clie
 			return
 		}
 		s.logger.Info("Stopping kafka consumer...")
-		consumer.ready = make(chan bool)
+		consumer.Ready = make(chan bool)
 	}
 }
