@@ -117,11 +117,11 @@ func (s *Server) Run() error {
 			ctx, shutdown := context.WithTimeout(context.Background(), ctxTimeout*time.Second)
 			s.kafkaConsumer.Consumer.PauseAll()
 			s.kafkaConsumer.Consumer.Close()
-			time.Sleep(time.Second * 15)
-			cancel()
+			time.Sleep(time.Second * 5)
 			close(quit)
 			close(s.kafkaConsumerChan)
 			defer shutdown()
+			defer cancel()
 
 			s.logger.Info("Server Exited Properly")
 			return s.echo.Server.Shutdown(ctx)
