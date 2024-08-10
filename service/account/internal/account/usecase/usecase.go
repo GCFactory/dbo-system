@@ -44,8 +44,9 @@ func (UC *accountUC) ReservAcc(ctx context.Context, acc_data *models.FullAccount
 		return err
 	} else if err = UC.ValidateBIC(ctxWithTrace, acc_data.Acc_bic); err != nil {
 		return err
+	} else if err = UC.ValidateCorrNumber(ctxWithTrace, acc_data.Acc_corr_number, acc_data.Acc_bic); err != nil {
+		return err
 	}
-	//	TODO: тут должна быть проверка корр счета
 	//	TODO: тут должна быть проверка ИНН
 	//	TODO: тут должна быть проверка КПП
 
@@ -516,6 +517,62 @@ func (UC *accountUC) ValidateAccBankNumber(ctx context.Context, acc_bank_number 
 	}
 
 	return ErrorWrongAccBankNumber
+}
+
+// Валидирует корр счет
+func (UC *accountUC) ValidateCorrNumber(ctx context.Context, acc_curr_number string, acc_bic string) error {
+
+	span, contextWithTrace := opentracing.StartSpanFromContext(ctx, "accountUC.ValidateCorrNumber")
+	defer span.Finish()
+
+	if len(acc_bic) != 9 {
+		return ErrorWrongBICLen
+	}
+	if err := UC.ValidateBIC(contextWithTrace, acc_bic); err != nil {
+		return err
+	}
+
+	if len(acc_curr_number) != 20 {
+		return ErrorWrongAccCorrNumberLen
+	}
+
+	if acc_curr_number[:3] != "301" {
+		return ErrorWrongAccCorrFirstGroupNumber
+	}
+
+	if err := UC.ValidateAccCurrNumberOwner(contextWithTrace, acc_curr_number[3:5]); err != nil {
+		return err
+	} else if _, err = UC.ValidateCurrency(contextWithTrace, acc_curr_number[5:8]); err != nil {
+		return err
+	} else if acc_curr_number[9:13] != acc_bic[3:7] {
+		return ErrorWrongAccCorrBankNumber
+	}
+
+	if acc_curr_number[len(acc_curr_number)-3] != acc_bic[len(acc_bic)-3] {
+		return ErrorWrongAccCorrNumber
+	}
+
+	return nil
+}
+
+// Валидирует владельца корр счёта
+func (UC *accountUC) ValidateAccCurrNumberOwner(ctx context.Context, acc_curr_number_owner string) error {
+
+	span, _ := opentracing.StartSpanFromContext(ctx, "accountUC.ValidateAccCurrNumberOwner")
+	defer span.Finish()
+
+	if len(acc_curr_number_owner) != 2 {
+		return ErrorWrongAccCorrOwnerLen
+	}
+
+	for i := 0; i < len(PossibleAccCurrNumberOwner); i++ {
+		if acc_curr_number_owner == PossibleAccCurrNumberOwner[i] {
+			return nil
+		}
+	}
+
+	return ErrorWrongAccCorrOwner
+
 }
 
 func NewAccountUseCase(cfg *config.Config, account_repo registration.Repository, log logger.Logger) registration.UseCase {
