@@ -46,9 +46,9 @@ func (UC *accountUC) ReservAcc(ctx context.Context, acc_data *models.FullAccount
 		return err
 	} else if err = UC.ValidateCorrNumber(ctxWithTrace, acc_data.Acc_corr_number, acc_data.Acc_bic); err != nil {
 		return err
+	} else if err = UC.ValidateKPP(ctxWithTrace, acc_data.Acc_cio, acc_data.Acc_bic); err != nil {
+		return err
 	}
-	//	TODO: тут должна быть проверка ИНН
-	//	TODO: тут должна быть проверка КПП
 
 	if UC.accountRepo.CreateAccount(ctxWithTrace, acc) != nil {
 		return ErrorCreateAcc
@@ -573,6 +573,28 @@ func (UC *accountUC) ValidateAccCurrNumberOwner(ctx context.Context, acc_curr_nu
 
 	return ErrorWrongAccCorrOwner
 
+}
+
+// Валидирует КПП
+func (UC *accountUC) ValidateKPP(ctx context.Context, acc_kpp string, acc_bic string) error {
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accountUC.ValidateKPP")
+	defer span.Finish()
+
+	if len(acc_kpp) != 9 {
+		return ErrorWrongAccKPPLen
+	} else if err := UC.ValidateBIC(ctxWithTrace, acc_bic); err != nil {
+		return err
+	} else if err = UC.ValidateAccCountryRegion(ctxWithTrace, acc_bic[:1], acc_kpp[:2]); err != nil {
+		return err
+	}
+
+	local_reason, err := strconv.Atoi(acc_kpp[2:4])
+	if err != nil || local_reason > 99 || local_reason < 1 {
+		return ErrorWrongAccKPP
+	}
+
+	return nil
 }
 
 func NewAccountUseCase(cfg *config.Config, account_repo registration.Repository, log logger.Logger) registration.UseCase {

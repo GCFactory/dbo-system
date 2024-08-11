@@ -43,4 +43,6 @@ var (
 	ErrorWrongAccCorrOwnerLen         = errors.New("Wrong corr number owner len")
 	ErrorWrongAccCorrOwner            = errors.New("Wrong corr number owner")
 	ErrorWrongAccCorrBankNumber       = errors.New("Wrong corr number bank number")
+	ErrorWrongAccKPPLen               = errors.New("Wrong KPP len")
+	ErrorWrongAccKPP                  = errors.New("Wrong KPP")
 )
