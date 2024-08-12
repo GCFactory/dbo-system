@@ -8,5 +8,5 @@ const (
 
 var PossibleAccMainOffice = map[uint8]uint8{
 	AccCountryRegionMoscow: AccMainOfficeMoscow,
-	AccCountryRegionKursk:  AccMainOfficeKursk,
+	//AccCountryRegionKursk:  AccMainOfficeKursk,
 }

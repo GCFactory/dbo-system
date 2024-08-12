@@ -45,4 +45,5 @@ var (
 	ErrorWrongAccCorrBankNumber       = errors.New("Wrong corr number bank number")
 	ErrorWrongAccKPPLen               = errors.New("Wrong KPP len")
 	ErrorWrongAccKPP                  = errors.New("Wrong KPP")
+	ErrorWrongCulcNumberLen           = errors.New("Wrong culc number len")
 )

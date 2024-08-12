@@ -265,9 +265,13 @@ func (UC *accountUC) ValidateCulcNumber(ctx context.Context, culc_number string)
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accountUC.ValidateCulcNumber")
 	defer span.Finish()
 
-	owner := culc_number[0:2]
-	activity_field := culc_number[3:4]
-	currency := culc_number[5:7]
+	if len(culc_number) != 20 {
+		return ErrorWrongCulcNumberLen
+	}
+
+	owner := culc_number[:3]
+	activity_field := culc_number[3:5]
+	currency := culc_number[5:8]
 
 	if err := UC.ValidateOwner(ctxWithTrace, owner); err != nil {
 		return err
@@ -315,7 +319,7 @@ func (UC *accountUC) ValidateActivity(ctx context.Context, owner string, activit
 		return ErrorWrongActivityLen
 	}
 
-	values, ok := PossibleAccActivity[activity]
+	values, ok := PossibleAccActivity[owner]
 	if err := UC.ValidateOwner(ctxWithTrace, owner); err != nil {
 		return err
 	} else if !ok {
@@ -444,7 +448,9 @@ func (UC *accountUC) ValidateAccCountryRegion(ctx context.Context, acc_country s
 		return err
 	}
 
-	list_of_regions, ok := PossibleAccCountryRegion[uint8(local_country_region)]
+	local_country, _ := strconv.Atoi(acc_country)
+
+	list_of_regions, ok := PossibleAccCountryRegion[uint8(local_country)]
 	if !ok {
 		return ErrorWrongAccCountry
 	} else {
@@ -480,10 +486,8 @@ func (UC *accountUC) ValidateAccMainOffice(
 	if err != nil {
 		return err
 	}
-	local_country_region, err := strconv.Atoi(acc_country_region)
-	if err != nil {
-		return err
-	}
+	local_country_region, _ := strconv.Atoi(acc_country_region)
+
 	data_main_office, ok := PossibleAccMainOffice[uint8(local_country_region)]
 	if !ok {
 		return ErrorWrongAccCountryRegion

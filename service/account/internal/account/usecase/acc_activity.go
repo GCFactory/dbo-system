@@ -1,6 +1,6 @@
 package usecase
 
-var PossibleAccActivity = map[string][...]string{
+var PossibleAccActivity = map[string][]string{
 	"407": { // Счета негосударственных организаций
 		"01",
 		"02",

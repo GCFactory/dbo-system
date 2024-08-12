@@ -6,7 +6,7 @@ const (
 	AccCountryRegionMoscow  uint8 = 50
 )
 
-var PossibleAccCountryRegion = map[uint8][...]uint8{
+var PossibleAccCountryRegion = map[uint8][]uint8{
 	AccCountryRus: {
 		AccCountryRegionKursk,
 		AccCountryRegionMoscow,
