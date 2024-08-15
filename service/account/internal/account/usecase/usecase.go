@@ -31,14 +31,16 @@ func (UC *accountUC) ReservAcc(ctx context.Context, acc_data *models.FullAccount
 		return ErrorReasonIsExisting
 	}
 
-	acc.Acc_uuid = acc_data.Acc_uuid
-	acc.Acc_status = AccStatusReserved
-	acc.Acc_culc_number = acc_data.Acc_culc_number
-	acc.Acc_corr_number = acc_data.Acc_corr_number
-	acc.Acc_bic = acc_data.Acc_bic
-	acc.Acc_cio = acc_data.Acc_cio
-	acc.Acc_money_value = acc_data.Acc_money_value
-	acc.Acc_money_amount = 0.0
+	acc = &models.Account{
+		Acc_uuid:         acc_data.Acc_uuid,
+		Acc_status:       AccStatusReserved,
+		Acc_culc_number:  acc_data.Acc_culc_number,
+		Acc_corr_number:  acc_data.Acc_corr_number,
+		Acc_bic:          acc_data.Acc_bic,
+		Acc_cio:          acc_data.Acc_cio,
+		Acc_money_value:  acc_data.Acc_money_value,
+		Acc_money_amount: 0.0,
+	}
 
 	if err := UC.ValidateCulcNumber(ctxWithTrace, acc_data.Acc_culc_number); err != nil {
 		return err
@@ -50,18 +52,13 @@ func (UC *accountUC) ReservAcc(ctx context.Context, acc_data *models.FullAccount
 		return err
 	}
 
-	if UC.accountRepo.CreateAccount(ctxWithTrace, acc) != nil {
-		return ErrorCreateAcc
+	reason = &models.ReserverReason{
+		Acc_uuid: acc_data.Acc_uuid,
+		Reason:   acc_data.Reason,
 	}
 
-	reason.Acc_uuid = acc_data.Acc_uuid
-	reason.Reason = acc_data.Reason
-
-	if UC.accountRepo.AddReserveReason(ctxWithTrace, reason) != nil {
-		if UC.accountRepo.DeleteAccount(ctxWithTrace, acc_data.Acc_uuid) != nil {
-			return ErrorFatal
-		}
-		return ErrorAddReason
+	if UC.accountRepo.CreateAccount(ctxWithTrace, acc, reason) != nil {
+		return ErrorCreateAcc
 	}
 
 	return nil
@@ -524,35 +521,32 @@ func (UC *accountUC) ValidateAccBankNumber(ctx context.Context, acc_bank_number 
 }
 
 // Валидирует корр счет
-func (UC *accountUC) ValidateCorrNumber(ctx context.Context, acc_curr_number string, acc_bic string) error {
+func (UC *accountUC) ValidateCorrNumber(ctx context.Context, acc_corr_number string, acc_bic string) error {
 
 	span, contextWithTrace := opentracing.StartSpanFromContext(ctx, "accountUC.ValidateCorrNumber")
 	defer span.Finish()
 
-	if len(acc_bic) != 9 {
-		return ErrorWrongBICLen
-	}
 	if err := UC.ValidateBIC(contextWithTrace, acc_bic); err != nil {
 		return err
 	}
 
-	if len(acc_curr_number) != 20 {
+	if len(acc_corr_number) != 20 {
 		return ErrorWrongAccCorrNumberLen
 	}
 
-	if acc_curr_number[:3] != "301" {
+	if acc_corr_number[:3] != "301" {
 		return ErrorWrongAccCorrFirstGroupNumber
 	}
 
-	if err := UC.ValidateAccCurrNumberOwner(contextWithTrace, acc_curr_number[3:5]); err != nil {
+	if err := UC.ValidateAccCorrNumberOwner(contextWithTrace, acc_corr_number[3:5]); err != nil {
 		return err
-	} else if _, err = UC.ValidateCurrency(contextWithTrace, acc_curr_number[5:8]); err != nil {
+	} else if _, err = UC.ValidateCurrency(contextWithTrace, acc_corr_number[5:8]); err != nil {
 		return err
-	} else if acc_curr_number[9:13] != acc_bic[3:7] {
+	} else if acc_corr_number[9:13] != acc_bic[3:7] {
 		return ErrorWrongAccCorrBankNumber
 	}
 
-	if acc_curr_number[len(acc_curr_number)-3] != acc_bic[len(acc_bic)-3] {
+	if acc_corr_number[len(acc_corr_number)-3] != acc_bic[len(acc_bic)-3] {
 		return ErrorWrongAccCorrNumber
 	}
 
@@ -560,17 +554,17 @@ func (UC *accountUC) ValidateCorrNumber(ctx context.Context, acc_curr_number str
 }
 
 // Валидирует владельца корр счёта
-func (UC *accountUC) ValidateAccCurrNumberOwner(ctx context.Context, acc_curr_number_owner string) error {
+func (UC *accountUC) ValidateAccCorrNumberOwner(ctx context.Context, acc_corr_number_owner string) error {
 
 	span, _ := opentracing.StartSpanFromContext(ctx, "accountUC.ValidateAccCurrNumberOwner")
 	defer span.Finish()
 
-	if len(acc_curr_number_owner) != 2 {
+	if len(acc_corr_number_owner) != 2 {
 		return ErrorWrongAccCorrOwnerLen
 	}
 
 	for i := 0; i < len(PossibleAccCurrNumberOwner); i++ {
-		if acc_curr_number_owner == PossibleAccCurrNumberOwner[i] {
+		if acc_corr_number_owner == PossibleAccCurrNumberOwner[i] {
 			return nil
 		}
 	}
@@ -589,11 +583,11 @@ func (UC *accountUC) ValidateKPP(ctx context.Context, acc_kpp string, acc_bic st
 		return ErrorWrongAccKPPLen
 	} else if err := UC.ValidateBIC(ctxWithTrace, acc_bic); err != nil {
 		return err
-	} else if err = UC.ValidateAccCountryRegion(ctxWithTrace, acc_bic[:1], acc_kpp[:2]); err != nil {
+	} else if err = UC.ValidateAccCountryRegion(ctxWithTrace, acc_bic[1:2], acc_kpp[:2]); err != nil {
 		return err
 	}
 
-	local_reason, err := strconv.Atoi(acc_kpp[2:4])
+	local_reason, err := strconv.Atoi(acc_kpp[4:6])
 	if err != nil || local_reason > 99 || local_reason < 1 {
 		return ErrorWrongAccKPP
 	}

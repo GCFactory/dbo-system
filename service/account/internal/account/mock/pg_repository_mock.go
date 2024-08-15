@@ -36,32 +36,18 @@ func (m *MockRepository) EXPECT() *MockRepositoryMockRecorder {
 	return m.recorder
 }
 
-// AddReserveReason mocks base method.
-func (m *MockRepository) AddReserveReason(ctx context.Context, reason *models.ReserverReason) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddReserveReason", ctx, reason)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// AddReserveReason indicates an expected call of AddReserveReason.
-func (mr *MockRepositoryMockRecorder) AddReserveReason(ctx, reason interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddReserveReason", reflect.TypeOf((*MockRepository)(nil).AddReserveReason), ctx, reason)
-}
-
 // CreateAccount mocks base method.
-func (m *MockRepository) CreateAccount(ctx context.Context, account *models.Account) error {
+func (m *MockRepository) CreateAccount(ctx context.Context, account *models.Account, reason *models.ReserverReason) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateAccount", ctx, account)
+	ret := m.ctrl.Call(m, "CreateAccount", ctx, account, reason)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // CreateAccount indicates an expected call of CreateAccount.
-func (mr *MockRepositoryMockRecorder) CreateAccount(ctx, account interface{}) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) CreateAccount(ctx, account, reason interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAccount", reflect.TypeOf((*MockRepository)(nil).CreateAccount), ctx, account)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAccount", reflect.TypeOf((*MockRepository)(nil).CreateAccount), ctx, account, reason)
 }
 
 // DeleteAccount mocks base method.

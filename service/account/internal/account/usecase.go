@@ -20,8 +20,8 @@ type UseCase interface {
 	ValidateAccCountryRegion(ctx context.Context, acc_country string, acc_country_region string) error
 	ValidateAccMainOffice(ctx context.Context, acc_country string, acc_country_region string, acc_main_office string) error
 	ValidateAccBankNumber(ctx context.Context, acc_bank_number string) error
-	ValidateCorrNumber(ctx context.Context, acc_curr_number string, acc_bic string) error
-	ValidateAccCurrNumberOwner(ctx context.Context, acc_curr_number_owner string) error
+	ValidateCorrNumber(ctx context.Context, acc_corr_number string, acc_bic string) error
+	ValidateAccCorrNumberOwner(ctx context.Context, acc_corr_number_owner string) error
 	ValidateKPP(ctx context.Context, acc_kpp string, acc_bic string) error
 	ReservAcc(ctx context.Context, acc_data *models.FullAccountData) error
 	CreateAcc(ctx context.Context, acc_uuid uuid.UUID) error

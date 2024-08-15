@@ -13,13 +13,11 @@ type accountRepo struct {
 	db *sqlx.DB
 }
 
-func (repo accountRepo) CreateAccount(ctx context.Context, account *models.Account) error {
+func (repo accountRepo) CreateAccount(ctx context.Context, account *models.Account, reason *models.ReserverReason) error {
 	span, local_ctx := opentracing.StartSpanFromContext(ctx, "accountRepo.CreateAccount")
 	defer span.Finish()
 
-	var acc models.Account
-
-	if err := repo.db.QueryRowxContext(local_ctx,
+	if _, err := repo.db.ExecContext(local_ctx,
 		CreateAccount,
 		account.Acc_uuid,
 		account.Acc_culc_number,
@@ -27,7 +25,8 @@ func (repo accountRepo) CreateAccount(ctx context.Context, account *models.Accou
 		account.Acc_bic,
 		account.Acc_cio,
 		account.Acc_money_value,
-	).StructScan(&acc); err != nil {
+		reason.Reason,
+	); err != nil {
 		return ErrorCreateAccount
 	}
 
@@ -145,23 +144,6 @@ func (repo accountRepo) GetAccountAmount(ctx context.Context, acc_uuid uuid.UUID
 	}
 
 	return result.Acc_money_amount, nil
-}
-
-func (repo accountRepo) AddReserveReason(ctx context.Context, reason *models.ReserverReason) error {
-	span, local_ctx := opentracing.StartSpanFromContext(ctx, "accountRepo.AddReserveReason")
-	defer span.Finish()
-
-	var result models.ReserverReason
-
-	if err := repo.db.QueryRowxContext(local_ctx,
-		AddReserveReason,
-		reason.Acc_uuid,
-		reason.Reason,
-	).StructScan(&result); err != nil {
-		return ErrorAddReserveReason
-	}
-
-	return nil
 }
 
 func (repo accountRepo) DeleteReserveReason(ctx context.Context, acc_uuid uuid.UUID) error {
