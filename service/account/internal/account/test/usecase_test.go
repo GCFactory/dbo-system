@@ -5,12 +5,14 @@ import (
 	"github.com/GCFactory/dbo-system/platform/config"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/service/account/internal/account/mock"
+	"github.com/GCFactory/dbo-system/service/account/internal/account/repository"
 	"github.com/GCFactory/dbo-system/service/account/internal/account/usecase"
 	"github.com/GCFactory/dbo-system/service/account/internal/models"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/opentracing/opentracing-go"
 	"github.com/stretchr/testify/require"
+	"math"
 	"testing"
 )
 
@@ -708,6 +710,509 @@ func TestAccountUC_ReservAcc(t *testing.T) {
 		mockRepo.EXPECT().CreateAccount(gomock.Eq(ctxWithTrace), gomock.Eq(acc_data_created), gomock.Eq(acc_reason)).Return(nil)
 
 		err = accUC.ReservAcc(ctx, acc_data)
+		require.Nil(t, err)
+
+	})
+
+}
+
+func TestAccountUC_CreateAcc(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	apiLogger := logger.NewServerLogger(testCfgUC)
+	apiLogger.InitLogger()
+
+	mockRepo := mock.NewMockRepository(ctrl)
+	accUC := usecase.NewAccountUseCase(testCfgUC, mockRepo, apiLogger)
+
+	ctx := context.Background()
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accountUC.CreateAcc")
+	defer span.Finish()
+
+	acc_uuid := uuid.New()
+
+	acc_data := &models.Account{
+		Acc_uuid:        acc_uuid,
+		Acc_bic:         "245025025",
+		Acc_cio:         "509910012",
+		Acc_corr_number: "30125810502500000025",
+		Acc_culc_number: "40705810990123456789",
+		Acc_status:      usecase.AccStatusReserved,
+	}
+
+	var err error
+
+	t.Run("Error no acc data", func(t *testing.T) {
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(nil, repository.ErrorGetAccountData)
+
+		err = accUC.CreateAcc(ctx, acc_uuid)
+		require.Equal(t, err, usecase.ErrorNoFoundAcc)
+	})
+
+	t.Run("Error wrong acc status", func(t *testing.T) {
+		tmp := acc_data.Acc_status
+		acc_data.Acc_status = usecase.AccStatusBlocked
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+
+		err = accUC.CreateAcc(ctx, acc_uuid)
+		require.Equal(t, err, usecase.ErrorWrongAccReservedStatus)
+		acc_data.Acc_status = tmp
+	})
+
+	t.Run("Error update status", func(t *testing.T) {
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+		mockRepo.EXPECT().UpdateAccountStatus(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid), gomock.Eq(usecase.AccStatusCreated)).Return(repository.ErrorUpdateAccountStatus)
+
+		err = accUC.CreateAcc(ctx, acc_uuid)
+		require.Equal(t, err, usecase.ErrorUpdateAccStatus)
+	})
+
+	t.Run("Success", func(t *testing.T) {
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+		mockRepo.EXPECT().UpdateAccountStatus(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid), gomock.Eq(usecase.AccStatusCreated)).Return(nil)
+
+		err = accUC.CreateAcc(ctx, acc_uuid)
+		require.Nil(t, err)
+	})
+}
+
+func TestAccountUC_OpenAcc(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	apiLogger := logger.NewServerLogger(testCfgUC)
+	apiLogger.InitLogger()
+
+	mockRepo := mock.NewMockRepository(ctrl)
+	accUC := usecase.NewAccountUseCase(testCfgUC, mockRepo, apiLogger)
+
+	ctx := context.Background()
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accountUC.OpenAcc")
+	defer span.Finish()
+
+	acc_uuid := uuid.New()
+
+	acc_data := &models.Account{
+		Acc_uuid:        acc_uuid,
+		Acc_bic:         "245025025",
+		Acc_cio:         "509910012",
+		Acc_corr_number: "30125810502500000025",
+		Acc_culc_number: "40705810990123456789",
+		Acc_status:      usecase.AccStatusCreated,
+	}
+
+	var err error
+
+	t.Run("Error no acc data", func(t *testing.T) {
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(nil, repository.ErrorGetAccountData)
+
+		err = accUC.OpenAcc(ctx, acc_uuid)
+		require.Equal(t, err, usecase.ErrorNoFoundAcc)
+	})
+
+	t.Run("Error wrong acc status", func(t *testing.T) {
+		tmp := acc_data.Acc_status
+		acc_data.Acc_status = usecase.AccStatusBlocked
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+
+		err = accUC.OpenAcc(ctx, acc_uuid)
+		require.Equal(t, err, usecase.ErrorWrongAccOpenStatus)
+		acc_data.Acc_status = tmp
+	})
+
+	t.Run("Error update status", func(t *testing.T) {
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+		mockRepo.EXPECT().UpdateAccountStatus(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid), gomock.Eq(usecase.AccStatusOpen)).Return(repository.ErrorUpdateAccountStatus)
+
+		err = accUC.OpenAcc(ctx, acc_uuid)
+		require.Equal(t, err, usecase.ErrorUpdateAccStatus)
+	})
+
+	t.Run("Success", func(t *testing.T) {
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+		mockRepo.EXPECT().UpdateAccountStatus(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid), gomock.Eq(usecase.AccStatusOpen)).Return(nil)
+
+		err = accUC.OpenAcc(ctx, acc_uuid)
+		require.Nil(t, err)
+	})
+}
+
+func TestAccountUC_CloseAcc(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	apiLogger := logger.NewServerLogger(testCfgUC)
+	apiLogger.InitLogger()
+
+	mockRepo := mock.NewMockRepository(ctrl)
+	accUC := usecase.NewAccountUseCase(testCfgUC, mockRepo, apiLogger)
+
+	ctx := context.Background()
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accountUC.CloseAcc")
+	defer span.Finish()
+
+	acc_uuid := uuid.New()
+
+	acc_data := &models.Account{
+		Acc_uuid:        acc_uuid,
+		Acc_bic:         "245025025",
+		Acc_cio:         "509910012",
+		Acc_corr_number: "30125810502500000025",
+		Acc_culc_number: "40705810990123456789",
+		Acc_status:      usecase.AccStatusOpen,
+	}
+
+	var err error
+
+	t.Run("Error no acc data", func(t *testing.T) {
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(nil, repository.ErrorGetAccountData)
+
+		err = accUC.CloseAcc(ctx, acc_uuid)
+		require.Equal(t, err, usecase.ErrorNoFoundAcc)
+	})
+
+	t.Run("Error wrong acc status", func(t *testing.T) {
+		tmp := acc_data.Acc_status
+		acc_data.Acc_status = usecase.AccStatusBlocked
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+
+		err = accUC.CloseAcc(ctx, acc_uuid)
+		require.Equal(t, err, usecase.ErrorWrongAccCloseStatus)
+		acc_data.Acc_status = tmp
+	})
+
+	t.Run("Error update status", func(t *testing.T) {
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+		mockRepo.EXPECT().UpdateAccountStatus(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid), gomock.Eq(usecase.AccStatusClose)).Return(repository.ErrorUpdateAccountStatus)
+
+		err = accUC.CloseAcc(ctx, acc_uuid)
+		require.Equal(t, err, usecase.ErrorUpdateAccStatus)
+	})
+
+	t.Run("Success", func(t *testing.T) {
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+		mockRepo.EXPECT().UpdateAccountStatus(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid), gomock.Eq(usecase.AccStatusClose)).Return(nil)
+
+		err = accUC.CloseAcc(ctx, acc_uuid)
+		require.Nil(t, err)
+	})
+}
+
+func TestAccountUC_BlockAcc(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	apiLogger := logger.NewServerLogger(testCfgUC)
+	apiLogger.InitLogger()
+
+	mockRepo := mock.NewMockRepository(ctrl)
+	accUC := usecase.NewAccountUseCase(testCfgUC, mockRepo, apiLogger)
+
+	ctx := context.Background()
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accountUC.BlockAcc")
+	defer span.Finish()
+
+	acc_uuid := uuid.New()
+
+	acc_data := &models.Account{
+		Acc_uuid:        acc_uuid,
+		Acc_bic:         "245025025",
+		Acc_cio:         "509910012",
+		Acc_corr_number: "30125810502500000025",
+		Acc_culc_number: "40705810990123456789",
+		Acc_status:      usecase.AccStatusOpen,
+	}
+
+	var err error
+
+	t.Run("Error no acc data", func(t *testing.T) {
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(nil, repository.ErrorGetAccountData)
+
+		err = accUC.BlockAcc(ctx, acc_uuid)
+		require.Equal(t, err, usecase.ErrorNoFoundAcc)
+	})
+
+	t.Run("Error wrong acc status", func(t *testing.T) {
+		tmp := acc_data.Acc_status
+		acc_data.Acc_status = usecase.AccStatusBlocked
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+
+		err = accUC.BlockAcc(ctx, acc_uuid)
+		require.Equal(t, err, usecase.ErrorWrongAccBlockStatus)
+		acc_data.Acc_status = tmp
+	})
+
+	t.Run("Error update status", func(t *testing.T) {
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+		mockRepo.EXPECT().UpdateAccountStatus(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid), gomock.Eq(usecase.AccStatusBlocked)).Return(repository.ErrorUpdateAccountStatus)
+
+		err = accUC.BlockAcc(ctx, acc_uuid)
+		require.Equal(t, err, usecase.ErrorUpdateAccStatus)
+	})
+
+	t.Run("Success", func(t *testing.T) {
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+		mockRepo.EXPECT().UpdateAccountStatus(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid), gomock.Eq(usecase.AccStatusBlocked)).Return(nil)
+
+		err = accUC.BlockAcc(ctx, acc_uuid)
+		require.Nil(t, err)
+	})
+}
+
+func TestAccountUC_GetAccInfo(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	apiLogger := logger.NewServerLogger(testCfgUC)
+	apiLogger.InitLogger()
+
+	mockRepo := mock.NewMockRepository(ctrl)
+	accUC := usecase.NewAccountUseCase(testCfgUC, mockRepo, apiLogger)
+
+	ctx := context.Background()
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accountUC.GetAccInfo")
+	defer span.Finish()
+
+	acc_uuid := uuid.New()
+
+	acc_data := &models.Account{
+		Acc_uuid:        acc_uuid,
+		Acc_bic:         "245025025",
+		Acc_cio:         "509910012",
+		Acc_corr_number: "30125810502500000025",
+		Acc_culc_number: "40705810990123456789",
+		Acc_status:      usecase.AccStatusOpen,
+	}
+
+	acc_reason := &models.ReserverReason{
+		Acc_uuid: acc_uuid,
+		Reason:   "smth",
+	}
+
+	acc_full := &models.FullAccountData{
+		Acc_uuid:        acc_data.Acc_uuid,
+		Acc_bic:         acc_data.Acc_bic,
+		Acc_cio:         acc_data.Acc_cio,
+		Acc_corr_number: acc_data.Acc_corr_number,
+		Acc_culc_number: acc_data.Acc_culc_number,
+		Acc_status:      usecase.AccStatusOpen,
+		Reason:          acc_reason.Reason,
+	}
+
+	t.Run("Error no acc data", func(t *testing.T) {
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(nil, repository.ErrorGetAccountData)
+
+		result, err := accUC.GetAccInfo(ctx, acc_uuid)
+		require.Nil(t, result)
+		require.Equal(t, err, usecase.ErrorNoFoundAcc)
+	})
+
+	t.Run("Success without reason", func(t *testing.T) {
+		tmp := acc_full.Reason
+		acc_full.Reason = ""
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+		mockRepo.EXPECT().GetReserveReason(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(nil, repository.ErrorGetReserveReason)
+
+		result, err := accUC.GetAccInfo(ctx, acc_uuid)
+		require.Nil(t, err)
+		require.Equal(t, result, acc_full)
+
+		acc_full.Reason = tmp
+	})
+
+	t.Run("Success with reason", func(t *testing.T) {
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+		mockRepo.EXPECT().GetReserveReason(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_reason, nil)
+
+		result, err := accUC.GetAccInfo(ctx, acc_uuid)
+		require.Nil(t, err)
+		require.Equal(t, result, acc_full)
+	})
+}
+
+func TestAccountUC_AddingAcc(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	apiLogger := logger.NewServerLogger(testCfgUC)
+	apiLogger.InitLogger()
+
+	mockRepo := mock.NewMockRepository(ctrl)
+	accUC := usecase.NewAccountUseCase(testCfgUC, mockRepo, apiLogger)
+
+	ctx := context.Background()
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accountUC.AddingAcc")
+	defer span.Finish()
+
+	acc_uuid := uuid.New()
+
+	acc_data := &models.Account{
+		Acc_uuid:         acc_uuid,
+		Acc_status:       usecase.AccStatusOpen,
+		Acc_money_amount: float64(10),
+	}
+
+	add_value := float64(10)
+
+	var err error
+
+	t.Run("Error no acc data", func(t *testing.T) {
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(nil, repository.ErrorGetAccountData)
+
+		err = accUC.AddingAcc(ctx, acc_uuid, 0)
+		require.Equal(t, err, usecase.ErrorNoFoundAcc)
+	})
+
+	t.Run("Error acc status", func(t *testing.T) {
+		tmp := acc_data.Acc_status
+		acc_data.Acc_status = usecase.AccStatusClose
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+
+		err = accUC.AddingAcc(ctx, acc_uuid, add_value)
+		require.Equal(t, err, usecase.ErrorWrongAccOpenStatus)
+
+		acc_data.Acc_status = tmp
+	})
+
+	t.Run("Overflow error", func(t *testing.T) {
+		tmp := acc_data.Acc_money_amount
+		acc_data.Acc_money_amount = math.MaxFloat64
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+
+		err = accUC.AddingAcc(ctx, acc_uuid, add_value)
+		require.Equal(t, err, usecase.ErrorOverflowAmount)
+
+		acc_data.Acc_money_amount = tmp
+
+	})
+
+	t.Run("Update error", func(t *testing.T) {
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+		mockRepo.EXPECT().UpdateAccountAmount(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid), gomock.Eq(acc_data.Acc_money_amount+add_value)).Return(repository.ErrorUpdateAccountAmount)
+
+		err = accUC.AddingAcc(ctx, acc_uuid, add_value)
+		require.Equal(t, err, usecase.ErrorUpdateAmountValue)
+
+	})
+
+	t.Run("Success", func(t *testing.T) {
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+		mockRepo.EXPECT().UpdateAccountAmount(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid), gomock.Eq(acc_data.Acc_money_amount+add_value)).Return(nil)
+
+		err = accUC.AddingAcc(ctx, acc_uuid, add_value)
+		require.Nil(t, err)
+
+	})
+
+}
+
+func TestAccountUC_WidthAcc(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	apiLogger := logger.NewServerLogger(testCfgUC)
+	apiLogger.InitLogger()
+
+	mockRepo := mock.NewMockRepository(ctrl)
+	accUC := usecase.NewAccountUseCase(testCfgUC, mockRepo, apiLogger)
+
+	ctx := context.Background()
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accountUC.WidthAcc")
+	defer span.Finish()
+
+	acc_uuid := uuid.New()
+
+	acc_data := &models.Account{
+		Acc_uuid:         acc_uuid,
+		Acc_status:       usecase.AccStatusOpen,
+		Acc_money_amount: float64(10),
+	}
+
+	width_value := float64(10)
+
+	var err error
+
+	t.Run("Error no acc data", func(t *testing.T) {
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(nil, repository.ErrorGetAccountData)
+
+		err = accUC.WidthAcc(ctx, acc_uuid, 0)
+		require.Equal(t, err, usecase.ErrorNoFoundAcc)
+	})
+
+	t.Run("Error acc status", func(t *testing.T) {
+		tmp := acc_data.Acc_status
+		acc_data.Acc_status = usecase.AccStatusClose
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+
+		err = accUC.WidthAcc(ctx, acc_uuid, width_value)
+		require.Equal(t, err, usecase.ErrorWrongAccOpenStatus)
+
+		acc_data.Acc_status = tmp
+	})
+
+	t.Run("Overflow error", func(t *testing.T) {
+		tmp := acc_data.Acc_money_amount
+		acc_data.Acc_money_amount = -10
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+
+		err = accUC.WidthAcc(ctx, acc_uuid, width_value)
+		require.Equal(t, err, usecase.ErrorNotEnoughMoneyAmount)
+
+		acc_data.Acc_money_amount = tmp
+
+	})
+
+	t.Run("Update error", func(t *testing.T) {
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+		mockRepo.EXPECT().UpdateAccountAmount(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid), gomock.Eq(acc_data.Acc_money_amount-width_value)).Return(repository.ErrorUpdateAccountAmount)
+
+		err = accUC.WidthAcc(ctx, acc_uuid, width_value)
+		require.Equal(t, err, usecase.ErrorUpdateAmountValue)
+
+	})
+
+	t.Run("Success", func(t *testing.T) {
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+		mockRepo.EXPECT().UpdateAccountAmount(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid), gomock.Eq(acc_data.Acc_money_amount-width_value)).Return(nil)
+
+		err = accUC.WidthAcc(ctx, acc_uuid, width_value)
 		require.Nil(t, err)
 
 	})

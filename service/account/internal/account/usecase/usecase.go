@@ -143,7 +143,7 @@ func (UC *accountUC) BlockAcc(ctx context.Context, acc_uuid uuid.UUID) error {
 		return ErrorWrongAccBlockStatus
 	}
 
-	err = UC.accountRepo.UpdateAccountStatus(ctxWithTrace, acc_uuid, AccStatusClose)
+	err = UC.accountRepo.UpdateAccountStatus(ctxWithTrace, acc_uuid, AccStatusBlocked)
 	if err != nil {
 		return ErrorUpdateAccStatus
 	}
@@ -161,14 +161,8 @@ func (UC *accountUC) GetAccInfo(ctx context.Context, acc_uuid uuid.UUID) (*model
 		return nil, ErrorNoFoundAcc
 	}
 
-	reason, err := UC.accountRepo.GetReserveReason(ctxWithTrace, acc_uuid)
-	if err != nil {
-		return nil, ErrorGetAccReservedReason
-	}
-
 	result := models.FullAccountData{
 		Acc_uuid:         acc_uuid,
-		Reason:           reason.Reason,
 		Acc_money_amount: acc.Acc_money_amount,
 		Acc_money_value:  acc.Acc_money_value,
 		Acc_cio:          acc.Acc_cio,
@@ -176,6 +170,13 @@ func (UC *accountUC) GetAccInfo(ctx context.Context, acc_uuid uuid.UUID) (*model
 		Acc_corr_number:  acc.Acc_corr_number,
 		Acc_culc_number:  acc.Acc_culc_number,
 		Acc_status:       acc.Acc_status,
+	}
+
+	reason, err := UC.accountRepo.GetReserveReason(ctxWithTrace, acc_uuid)
+	if err != nil {
+		result.Reason = ""
+	} else {
+		result.Reason = reason.Reason
 	}
 
 	return &result, nil
@@ -189,11 +190,13 @@ func (UC *accountUC) AddingAcc(ctx context.Context, acc_uuid uuid.UUID, add_valu
 	acc, err := UC.accountRepo.GetAccountData(ctxWithTrace, acc_uuid)
 	if err != nil {
 		return ErrorNoFoundAcc
+	} else if acc.Acc_status != AccStatusOpen {
+		return ErrorWrongAccOpenStatus
 	}
 
 	new_value := acc.Acc_money_amount + add_value
 
-	if new_value < acc.Acc_money_amount {
+	if new_value < acc.Acc_money_amount || new_value == acc.Acc_money_amount {
 		return ErrorOverflowAmount
 	}
 
@@ -213,6 +216,8 @@ func (UC *accountUC) WidthAcc(ctx context.Context, acc_uuid uuid.UUID, width_val
 	acc, err := UC.accountRepo.GetAccountData(ctxWithTrace, acc_uuid)
 	if err != nil {
 		return ErrorNoFoundAcc
+	} else if acc.Acc_status != AccStatusOpen {
+		return ErrorWrongAccOpenStatus
 	}
 
 	new_value := acc.Acc_money_amount - width_value
