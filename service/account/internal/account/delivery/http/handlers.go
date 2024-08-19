@@ -25,9 +25,9 @@ func NewACCHandlers(cfg *config.Config, accUC account.UseCase, log logger.Logger
 	return &accHandlers{cfg: cfg, accUC: accUC, logger: log}
 }
 
-func (t accHandlers) ReseveAcc() echo.HandlerFunc {
+func (t accHandlers) TestFunc() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		span, _ := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "accH.ReseveAcc")
+		span, _ := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "accH.testFunc")
 		defer span.Finish()
 
 		//	TODO: реализовать тут
