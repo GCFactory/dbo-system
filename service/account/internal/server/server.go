@@ -2,8 +2,12 @@ package server
 
 import (
 	"context"
-	"github.com/GCFactory/dbo-system/platform/config"
+	"errors"
+	"fmt"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
+	"github.com/GCFactory/dbo-system/service/account/config"
+	"github.com/GCFactory/dbo-system/service/account/pkg/kafka"
+	"github.com/IBM/sarama"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"net/http"
@@ -24,28 +28,48 @@ const (
 
 // Server struct
 type Server struct {
-	echo   *echo.Echo
-	cfg    *config.Config
-	db     *sqlx.DB
-	logger logger.Logger
+	echo          *echo.Echo
+	kafkaProducer *kafka.ProducerProvider
+	kafkaConsumer *kafka.ConsumerGroup
+	cfg           *config.Config
+	db            *sqlx.DB
+	logger        logger.Logger
 	// Channel to control goroutines
-	kafkaProducerChan chan int
 	kafkaConsumerChan chan int
 }
 
-func NewServer(cfg *config.Config, db *sqlx.DB, logger logger.Logger) *Server {
-	return &Server{
+func NewServer(cfg *config.Config, kConsumer *kafka.ConsumerGroup, kProducer *kafka.ProducerProvider, db *sqlx.DB, logger logger.Logger) *Server {
+	server := Server{
 		echo:              echo.New(),
 		cfg:               cfg,
 		db:                db,
 		logger:            logger,
-		kafkaProducerChan: make(chan int, 3),
+		kafkaConsumer:     kConsumer,
 		kafkaConsumerChan: make(chan int, 3),
+		kafkaProducer:     kProducer,
 	}
+	server.echo.HidePort = true
+	server.echo.HideBanner = true
+	return &server
 }
 
 func (s *Server) Run() error {
 	ctxWithCancel, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	server := &http.Server{
+		Addr:           s.cfg.HTTPServer.Port,
+		ReadTimeout:    time.Second * s.cfg.HTTPServer.ReadTimeout,
+		WriteTimeout:   time.Second * s.cfg.HTTPServer.WriteTimeout,
+		MaxHeaderBytes: maxHeaderBytes,
+	}
+
+	go func() {
+		s.logger.Infof("Server is listening on PORT: %s", s.cfg.HTTPServer.Port)
+		if err := s.echo.StartServer(server); err != nil {
+			s.logger.Fatalf("Error starting Server: %s", err)
+		}
+	}()
 
 	go func() {
 		r := http.NewServeMux()
@@ -62,25 +86,42 @@ func (s *Server) Run() error {
 		}
 	}()
 
+	if err := s.MapHandlers(s.echo); err != nil {
+		return err
+	}
+
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
+	go s.RunKafkaConsumer(ctxWithCancel, s.kafkaConsumerChan)
+	//// Remove example
+	go func() {
+		for i := 0; i < 10; i++ {
+			err := s.kafkaProducer.ProduceRecord("test", []byte("test message"))
+			if err != nil {
+				s.logger.Warnf("Error on produce: %v", err)
+			}
+			time.Sleep(time.Second * 10)
+		}
+	}()
+	//// Remove example
+
 	for {
-		select { // If goroutine exit for any reason - restart
-		case <-s.kafkaProducerChan:
-			s.logger.Warn("Received end of kafka producer goroutine")
-			go s.RunKafkaProducer(&ctxWithCancel, &s.kafkaProducerChan)
+		select {
 		// If goroutine exit for any reason - restart
 		case <-s.kafkaConsumerChan:
 			s.logger.Warn("Received end of kafka consumer goroutine")
-			go s.RunKafkaProducer(&ctxWithCancel, &s.kafkaConsumerChan)
+			go s.RunKafkaConsumer(ctxWithCancel, s.kafkaConsumerChan)
 		// Handle system interrupts
 		case <-quit:
 			ctx, shutdown := context.WithTimeout(context.Background(), ctxTimeout*time.Second)
-			cancel()
-			defer close(quit)
-			defer close(s.kafkaProducerChan)
+			s.kafkaConsumer.Consumer.PauseAll()
+			s.kafkaConsumer.Consumer.Close()
+			time.Sleep(time.Second * 5)
+			close(quit)
+			close(s.kafkaConsumerChan)
 			defer shutdown()
+			defer cancel()
 
 			s.logger.Info("Server Exited Properly")
 			return s.echo.Server.Shutdown(ctx)
@@ -88,10 +129,28 @@ func (s *Server) Run() error {
 	}
 }
 
-func (s *Server) RunKafkaProducer(ctx *context.Context, quitChan *chan int) {
-
-}
-
-func (s *Server) RunKafkaConsumer(ctx *context.Context, quitChan *chan int) {
-
+func (s *Server) RunKafkaConsumer(ctx context.Context, quitChan chan<- int) {
+	consumer := kafka.Consumer{
+		Ready: make(chan bool),
+		HandlerFunc: func(message *sarama.ConsumerMessage) error {
+			fmt.Printf("Message claimed: value = %s, timestamp = %v, topic = %s\n", string(message.Value), message.Timestamp, message.Topic)
+			return nil
+		},
+	}
+	for {
+		if err := s.kafkaConsumer.Consumer.Consume(ctx, s.cfg.KafkaConsumer.Topics, &consumer); err != nil {
+			if errors.Is(err, sarama.ErrClosedConsumerGroup) {
+				return
+			}
+			quitChan <- 1
+			s.logger.Errorf("Error from consumer: %v", err)
+		}
+		// check if context was cancelled, signaling that the consumer should stop
+		if ctx.Err() != nil {
+			s.logger.Infof("Stopping kafka consumer: context close: %v", ctx.Err())
+			return
+		}
+		s.logger.Info("Stopping kafka consumer...")
+		consumer.Ready = make(chan bool)
+	}
 }

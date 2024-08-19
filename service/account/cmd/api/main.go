@@ -1,11 +1,13 @@
 package main
 
 import (
-	"github.com/GCFactory/dbo-system/platform/config"
+	platformConfig "github.com/GCFactory/dbo-system/platform/config"
 	"github.com/GCFactory/dbo-system/platform/pkg/db/postgres"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/platform/pkg/utils"
+	"github.com/GCFactory/dbo-system/service/account/config"
 	"github.com/GCFactory/dbo-system/service/account/internal/server"
+	"github.com/GCFactory/dbo-system/service/account/pkg/kafka"
 	"github.com/golang-migrate/migrate/v4"
 	migratePostgres "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -16,18 +18,19 @@ import (
 	"github.com/uber/jaeger-lib/metrics"
 	"log"
 	"os"
+	"strings"
 )
 
-//	@Title			Account Service
+//	@Title			Registration Service
 //	@Version		0.1.0
-//	@description	Service for registration accounts
+//	@description	Service for registration user slots
 
 //	@contact.name	Rueie
 //	@contact.email
 
 //	@license.name	MIT License
 
-//	@BasePath	/api/v1/account/
+//	@BasePath	/api/v1/registration/
 
 func main() {
 	log.Println("Starting api server")
@@ -44,12 +47,16 @@ func main() {
 		log.Fatalf("ParseConfig: %v", err)
 	}
 
-	appLogger := logger.NewServerLogger(cfg)
+	appLogger := logger.NewServerLogger(&platformConfig.Config{
+		Logger: cfg.Logger,
+	})
 
 	appLogger.InitLogger()
 	appLogger.Infof("AppVersion: %s, LogLevel: %s, Env: %s, SSL: %v", cfg.Version, cfg.Logger.Level, cfg.Env, cfg.HTTPServer.SSL)
 
-	psqlDB, err := postgres.NewPsqlDB(cfg)
+	psqlDB, err := postgres.NewPsqlDB(&platformConfig.Config{
+		Postgres: cfg.Postgres,
+	})
 	if err != nil {
 		appLogger.Fatalf("Postgresql init: %s", err)
 	} else {
@@ -59,8 +66,8 @@ func main() {
 
 	// driver объект подключения по типу psql
 	driver, err := migratePostgres.WithInstance(psqlDB.DB, &migratePostgres.Config{
-		MigrationsTable:       "schema_migration",
-		MigrationsTableQuoted: false,
+		MigrationsTable:       "\"registration_service\".\"schema_migration\"",
+		MigrationsTableQuoted: true,
 	})
 	if err != nil {
 		appLogger.Fatalf("Cannot create migration driver: %s", err)
@@ -104,8 +111,16 @@ func main() {
 	defer closer.Close()
 	appLogger.Info("Opentracing connected")
 
+	kc, err := kafka.NewKafkaConsumer(strings.Split(cfg.KafkaConsumer.Brokers, ";"), cfg.KafkaConsumer.GroupID)
+	if err != nil {
+		appLogger.Fatal(err)
+	}
+	appLogger.Infof("Kafka consumer with group '%s' connected", cfg.KafkaConsumer.GroupID)
+
+	kp := kafka.NewKafkaProducer(cfg, appLogger)
+
 	//Run server
-	s := server.NewServer(cfg, psqlDB, appLogger)
+	s := server.NewServer(cfg, kc, kp, psqlDB, appLogger)
 	if err = s.Run(); err != nil {
 		appLogger.Fatal(err)
 	}

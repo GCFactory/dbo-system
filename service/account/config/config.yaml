@@ -1,3 +1,4 @@
+version: 1.0.0
 http-server:
   AppVersion: 1.0.0
   Env: Development
@@ -13,16 +14,28 @@ http-server:
   CSRF: true
   Debug: false
 
+kafkaConsumer:
+  #brokers: localhost:9092;locahost:9091
+  brokers: localhost:9092
+  groupID: group-1
+  topics:
+    - test
+
+kafkaProducer:
+  #brokers: localhost:9092;locahost:9091
+  brokers: localhost:9092
+  topics:
+    - test
 
 jaeger:
   Host: localhost:6831
-  ServiceName: account
+  ServiceName: totp
   LogSpans: false
 
 docs:
   Enable: false
   Prefix: swagger
-  Title: account Service REST API
+  Title: Account Service REST API
 
 logger:
   Development: true
@@ -34,9 +47,9 @@ logger:
 postgres:
   PostgresqlHost: localhost
   PostgresqlPort: 5432
-  PostgresqlUser: postgres
-  PostgresqlPassword: postgres
-  PostgresqlDbname: account
+  PostgresqlUser: diploma
+  PostgresqlPassword: diploma
+  PostgresqlDbname: diploma
   PostgresqlSSLMode: false
   PgDriver: pgx
 
@@ -49,9 +62,9 @@ cookie:
 
 session:
   Name: session-id
-  Prefix: api-account
+  Prefix: api-totp
   Expire: 3600
 
 metrics:
-  Url: 0.0.0.0:7071
+  Url: 0.0.0.0:7070
   ServiceName: account
