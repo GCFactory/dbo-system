@@ -1,5 +1,5 @@
 //go:generate mockgen -source usecase.go -destination mock/usecase_mock.go -package mock
-package registration
+package account
 
 import (
 	"github.com/GCFactory/dbo-system/service/account/internal/models"
