@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package platform;
 
-option go_package = "github.com/GCFactory/dbo-system/service/registration/proto/platform";
+option go_package = "github.com/GCFactory/dbo-system/service/account/proto/platform";
 
 import "google/protobuf/timestamp.proto";
 

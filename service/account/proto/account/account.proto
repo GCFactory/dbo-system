@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package registration;
+package account;
 
 option go_package = "github.com/GCFactory/dbo-system/service/account/proto/api";
 
@@ -10,7 +10,7 @@ import "github.com/GCFactory/dbo-system/service/account/proto/platform";
 message EventData{
   string saga_uuid = 1;           //  UUID sag-и
   oneof data{
-    platform.AccountDetails = 2;  //  Реквизиты счёта
+    platform.AccountDetails account_data = 2;  //  Реквизиты счёта
   }
 }
 
