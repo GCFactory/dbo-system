@@ -49,7 +49,7 @@ message Passport{
 }
 
 //  Реквизиты счёта
-message AccountDetails {
+message AccountDetails{
   string culc_number = 1; // Расчётный номер
   string corr_number = 2; // Корреспондентский номер
   string bic = 3;         //  БИК
