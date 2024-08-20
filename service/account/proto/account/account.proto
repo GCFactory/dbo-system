@@ -4,7 +4,7 @@ package account;
 
 option go_package = "github.com/GCFactory/dbo-system/service/account/proto/api";
 
-import "github.com/GCFactory/dbo-system/service/account/proto/platform";
+import "platform/platform.proto";
 
 //  Данные event-а
 message EventData{
