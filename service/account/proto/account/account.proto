@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package registration;
+
+option go_package = "github.com/GCFactory/dbo-system/service/account/proto/api";
+
+import "github.com/GCFactory/dbo-system/service/account/proto/platform";
+
+//  Данные event-а
+message EventData{
+  string saga_uuid = 1;           //  UUID sag-и
+  oneof data{
+    platform.AccountDetails = 2;  //  Реквизиты счёта
+  }
+}
+
+//  Результат event-а
+message EventStatus{
+  string saga_uuid = 1;   //  UUID sag-и
+  uint32 status = 2;      //  Статус event-а
+  string info = 3;        //  Дополнительная информация по event-у
+}
+
+//  Сервис регистрации
+service AccountService{
+  //  Регистрация пользователя
+  rpc ReserveAccount(EventData) returns (EventStatus);
+}
