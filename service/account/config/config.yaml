@@ -17,7 +17,7 @@ http-server:
 kafkaConsumer:
   #brokers: localhost:9092;locahost:9091
   brokers: localhost:9092
-  groupID: group-1
+  groupID: group-1-1
   topics:
     - test
 
@@ -46,10 +46,10 @@ logger:
 
 postgres:
   PostgresqlHost: localhost
-  PostgresqlPort: 5432
-  PostgresqlUser: diploma
-  PostgresqlPassword: diploma
-  PostgresqlDbname: diploma
+  PostgresqlPort: 5433
+  PostgresqlUser: postgres
+  PostgresqlPassword: postgres
+  PostgresqlDbname: main
   PostgresqlSSLMode: false
   PgDriver: pgx
 

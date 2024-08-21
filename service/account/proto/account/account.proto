@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package account;
 
-option go_package = "github.com/GCFactory/dbo-system/service/account/proto/api";
+option go_package = "./proto/api";
 
 import "platform/platform.proto";
 

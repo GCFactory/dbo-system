@@ -61,6 +61,7 @@ func (consumer *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 
 			err := consumer.HandlerFunc(message)
 			if err != nil {
+				fmt.Printf("ERROR: %s\n", err)
 				return err
 			}
 

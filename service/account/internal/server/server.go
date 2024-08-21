@@ -2,12 +2,15 @@ package server
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
-	"fmt"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/service/account/config"
+	acc_proto_api "github.com/GCFactory/dbo-system/service/account/gen_proto/proto/api"
+	"github.com/GCFactory/dbo-system/service/account/internal/account/grpc_handlers"
 	"github.com/GCFactory/dbo-system/service/account/pkg/kafka"
 	"github.com/IBM/sarama"
+	"github.com/golang/protobuf/proto"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"net/http"
@@ -96,8 +99,13 @@ func (s *Server) Run() error {
 	go s.RunKafkaConsumer(ctxWithCancel, s.kafkaConsumerChan)
 	//// Remove example
 	go func() {
-		for i := 0; i < 10; i++ {
-			err := s.kafkaProducer.ProduceRecord("test", []byte("test message"))
+		for i := 0; i < 1; i++ {
+			tmp_bytes := "0a0631323331323312280a0631323331323312063132333132331a0631323331323322063132333132332a06313233313233"
+			data, err := hex.DecodeString(tmp_bytes)
+			if err != nil {
+				panic(err)
+			}
+			err = s.kafkaProducer.ProduceRecord("test", sarama.ByteEncoder(data))
 			if err != nil {
 				s.logger.Warnf("Error on produce: %v", err)
 			}
@@ -131,11 +139,8 @@ func (s *Server) Run() error {
 
 func (s *Server) RunKafkaConsumer(ctx context.Context, quitChan chan<- int) {
 	consumer := kafka.Consumer{
-		Ready: make(chan bool),
-		HandlerFunc: func(message *sarama.ConsumerMessage) error {
-			fmt.Printf("Message claimed: value = %s, timestamp = %v, topic = %s\n", string(message.Value), message.Timestamp, message.Topic)
-			return nil
-		},
+		Ready:       make(chan bool),
+		HandlerFunc: s.handleData,
 	}
 	for {
 		if err := s.kafkaConsumer.Consumer.Consume(ctx, s.cfg.KafkaConsumer.Topics, &consumer); err != nil {
@@ -153,4 +158,26 @@ func (s *Server) RunKafkaConsumer(ctx context.Context, quitChan chan<- int) {
 		s.logger.Info("Stopping kafka consumer...")
 		consumer.Ready = make(chan bool)
 	}
+}
+
+func (s *Server) handleData(message *sarama.ConsumerMessage) error {
+
+	data := &acc_proto_api.EventData{}
+	err := proto.Unmarshal(message.Value, data)
+
+	if err != nil {
+		return err
+	}
+
+	accH := grpc_handlers.NewAccountGRPCHandlers(s.kafkaProducer)
+	// Unpack data and handle func
+	if extracted_data := data.GetAccountData(); extracted_data != nil {
+		if err = accH.ReserveAccount(context.Background(), extracted_data, s.kafkaProducer); err != nil {
+			return err
+		}
+	} else {
+		return ErrorUnknownTypeData
+	}
+
+	return nil
 }

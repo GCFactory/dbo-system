@@ -57,6 +57,7 @@ services:
       - ./.pgdata:/var/lib/postgresql/data
     networks:
       - web_api
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.2.1
     hostname: zookeeper
