@@ -401,6 +401,77 @@ func (x *AccountDetails) GetReserveReason() string {
 	return ""
 }
 
+type FullAccountData struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	AccDetails     *AccountDetails `protobuf:"bytes,1,opt,name=acc_details,json=accDetails,proto3" json:"acc_details,omitempty"`                 //  Реквизиты счёта
+	AccStatus      uint64          `protobuf:"varint,2,opt,name=acc_status,json=accStatus,proto3" json:"acc_status,omitempty"`                   //  Статус счёта
+	AccMoneyValue  uint64          `protobuf:"varint,3,opt,name=acc_money_value,json=accMoneyValue,proto3" json:"acc_money_value,omitempty"`     //  Денежная величина
+	AccMoneyAmount float32         `protobuf:"fixed32,4,opt,name=acc_money_amount,json=accMoneyAmount,proto3" json:"acc_money_amount,omitempty"` //  Кол-во денег на счету
+}
+
+func (x *FullAccountData) Reset() {
+	*x = FullAccountData{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_platform_platform_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *FullAccountData) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FullAccountData) ProtoMessage() {}
+
+func (x *FullAccountData) ProtoReflect() protoreflect.Message {
+	mi := &file_platform_platform_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FullAccountData.ProtoReflect.Descriptor instead.
+func (*FullAccountData) Descriptor() ([]byte, []int) {
+	return file_platform_platform_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *FullAccountData) GetAccDetails() *AccountDetails {
+	if x != nil {
+		return x.AccDetails
+	}
+	return nil
+}
+
+func (x *FullAccountData) GetAccStatus() uint64 {
+	if x != nil {
+		return x.AccStatus
+	}
+	return 0
+}
+
+func (x *FullAccountData) GetAccMoneyValue() uint64 {
+	if x != nil {
+		return x.AccMoneyValue
+	}
+	return 0
+}
+
+func (x *FullAccountData) GetAccMoneyAmount() float32 {
+	if x != nil {
+		return x.AccMoneyAmount
+	}
+	return 0
+}
+
 var File_platform_platform_proto protoreflect.FileDescriptor
 
 var file_platform_platform_proto_rawDesc = []byte{
@@ -446,7 +517,19 @@ var file_platform_platform_proto_rawDesc = []byte{
 	0x09, 0x52, 0x03, 0x62, 0x69, 0x63, 0x12, 0x10, 0x0a, 0x03, 0x63, 0x69, 0x6f, 0x18, 0x04, 0x20,
 	0x01, 0x28, 0x09, 0x52, 0x03, 0x63, 0x69, 0x6f, 0x12, 0x25, 0x0a, 0x0e, 0x72, 0x65, 0x73, 0x65,
 	0x72, 0x76, 0x65, 0x5f, 0x72, 0x65, 0x61, 0x73, 0x6f, 0x6e, 0x18, 0x05, 0x20, 0x01, 0x28, 0x09,
-	0x52, 0x0d, 0x72, 0x65, 0x73, 0x65, 0x72, 0x76, 0x65, 0x52, 0x65, 0x61, 0x73, 0x6f, 0x6e, 0x2a,
+	0x52, 0x0d, 0x72, 0x65, 0x73, 0x65, 0x72, 0x76, 0x65, 0x52, 0x65, 0x61, 0x73, 0x6f, 0x6e, 0x22,
+	0xbd, 0x01, 0x0a, 0x0f, 0x46, 0x75, 0x6c, 0x6c, 0x41, 0x63, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x44,
+	0x61, 0x74, 0x61, 0x12, 0x39, 0x0a, 0x0b, 0x61, 0x63, 0x63, 0x5f, 0x64, 0x65, 0x74, 0x61, 0x69,
+	0x6c, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x18, 0x2e, 0x70, 0x6c, 0x61, 0x74, 0x66,
+	0x6f, 0x72, 0x6d, 0x2e, 0x41, 0x63, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x44, 0x65, 0x74, 0x61, 0x69,
+	0x6c, 0x73, 0x52, 0x0a, 0x61, 0x63, 0x63, 0x44, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x12, 0x1d,
+	0x0a, 0x0a, 0x61, 0x63, 0x63, 0x5f, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x18, 0x02, 0x20, 0x01,
+	0x28, 0x04, 0x52, 0x09, 0x61, 0x63, 0x63, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x26, 0x0a,
+	0x0f, 0x61, 0x63, 0x63, 0x5f, 0x6d, 0x6f, 0x6e, 0x65, 0x79, 0x5f, 0x76, 0x61, 0x6c, 0x75, 0x65,
+	0x18, 0x03, 0x20, 0x01, 0x28, 0x04, 0x52, 0x0d, 0x61, 0x63, 0x63, 0x4d, 0x6f, 0x6e, 0x65, 0x79,
+	0x56, 0x61, 0x6c, 0x75, 0x65, 0x12, 0x28, 0x0a, 0x10, 0x61, 0x63, 0x63, 0x5f, 0x6d, 0x6f, 0x6e,
+	0x65, 0x79, 0x5f, 0x61, 0x6d, 0x6f, 0x75, 0x6e, 0x74, 0x18, 0x04, 0x20, 0x01, 0x28, 0x02, 0x52,
+	0x0e, 0x61, 0x63, 0x63, 0x4d, 0x6f, 0x6e, 0x65, 0x79, 0x41, 0x6d, 0x6f, 0x75, 0x6e, 0x74, 0x2a,
 	0xa4, 0x01, 0x0a, 0x0c, 0x41, 0x63, 0x74, 0x69, 0x76, 0x69, 0x74, 0x79, 0x54, 0x79, 0x70, 0x65,
 	0x12, 0x12, 0x0a, 0x0e, 0x55, 0x4e, 0x4b, 0x4e, 0x4f, 0x57, 0x4e, 0x41, 0x43, 0x54, 0x54, 0x59,
 	0x50, 0x45, 0x10, 0x00, 0x12, 0x17, 0x0a, 0x13, 0x41, 0x47, 0x52, 0x49, 0x43, 0x55, 0x4c, 0x54,
@@ -480,24 +563,26 @@ func file_platform_platform_proto_rawDescGZIP() []byte {
 }
 
 var file_platform_platform_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_platform_platform_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_platform_platform_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_platform_platform_proto_goTypes = []any{
 	(ActivityType)(0),           // 0: platform.ActivityType
 	(TaxationType)(0),           // 1: platform.TaxationType
 	(*FCs)(nil),                 // 2: platform.FCs
 	(*Passport)(nil),            // 3: platform.Passport
 	(*AccountDetails)(nil),      // 4: platform.AccountDetails
-	(*timestamp.Timestamp)(nil), // 5: google.protobuf.Timestamp
+	(*FullAccountData)(nil),     // 5: platform.FullAccountData
+	(*timestamp.Timestamp)(nil), // 6: google.protobuf.Timestamp
 }
 var file_platform_platform_proto_depIdxs = []int32{
 	2, // 0: platform.Passport.fcs:type_name -> platform.FCs
-	5, // 1: platform.Passport.birth_date:type_name -> google.protobuf.Timestamp
-	5, // 2: platform.Passport.authority_date:type_name -> google.protobuf.Timestamp
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	6, // 1: platform.Passport.birth_date:type_name -> google.protobuf.Timestamp
+	6, // 2: platform.Passport.authority_date:type_name -> google.protobuf.Timestamp
+	4, // 3: platform.FullAccountData.acc_details:type_name -> platform.AccountDetails
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_platform_platform_proto_init() }
@@ -542,6 +627,18 @@ func file_platform_platform_proto_init() {
 				return nil
 			}
 		}
+		file_platform_platform_proto_msgTypes[3].Exporter = func(v any, i int) any {
+			switch v := v.(*FullAccountData); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -549,7 +646,7 @@ func file_platform_platform_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_platform_platform_proto_rawDesc,
 			NumEnums:      2,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

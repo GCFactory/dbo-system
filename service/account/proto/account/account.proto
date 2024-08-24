@@ -9,7 +9,7 @@ import "platform/platform.proto";
 //  Дополнительные сведения для операции
 message OperationDetails {
   string acc_uuid = 1;  //  UUID счёта
-  uint64 additional_data = 2;  //  Дополнительные данные
+  float additional_data = 2;  //  Дополнительные данные
 }
 
 //  Данные event-а
@@ -24,10 +24,13 @@ message EventData{
 
 //  Результат event-а
 message EventStatus{
-  string saga_uuid = 1;       //  UUID sag-и
-  string operation_name = 2;  //  Тип выполняемой операции
-  uint32 status = 3;          //  Статус event-а
-  string info = 4;            //  Дополнительная информация по event-у
+  string saga_uuid = 1;                     //  UUID sag-и
+  string operation_name = 2;                //  Тип выполняемой операции
+  uint32 status = 3;                        //  Статус event-а
+  oneof result{
+    string info = 4;                        //  Дополнительная информация по event-у
+    platform.FullAccountData acc_data = 5;  //  Данные счета
+  }
 }
 
 //  Сервис регистрации

@@ -205,11 +205,34 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 				return ErrorUnknownTypeData
 			}
 		}
+	case grpc_handlers.GetAccountData:
+		{
+			// Unpack data and handle func
+			if extracted_data := data.GetAdditionalInfo(); extracted_data != nil {
+				if err = s.grpcHandlers.GetAccountData(context.Background(), data.GetSagaUuid(), extracted_data, s.kafkaProducer); err != nil {
+					return err
+				}
+			} else {
+				return ErrorUnknownTypeData
+			}
+
+		}
+	case grpc_handlers.AddingAcc, grpc_handlers.WidthAcc:
+		{
+			// Unpack data and handle func
+			if extracted_data := data.GetAdditionalInfo(); extracted_data != nil {
+				if err = s.grpcHandlers.OperationWithAccAmount(context.Background(), data.GetSagaUuid(), data.GetOperationName(), extracted_data, s.kafkaProducer); err != nil {
+					return err
+				}
+			} else {
+				return ErrorUnknownTypeData
+			}
+		}
 	default:
 		{
 			answer := &acc_proto_api.EventStatus{
 				SagaUuid:      data.GetSagaUuid(),
-				Info:          "Unknown operation name!",
+				Result:        &acc_proto_api.EventStatus_Info{"Unknown operation name!"},
 				Status:        http.StatusPreconditionFailed,
 				OperationName: data.GetOperationName(),
 			}
