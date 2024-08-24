@@ -63,7 +63,7 @@ func (accGRPCH AccountGRPCHandlers) ReserveAccount(ctx context.Context, saga_uui
 		answer.Info = err.Error()
 	} else {
 		answer.Status = 201
-		answer.Info = "Account reserved"
+		answer.Info = acc_model.Acc_uuid.String()
 	}
 
 	answer_data, err := proto.Marshal(answer)
