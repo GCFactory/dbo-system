@@ -17,15 +17,16 @@ http-server:
 kafkaConsumer:
   #brokers: localhost:9092;locahost:9091
   brokers: localhost:9092
-  groupID: group-1-1
+  groupID: account-group
   topics:
-    - test
+    - account_cons
 
 kafkaProducer:
   #brokers: localhost:9092;locahost:9091
   brokers: localhost:9092
   topics:
-    - test
+    - account_res
+    - account_err
 
 jaeger:
   Host: localhost:6831

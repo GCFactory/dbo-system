@@ -13,3 +13,6 @@ CREATE TABLE accounts
     acc_money_value     NUMERIC(3)                  NOT NULL ,
     acc_money_amount    NUMERIC(34,4)               NOT NULL                DEFAULT 0
 );
+
+ALTER TABLE accounts ADD CONSTRAINT unique_culc_number UNIQUE (acc_culc_number);
+ALTER TABLE accounts ADD CONSTRAINT unique_corr_number UNIQUE (acc_corr_number);

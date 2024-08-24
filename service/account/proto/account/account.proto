@@ -8,9 +8,10 @@ import "platform/platform.proto";
 
 //  Данные event-а
 message EventData{
-  string saga_uuid = 1;           //  UUID sag-и
+  string saga_uuid = 1;                         //  UUID sag-и
+  string operation_name = 2;                    // Тип операции
   oneof data{
-    platform.AccountDetails account_data = 2;  //  Реквизиты счёта
+    platform.AccountDetails account_data = 3;   //  Реквизиты счёта
   }
 }
 

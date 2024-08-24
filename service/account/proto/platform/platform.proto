@@ -50,9 +50,9 @@ message Passport{
 
 //  Реквизиты счёта
 message AccountDetails{
-  string culc_number = 1; // Расчётный номер
-  string corr_number = 2; // Корреспондентский номер
-  string bic = 3;         //  БИК
-  string cio = 4;         //  КПП
-  string inn = 5;         //  ИНН
+  string culc_number = 1;     // Расчётный номер
+  string corr_number = 2;     // Корреспондентский номер
+  string bic = 3;             //  БИК
+  string cio = 4;             //  КПП
+  string reserve_reason = 5;  //  Причина резервирования
 }

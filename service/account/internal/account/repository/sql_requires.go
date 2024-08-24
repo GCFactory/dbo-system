@@ -1,13 +1,10 @@
 package repository
 
 const (
-	CreateAccount = `
-		BEGIN
-			INSERT INTO accounts (acc_uuid, acc_culc_number, acc_corr_number, acc_bic, acc_cio, acc_money_value)
-			VALUES($1, $2, $3, $4, $5, $6);
-			INSERT INTO accounts_reserved (acc_uuid, reserve_reason)
-			VALUES($1, $7);
-		COMMIT`
+	CreateAccount = `INSERT INTO accounts (acc_uuid, acc_culc_number, acc_corr_number, acc_bic, acc_cio, acc_money_value)
+			VALUES($1, $2, $3, $4, $5, $6);`
+	InsertReserveReason = `INSERT INTO accounts_reserved (acc_uuid, reserve_reason)
+			VALUES($1, $2);`
 	DeleteAccount       = `DELETE FROM accounts WHERE acc_uuid = $1`
 	GetAccountData      = `SELECT * FROM ONLY accounts WHERE acc_uuid = $1`
 	UpdateAccountStatus = `UPDATE ONLY accounts SET acc_status = $2 WHERE acc_uuid = $1`

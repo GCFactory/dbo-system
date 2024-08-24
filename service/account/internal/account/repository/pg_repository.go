@@ -17,7 +17,14 @@ func (repo accountRepo) CreateAccount(ctx context.Context, account *models.Accou
 	span, local_ctx := opentracing.StartSpanFromContext(ctx, "accountRepo.CreateAccount")
 	defer span.Finish()
 
-	if _, err := repo.db.ExecContext(local_ctx,
+	tx, err := repo.db.BeginTx(local_ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	if _, err = repo.db.ExecContext(local_ctx,
 		CreateAccount,
 		account.Acc_uuid,
 		account.Acc_culc_number,
@@ -25,9 +32,20 @@ func (repo accountRepo) CreateAccount(ctx context.Context, account *models.Accou
 		account.Acc_bic,
 		account.Acc_cio,
 		account.Acc_money_value,
-		reason.Reason,
 	); err != nil {
 		return ErrorCreateAccount
+	}
+
+	if _, err = repo.db.ExecContext(local_ctx,
+		InsertReserveReason,
+		reason.Acc_uuid,
+		reason.Reason,
+	); err != nil {
+		return ErrorAddReserveReason
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
 	}
 
 	return nil

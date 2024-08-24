@@ -7,5 +7,5 @@ import (
 )
 
 type GRPCHandlers interface {
-	ReserveAccount(ctx context.Context, acc_data *acc_proto_platform.AccountDetails, kProducer *kafka.ProducerProvider) error
+	ReserveAccount(ctx context.Context, saga_uuid string, acc_data *acc_proto_platform.AccountDetails, kProducer *kafka.ProducerProvider) error
 }

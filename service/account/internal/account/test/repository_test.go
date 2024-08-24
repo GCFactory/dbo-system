@@ -54,6 +54,7 @@ func TestAccountRepo_CreateAccount(t *testing.T) {
 			Acc_money_value: acc_money_value,
 		}
 
+		mock.ExpectBegin()
 		mock.ExpectExec(repository.CreateAccount).WithArgs(
 			&account.Acc_uuid,
 			&account.Acc_culc_number,
@@ -61,13 +62,17 @@ func TestAccountRepo_CreateAccount(t *testing.T) {
 			&account.Acc_bic,
 			&account.Acc_cio,
 			&account.Acc_money_value,
+		).WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec(repository.InsertReserveReason).WithArgs(
+			&acc_reason.Acc_uuid,
 			&acc_reason.Reason,
 		).WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectCommit()
 
 		err = accRepo.CreateAccount(context.Background(), &account, acc_reason)
 		require.Nil(t, err)
 	})
-	t.Run("Error", func(t *testing.T) {
+	t.Run("Error create acc", func(t *testing.T) {
 		account := models.Account{
 			Acc_uuid:        acc_uuid,
 			Acc_culc_number: acc_culc_number,
@@ -77,6 +82,7 @@ func TestAccountRepo_CreateAccount(t *testing.T) {
 			Acc_money_value: acc_money_value,
 		}
 
+		mock.ExpectBegin()
 		mock.ExpectExec(repository.CreateAccount).WithArgs(
 			&account.Acc_uuid,
 			&account.Acc_culc_number,
@@ -84,11 +90,39 @@ func TestAccountRepo_CreateAccount(t *testing.T) {
 			&account.Acc_bic,
 			&account.Acc_cio,
 			&account.Acc_money_value,
-			&acc_reason.Reason,
-		).WillReturnError(repository.ErrorCreateAccount)
+		).WillReturnError(err)
+		mock.ExpectRollback()
 
 		err = accRepo.CreateAccount(context.Background(), &account, acc_reason)
 		require.Equal(t, err, repository.ErrorCreateAccount)
+	})
+	t.Run("Error insert reserve reason", func(t *testing.T) {
+		account := models.Account{
+			Acc_uuid:        acc_uuid,
+			Acc_culc_number: acc_culc_number,
+			Acc_corr_number: acc_corr_number,
+			Acc_bic:         acc_bic,
+			Acc_cio:         acc_cio,
+			Acc_money_value: acc_money_value,
+		}
+
+		mock.ExpectBegin()
+		mock.ExpectExec(repository.CreateAccount).WithArgs(
+			&account.Acc_uuid,
+			&account.Acc_culc_number,
+			&account.Acc_corr_number,
+			&account.Acc_bic,
+			&account.Acc_cio,
+			&account.Acc_money_value,
+		).WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec(repository.InsertReserveReason).WithArgs(
+			&acc_reason.Acc_uuid,
+			&acc_reason.Reason,
+		).WillReturnError(err)
+		mock.ExpectRollback()
+
+		err = accRepo.CreateAccount(context.Background(), &account, acc_reason)
+		require.Equal(t, err, repository.ErrorAddReserveReason)
 	})
 }
 

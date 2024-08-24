@@ -13,6 +13,7 @@ require (
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/labstack/echo/v4 v4.11.4
 	github.com/opentracing/opentracing-go v1.2.0
+	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.9.0
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
 	github.com/uber/jaeger-lib v2.4.1+incompatible
@@ -21,7 +22,6 @@ require (
 )
 
 require (
-
 	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/eapache/go-resiliency v1.6.0 // indirect
@@ -64,7 +64,6 @@ require (
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/spf13/viper v1.18.2 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect

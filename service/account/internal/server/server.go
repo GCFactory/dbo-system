@@ -2,12 +2,15 @@ package server
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
+	platfrom_config "github.com/GCFactory/dbo-system/platform/config"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/service/account/config"
 	acc_proto_api "github.com/GCFactory/dbo-system/service/account/gen_proto/proto/api"
+	"github.com/GCFactory/dbo-system/service/account/internal/account"
 	"github.com/GCFactory/dbo-system/service/account/internal/account/grpc_handlers"
+	"github.com/GCFactory/dbo-system/service/account/internal/account/repository"
+	"github.com/GCFactory/dbo-system/service/account/internal/account/usecase"
 	"github.com/GCFactory/dbo-system/service/account/pkg/kafka"
 	"github.com/IBM/sarama"
 	"github.com/golang/protobuf/proto"
@@ -39,6 +42,7 @@ type Server struct {
 	logger        logger.Logger
 	// Channel to control goroutines
 	kafkaConsumerChan chan int
+	grpcHandlers      account.GRPCHandlers
 }
 
 func NewServer(cfg *config.Config, kConsumer *kafka.ConsumerGroup, kProducer *kafka.ProducerProvider, db *sqlx.DB, logger logger.Logger) *Server {
@@ -53,6 +57,15 @@ func NewServer(cfg *config.Config, kConsumer *kafka.ConsumerGroup, kProducer *ka
 	}
 	server.echo.HidePort = true
 	server.echo.HideBanner = true
+	accRepo := repository.NewAccountRepository(db)
+	accUC := usecase.NewAccountUseCase(&platfrom_config.Config{
+		Env:      cfg.Env,
+		Logger:   cfg.Logger,
+		App:      cfg.App,
+		Postgres: cfg.Postgres,
+		Version:  cfg.Version,
+	}, accRepo, logger)
+	server.grpcHandlers = grpc_handlers.NewAccountGRPCHandlers(cfg, kProducer, accUC, logger)
 	return &server
 }
 
@@ -98,20 +111,20 @@ func (s *Server) Run() error {
 
 	go s.RunKafkaConsumer(ctxWithCancel, s.kafkaConsumerChan)
 	//// Remove example
-	go func() {
-		for i := 0; i < 1; i++ {
-			tmp_bytes := "0a0631323331323312280a0631323331323312063132333132331a0631323331323322063132333132332a06313233313233"
-			data, err := hex.DecodeString(tmp_bytes)
-			if err != nil {
-				panic(err)
-			}
-			err = s.kafkaProducer.ProduceRecord("test", sarama.ByteEncoder(data))
-			if err != nil {
-				s.logger.Warnf("Error on produce: %v", err)
-			}
-			time.Sleep(time.Second * 10)
-		}
-	}()
+	//go func() {
+	//	for i := 0; i < 1; i++ {
+	//		tmp_bytes := "0a0631323331323312280a0631323331323312063132333132331a0631323331323322063132333132332a06313233313233"
+	//		data, err := hex.DecodeString(tmp_bytes)
+	//		if err != nil {
+	//			panic(err)
+	//		}
+	//		err = s.kafkaProducer.ProduceRecord("test", sarama.ByteEncoder(data))
+	//		if err != nil {
+	//			s.logger.Warnf("Error on produce: %v", err)
+	//		}
+	//		time.Sleep(time.Second * 10)
+	//	}
+	//}()
 	//// Remove example
 
 	for {
@@ -169,14 +182,36 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 		return err
 	}
 
-	accH := grpc_handlers.NewAccountGRPCHandlers(s.kafkaProducer)
-	// Unpack data and handle func
-	if extracted_data := data.GetAccountData(); extracted_data != nil {
-		if err = accH.ReserveAccount(context.Background(), extracted_data, s.kafkaProducer); err != nil {
-			return err
+	switch data.GetOperationName() {
+	case grpc_handlers.ReserveAccount:
+		{
+			// Unpack data and handle func
+			if extracted_data := data.GetAccountData(); extracted_data != nil {
+				if err = s.grpcHandlers.ReserveAccount(context.Background(), data.GetSagaUuid(), extracted_data, s.kafkaProducer); err != nil {
+					return err
+				}
+			} else {
+				return ErrorUnknownTypeData
+			}
 		}
-	} else {
-		return ErrorUnknownTypeData
+	default:
+		{
+			answer := &acc_proto_api.EventStatus{
+				SagaUuid: data.GetSagaUuid(),
+				Info:     "Unknown operation name!",
+				Status:   http.StatusPreconditionFailed,
+			}
+			answer_data, err := proto.Marshal(answer)
+			if err != nil {
+				s.logger.Error(err)
+				return err
+			}
+			err = s.kafkaProducer.ProduceRecord(grpc_handlers.TopicError, sarama.ByteEncoder(answer_data))
+			if err != nil {
+				s.logger.Error(err)
+				return err
+			}
+		}
 	}
 
 	return nil

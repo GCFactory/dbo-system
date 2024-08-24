@@ -13,7 +13,7 @@ import (
 
 type accountUC struct {
 	cfg         *config.Config
-	accountRepo registration.Repository
+	accountRepo account.Repository
 	logger      logger.Logger
 }
 
@@ -600,6 +600,6 @@ func (UC *accountUC) ValidateKPP(ctx context.Context, acc_kpp string, acc_bic st
 	return nil
 }
 
-func NewAccountUseCase(cfg *config.Config, account_repo registration.Repository, log logger.Logger) registration.UseCase {
+func NewAccountUseCase(cfg *config.Config, account_repo account.Repository, log logger.Logger) account.UseCase {
 	return &accountUC{cfg: cfg, accountRepo: account_repo, logger: log}
 }
