@@ -6,20 +6,28 @@ option go_package = "./proto/api";
 
 import "platform/platform.proto";
 
+//  Дополнительные сведения для операции
+message OperationDetails {
+  string acc_uuid = 1;  //  UUID счёта
+  uint64 additional_data = 2;  //  Дополнительные данные
+}
+
 //  Данные event-а
 message EventData{
   string saga_uuid = 1;                         //  UUID sag-и
   string operation_name = 2;                    // Тип операции
   oneof data{
     platform.AccountDetails account_data = 3;   //  Реквизиты счёта
+    OperationDetails additional_info = 4;       //  Дополнительная информация по операции
   }
 }
 
 //  Результат event-а
 message EventStatus{
-  string saga_uuid = 1;   //  UUID sag-и
-  uint32 status = 2;      //  Статус event-а
-  string info = 3;        //  Дополнительная информация по event-у
+  string saga_uuid = 1;       //  UUID sag-и
+  string operation_name = 2;  //  Тип выполняемой операции
+  uint32 status = 3;          //  Статус event-а
+  string info = 4;            //  Дополнительная информация по event-у
 }
 
 //  Сервис регистрации

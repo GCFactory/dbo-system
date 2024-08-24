@@ -27,6 +27,7 @@ func (repo accountRepo) CreateAccount(ctx context.Context, account *models.Accou
 	if _, err = repo.db.ExecContext(local_ctx,
 		CreateAccount,
 		account.Acc_uuid,
+		account.Acc_status,
 		account.Acc_culc_number,
 		account.Acc_corr_number,
 		account.Acc_bic,

@@ -194,12 +194,24 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 				return ErrorUnknownTypeData
 			}
 		}
+	case grpc_handlers.CreateAccount, grpc_handlers.OpenAccount, grpc_handlers.CloseAccount, grpc_handlers.BlockAccount:
+		{
+			// Unpack data and handle func
+			if extracted_data := data.GetAdditionalInfo(); extracted_data != nil {
+				if err = s.grpcHandlers.ChangeAccountStatus(context.Background(), data.GetSagaUuid(), data.GetOperationName(), extracted_data, s.kafkaProducer); err != nil {
+					return err
+				}
+			} else {
+				return ErrorUnknownTypeData
+			}
+		}
 	default:
 		{
 			answer := &acc_proto_api.EventStatus{
-				SagaUuid: data.GetSagaUuid(),
-				Info:     "Unknown operation name!",
-				Status:   http.StatusPreconditionFailed,
+				SagaUuid:      data.GetSagaUuid(),
+				Info:          "Unknown operation name!",
+				Status:        http.StatusPreconditionFailed,
+				OperationName: data.GetOperationName(),
 			}
 			answer_data, err := proto.Marshal(answer)
 			if err != nil {

@@ -1,8 +1,8 @@
 package repository
 
 const (
-	CreateAccount = `INSERT INTO accounts (acc_uuid, acc_culc_number, acc_corr_number, acc_bic, acc_cio, acc_money_value)
-			VALUES($1, $2, $3, $4, $5, $6);`
+	CreateAccount = `INSERT INTO accounts (acc_uuid, acc_status, acc_culc_number, acc_corr_number, acc_bic, acc_cio, acc_money_value)
+			VALUES($1, $2, $3, $4, $5, $6, $7);`
 	InsertReserveReason = `INSERT INTO accounts_reserved (acc_uuid, reserve_reason)
 			VALUES($1, $2);`
 	DeleteAccount       = `DELETE FROM accounts WHERE acc_uuid = $1`
