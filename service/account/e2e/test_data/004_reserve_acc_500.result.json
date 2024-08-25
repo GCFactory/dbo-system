@@ -1,0 +1,6 @@
+{
+  "saga_uuid": "0123456789abcdef",
+  "operation_name": "reserve_acc",
+  "status": 500,
+  "info": "accountRepo.CreateAccount"
+}

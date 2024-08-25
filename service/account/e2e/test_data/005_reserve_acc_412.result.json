@@ -1,0 +1,6 @@
+{
+  "saga_uuid": "0123456789abcdef",
+  "operation_name": "reserve_acc",
+  "status": 412,
+  "info": "Owner cod is not existing"
+}

@@ -55,14 +55,14 @@ func (accGRPCH AccountGRPCHandlers) ReserveAccount(ctx context.Context, saga_uui
 		switch err {
 		case usecase.ErrorCreateAcc:
 			{
-				answer.Status = 500
+				answer.Status = http.StatusInternalServerError
 			}
 		default:
-			answer.Status = 412
+			answer.Status = http.StatusPreconditionFailed
 		}
 		answer.Result = &acc_proto_api.EventStatus_Info{err.Error()}
 	} else {
-		answer.Status = 201
+		answer.Status = http.StatusCreated
 		answer.Result = &acc_proto_api.EventStatus_Info{acc_model.Acc_uuid.String()}
 	}
 
