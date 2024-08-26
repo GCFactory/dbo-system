@@ -1,0 +1,8 @@
+{
+  "saga_uuid": "0123456789abcdef",
+  "operation_name": "get_acc_data",
+  "additional_info": {
+    "acc_uuid": "sadfadfasdfasdf",
+    "additional_data": 0
+  }
+}

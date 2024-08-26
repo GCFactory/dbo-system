@@ -1,0 +1,8 @@
+{
+  "saga_uuid": "0123456789abcdef",
+  "operation_name": "width_acc",
+  "additional_info": {
+    "acc_uuid": "7b70634f",
+    "additional_data": 5
+  }
+}

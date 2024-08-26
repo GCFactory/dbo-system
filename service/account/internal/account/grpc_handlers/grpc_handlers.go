@@ -163,7 +163,7 @@ func (accGRPCH AccountGRPCHandlers) GetAccountData(ctx context.Context, saga_uui
 
 	flag_error := false
 	var err error
-	answer_topic := TopicResult
+	answer_topic := TopicError
 
 	answer := &acc_proto_api.EventStatus{
 		SagaUuid:      saga_uuid,
@@ -187,31 +187,33 @@ func (accGRPCH AccountGRPCHandlers) GetAccountData(ctx context.Context, saga_uui
 		}
 	}
 
-	result, err := accGRPCH.accUC.GetAccInfo(ctxWithTrace, account_uuid)
-	if err != nil {
-		accGRPCH.accLog.Error(err)
-		flag_error = true
-		answer_topic = TopicError
-	}
+	if !flag_error {
+		result, err := accGRPCH.accUC.GetAccInfo(ctxWithTrace, account_uuid)
+		if err != nil {
+			accGRPCH.accLog.Error(err)
+			flag_error = true
+		}
 
-	if flag_error {
-		answer.Status = http.StatusNotFound
-		answer.Result = &acc_proto_api.EventStatus_Info{err.Error()}
-	} else {
-		answer.Status = http.StatusOK
-		answer.Result = &acc_proto_api.EventStatus_AccData{
-			AccData: &acc_proto_platform.FullAccountData{
-				AccDetails: &acc_proto_platform.AccountDetails{
-					CulcNumber:    result.Acc_culc_number,
-					CorrNumber:    result.Acc_corr_number,
-					Bic:           result.Acc_bic,
-					Cio:           result.Acc_cio,
-					ReserveReason: result.Reason,
+		if flag_error {
+			answer.Status = http.StatusNotFound
+			answer.Result = &acc_proto_api.EventStatus_Info{err.Error()}
+		} else {
+			answer.Status = http.StatusOK
+			answer_topic = TopicResult
+			answer.Result = &acc_proto_api.EventStatus_AccData{
+				AccData: &acc_proto_platform.FullAccountData{
+					AccDetails: &acc_proto_platform.AccountDetails{
+						CulcNumber:    result.Acc_culc_number,
+						CorrNumber:    result.Acc_corr_number,
+						Bic:           result.Acc_bic,
+						Cio:           result.Acc_cio,
+						ReserveReason: result.Reason,
+					},
+					AccStatus:      uint64(result.Acc_status),
+					AccMoneyValue:  uint64(result.Acc_money_value),
+					AccMoneyAmount: float32(result.Acc_money_amount),
 				},
-				AccStatus:      uint64(result.Acc_status),
-				AccMoneyValue:  uint64(result.Acc_money_value),
-				AccMoneyAmount: float32(result.Acc_money_amount),
-			},
+			}
 		}
 	}
 

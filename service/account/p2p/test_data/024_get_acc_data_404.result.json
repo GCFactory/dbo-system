@@ -1,0 +1,6 @@
+{
+  "saga_uuid": "0123456789abcdef",
+  "operation_name": "get_acc_data",
+  "status": 404,
+  "info": "No account found!"
+}

@@ -1,0 +1,6 @@
+{
+  "saga_uuid": "0123456789abcdef",
+  "operation_name": "adding_acc",
+  "status": 406,
+  "info": "Acc has wrong status for opening it!"
+}

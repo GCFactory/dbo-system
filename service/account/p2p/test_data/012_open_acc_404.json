@@ -1,0 +1,8 @@
+{
+  "saga_uuid": "0123456789abcdef",
+  "operation_name": "open_acc",
+  "additional_info": {
+    "acc_uuid": "00000000-0000-0000-0000-000000000000",
+    "additional_data": 0
+  }
+}

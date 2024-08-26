@@ -1,0 +1,6 @@
+{
+  "saga_uuid": "0123456789abcdef",
+  "operation_name": "block_acc",
+  "status": 412,
+  "info": "Empty account ID!"
+}
