@@ -1,6 +1,0 @@
-{
-  "saga_uuid": "0123456789abcdef",
-  "operation_name": "some_operation",
-  "status": 412,
-  "info": "Unknown operation name!"
-}

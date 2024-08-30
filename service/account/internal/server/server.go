@@ -208,7 +208,7 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 					return err
 				}
 			} else {
-				return ErrorUnknownTypeData
+				err = ErrorUnknownTypeData
 			}
 		}
 	case grpc_handlers.CreateAccount, grpc_handlers.OpenAccount, grpc_handlers.CloseAccount, grpc_handlers.BlockAccount:
@@ -219,7 +219,7 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 					return err
 				}
 			} else {
-				return ErrorUnknownTypeData
+				err = ErrorUnknownTypeData
 			}
 		}
 	case grpc_handlers.GetAccountData:
@@ -230,7 +230,7 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 					return err
 				}
 			} else {
-				return ErrorUnknownTypeData
+				err = ErrorUnknownTypeData
 			}
 
 		}
@@ -242,7 +242,7 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 					return err
 				}
 			} else {
-				return ErrorUnknownTypeData
+				err = ErrorUnknownTypeData
 			}
 		}
 	default:
@@ -265,6 +265,27 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 				return err
 			}
 		}
+	}
+
+	if err != nil {
+
+		s.logger.Error(err)
+
+		answer := &acc_proto_api.EventError{
+			Info:   err.Error(),
+			Status: grpc_handlers.GetErrorCode(grpc_handlers.ErrorInvalidInputData),
+		}
+		answer_data, err := proto.Marshal(answer)
+		if err != nil {
+			s.logger.Error(err)
+			return err
+		}
+		err = s.kafkaProducer.ProduceRecord(grpc_handlers.TopicError, sarama.ByteEncoder(answer_data))
+		if err != nil {
+			s.logger.Error(err)
+			return err
+		}
+		return nil
 	}
 
 	return nil
