@@ -8,8 +8,8 @@ import (
 )
 
 type GRPCHandlers interface {
-	ReserveAccount(ctx context.Context, saga_uuid string, acc_data *acc_proto_platform.AccountDetails, kProducer *kafka.ProducerProvider) error
-	ChangeAccountStatus(ctx context.Context, saga_uuid string, operation_type string, acc_data *acc_proto_api.OperationDetails, kProducer *kafka.ProducerProvider) error
-	GetAccountData(ctx context.Context, saga_uuid string, acc_data *acc_proto_api.OperationDetails, kProducer *kafka.ProducerProvider) error
-	OperationWithAccAmount(ctx context.Context, saga_uuid string, operation_type string, acc_data *acc_proto_api.OperationDetails, kProducer *kafka.ProducerProvider) error
+	ReserveAccount(ctx context.Context, saga_uuid string, event_uuid string, acc_data *acc_proto_platform.AccountDetails, kProducer *kafka.ProducerProvider) error
+	ChangeAccountStatus(ctx context.Context, saga_uuid string, event_uuid string, operation_type string, acc_data *acc_proto_api.OperationDetails, kProducer *kafka.ProducerProvider) error
+	GetAccountData(ctx context.Context, saga_uuid string, event_uuid string, acc_data *acc_proto_api.OperationDetails, kProducer *kafka.ProducerProvider) error
+	OperationWithAccAmount(ctx context.Context, saga_uuid string, event_uuid string, operation_type string, acc_data *acc_proto_api.OperationDetails, kProducer *kafka.ProducerProvider) error
 }

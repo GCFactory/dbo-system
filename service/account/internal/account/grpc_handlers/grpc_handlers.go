@@ -6,7 +6,6 @@ import (
 	acc_proto_api "github.com/GCFactory/dbo-system/service/account/gen_proto/proto/api"
 	acc_proto_platform "github.com/GCFactory/dbo-system/service/account/gen_proto/proto/platform"
 	"github.com/GCFactory/dbo-system/service/account/internal/account"
-	"github.com/GCFactory/dbo-system/service/account/internal/account/usecase"
 	"github.com/GCFactory/dbo-system/service/account/internal/models"
 	"github.com/GCFactory/dbo-system/service/account/pkg/kafka"
 	"github.com/IBM/sarama"
@@ -14,7 +13,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/opentracing/opentracing-go"
 	"golang.org/x/net/context"
-	"net/http"
 )
 
 type AccountGRPCHandlers struct {
@@ -24,7 +22,7 @@ type AccountGRPCHandlers struct {
 	accLog    logger.Logger
 }
 
-func (accGRPCH AccountGRPCHandlers) ReserveAccount(ctx context.Context, saga_uuid string, acc_data *acc_proto_platform.AccountDetails, kProducer *kafka.ProducerProvider) error {
+func (accGRPCH AccountGRPCHandlers) ReserveAccount(ctx context.Context, saga_uuid string, event_uuid string, acc_data *acc_proto_platform.AccountDetails, kProducer *kafka.ProducerProvider) error {
 
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accGRPCH.ReserveAccount")
 	defer span.Finish()
@@ -42,31 +40,37 @@ func (accGRPCH AccountGRPCHandlers) ReserveAccount(ctx context.Context, saga_uui
 	var err error
 	answer_topic := TopicResult
 
+	answer := &acc_proto_api.EventStatus{
+		SagaUuid:      saga_uuid,
+		EventUuid:     event_uuid,
+		OperationName: ReserveAccount,
+	}
+
+	error_answer := &acc_proto_api.EventError{
+		SagaUuid:      saga_uuid,
+		EventUuid:     event_uuid,
+		OperationName: ReserveAccount,
+	}
+
 	if err = accGRPCH.accUC.ReservAcc(ctxWithTrace, acc_model); err != nil {
 		accGRPCH.accLog.Error(err)
 		flag_error = true
 		answer_topic = TopicError
-	}
-	answer := &acc_proto_api.EventStatus{
-		SagaUuid:      saga_uuid,
-		OperationName: ReserveAccount,
-	}
-	if flag_error {
-		switch err {
-		case usecase.ErrorCreateAcc:
-			{
-				answer.Status = http.StatusInternalServerError
-			}
-		default:
-			answer.Status = http.StatusPreconditionFailed
-		}
-		answer.Result = &acc_proto_api.EventStatus_Info{err.Error()}
+
+		error_answer.Info = err.Error()
+		error_answer.Status = GetErrorCode(err)
 	} else {
-		answer.Status = http.StatusCreated
 		answer.Result = &acc_proto_api.EventStatus_Info{acc_model.Acc_uuid.String()}
 	}
 
-	answer_data, err := proto.Marshal(answer)
+	var answer_data []byte
+
+	if flag_error {
+		answer_data, err = proto.Marshal(error_answer)
+	} else {
+		answer_data, err = proto.Marshal(answer)
+	}
+
 	if err != nil {
 		accGRPCH.accLog.Error(err)
 		return err
@@ -82,7 +86,7 @@ func (accGRPCH AccountGRPCHandlers) ReserveAccount(ctx context.Context, saga_uui
 	return nil
 }
 
-func (accGRPCH AccountGRPCHandlers) ChangeAccountStatus(ctx context.Context, saga_uuid string, operation_type string, acc_data *acc_proto_api.OperationDetails, kProducer *kafka.ProducerProvider) error {
+func (accGRPCH AccountGRPCHandlers) ChangeAccountStatus(ctx context.Context, saga_uuid string, event_uuid string, operation_type string, acc_data *acc_proto_api.OperationDetails, kProducer *kafka.ProducerProvider) error {
 
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accGRPCH.ChangeAccountStatus")
 	defer span.Finish()
@@ -93,23 +97,25 @@ func (accGRPCH AccountGRPCHandlers) ChangeAccountStatus(ctx context.Context, sag
 
 	answer := &acc_proto_api.EventStatus{
 		SagaUuid:      saga_uuid,
+		EventUuid:     event_uuid,
 		OperationName: operation_type,
 	}
-	account_uuid_str := acc_data.GetAccUuid()
-	if account_uuid_str == "" {
-		flag_error = true
-		answer.Status = http.StatusPreconditionFailed
-		answer.Result = &acc_proto_api.EventStatus_Info{"Empty account ID!"}
+
+	answer_error := &acc_proto_api.EventError{
+		SagaUuid:      saga_uuid,
+		EventUuid:     event_uuid,
+		OperationName: operation_type,
 	}
 
+	account_uuid_str := acc_data.GetAccUuid()
+
 	var account_uuid uuid.UUID
-	if !flag_error {
-		account_uuid, err = uuid.Parse(account_uuid_str)
-		if err != nil {
-			flag_error = true
-			answer.Status = http.StatusPreconditionFailed
-			answer.Result = &acc_proto_api.EventStatus_Info{"Wrong account ID's field data!"}
-		}
+	account_uuid, err = uuid.Parse(account_uuid_str)
+	if err != nil {
+		answer_error.Info = err.Error()
+		answer_error.Status = GetErrorCode(ErrorInvalidInputData)
+
+		flag_error = true
 	}
 
 	if !flag_error {
@@ -126,21 +132,20 @@ func (accGRPCH AccountGRPCHandlers) ChangeAccountStatus(ctx context.Context, sag
 		if err == nil {
 			answer_topic = TopicResult
 			answer.Result = &acc_proto_api.EventStatus_Info{"Success"}
-			answer.Status = http.StatusOK
 		} else {
-			if err == usecase.ErrorNoFoundAcc {
-				answer.Status = http.StatusNotFound
-			} else if err == usecase.ErrorUpdateAccStatus {
-				answer.Status = http.StatusInternalServerError
-			} else {
-				answer.Status = http.StatusNotAcceptable
-			}
+			flag_error = true
 			accGRPCH.accLog.Error(err)
-			answer.Result = &acc_proto_api.EventStatus_Info{err.Error()}
+			answer_error.Info = err.Error()
+			answer_error.Status = GetErrorCode(err)
 		}
 	}
 
-	answer_data, err := proto.Marshal(answer)
+	var answer_data []byte
+	if flag_error {
+		answer_data, err = proto.Marshal(answer_error)
+	} else {
+		answer_data, err = proto.Marshal(answer)
+	}
 	if err != nil {
 		accGRPCH.accLog.Error(err)
 		return err
@@ -156,7 +161,7 @@ func (accGRPCH AccountGRPCHandlers) ChangeAccountStatus(ctx context.Context, sag
 	return nil
 }
 
-func (accGRPCH AccountGRPCHandlers) GetAccountData(ctx context.Context, saga_uuid string, acc_data *acc_proto_api.OperationDetails, kProducer *kafka.ProducerProvider) error {
+func (accGRPCH AccountGRPCHandlers) GetAccountData(ctx context.Context, saga_uuid string, event_uuid string, acc_data *acc_proto_api.OperationDetails, kProducer *kafka.ProducerProvider) error {
 
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accGRPCH.GetAccountData")
 	defer span.Finish()
@@ -167,24 +172,25 @@ func (accGRPCH AccountGRPCHandlers) GetAccountData(ctx context.Context, saga_uui
 
 	answer := &acc_proto_api.EventStatus{
 		SagaUuid:      saga_uuid,
+		EventUuid:     event_uuid,
+		OperationName: GetAccountData,
+	}
+
+	answer_error := &acc_proto_api.EventError{
+		SagaUuid:      saga_uuid,
+		EventUuid:     event_uuid,
 		OperationName: GetAccountData,
 	}
 
 	account_uuid_str := acc_data.GetAccUuid()
-	if account_uuid_str == "" {
-		flag_error = true
-		answer.Status = http.StatusPreconditionFailed
-		answer.Result = &acc_proto_api.EventStatus_Info{"Empty account ID!"}
-	}
 
 	var account_uuid uuid.UUID
-	if !flag_error {
-		account_uuid, err = uuid.Parse(account_uuid_str)
-		if err != nil {
-			flag_error = true
-			answer.Status = http.StatusPreconditionFailed
-			answer.Result = &acc_proto_api.EventStatus_Info{"Wrong account ID's field data!"}
-		}
+	account_uuid, err = uuid.Parse(account_uuid_str)
+	if err != nil {
+		answer_error.Info = err.Error()
+		answer_error.Status = GetErrorCode(ErrorInvalidInputData)
+
+		flag_error = true
 	}
 
 	if !flag_error {
@@ -195,10 +201,9 @@ func (accGRPCH AccountGRPCHandlers) GetAccountData(ctx context.Context, saga_uui
 		}
 
 		if flag_error {
-			answer.Status = http.StatusNotFound
-			answer.Result = &acc_proto_api.EventStatus_Info{err.Error()}
+			answer_error.Status = GetErrorCode(err)
+			answer_error.Info = err.Error()
 		} else {
-			answer.Status = http.StatusOK
 			answer_topic = TopicResult
 			answer.Result = &acc_proto_api.EventStatus_AccData{
 				AccData: &acc_proto_platform.FullAccountData{
@@ -217,7 +222,12 @@ func (accGRPCH AccountGRPCHandlers) GetAccountData(ctx context.Context, saga_uui
 		}
 	}
 
-	answer_data, err := proto.Marshal(answer)
+	var answer_data []byte
+	if flag_error {
+		answer_data, err = proto.Marshal(answer_error)
+	} else {
+		answer_data, err = proto.Marshal(answer)
+	}
 	if err != nil {
 		accGRPCH.accLog.Error(err)
 		return err
@@ -233,7 +243,7 @@ func (accGRPCH AccountGRPCHandlers) GetAccountData(ctx context.Context, saga_uui
 	return nil
 }
 
-func (accGRPCH AccountGRPCHandlers) OperationWithAccAmount(ctx context.Context, saga_uuid string, operation_type string, acc_data *acc_proto_api.OperationDetails, kProducer *kafka.ProducerProvider) error {
+func (accGRPCH AccountGRPCHandlers) OperationWithAccAmount(ctx context.Context, saga_uuid string, event_uuid string, operation_type string, acc_data *acc_proto_api.OperationDetails, kProducer *kafka.ProducerProvider) error {
 
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accGRPCH.OperationWithAccAmount")
 	defer span.Finish()
@@ -244,66 +254,51 @@ func (accGRPCH AccountGRPCHandlers) OperationWithAccAmount(ctx context.Context, 
 
 	answer := &acc_proto_api.EventStatus{
 		SagaUuid:      saga_uuid,
+		EventUuid:     event_uuid,
 		OperationName: operation_type,
 	}
-	account_uuid_str := acc_data.GetAccUuid()
-	if account_uuid_str == "" {
-		flag_error = true
-		answer.Status = http.StatusPreconditionFailed
-		answer.Result = &acc_proto_api.EventStatus_Info{"Empty account ID!"}
+
+	answer_error := &acc_proto_api.EventError{
+		SagaUuid:      saga_uuid,
+		EventUuid:     event_uuid,
+		OperationName: operation_type,
 	}
 
+	account_uuid_str := acc_data.GetAccUuid()
 	var account_uuid uuid.UUID
-	if !flag_error {
-		account_uuid, err = uuid.Parse(account_uuid_str)
-		if err != nil {
-			flag_error = true
-			answer.Status = http.StatusPreconditionFailed
-			answer.Result = &acc_proto_api.EventStatus_Info{"Wrong account ID's field data!"}
-		}
+	account_uuid, err = uuid.Parse(account_uuid_str)
+	if err != nil {
+		answer_error.Info = err.Error()
+		answer_error.Status = GetErrorCode(ErrorInvalidInputData)
+
+		flag_error = true
 	}
 
 	if !flag_error {
 		switch operation_type {
 		case AddingAcc:
-			{
-				if err = accGRPCH.accUC.AddingAcc(ctxWithTrace, account_uuid, float64(acc_data.GetAdditionalData())); err != nil {
-					if err == usecase.ErrorNoFoundAcc {
-						answer.Status = http.StatusNotFound
-					} else if err == usecase.ErrorWrongAccOpenStatus {
-						answer.Status = http.StatusNotAcceptable
-					} else if err == usecase.ErrorOverflowAmount {
-						answer.Status = http.StatusInternalServerError
-					} else {
-						answer.Status = http.StatusPreconditionFailed
-					}
-				}
-			}
+			err = accGRPCH.accUC.AddingAcc(ctxWithTrace, account_uuid, float64(acc_data.GetAdditionalData()))
 		case WidthAcc:
-			{
-				if err = accGRPCH.accUC.WidthAcc(ctxWithTrace, account_uuid, float64(acc_data.GetAdditionalData())); err != nil {
-					if err == usecase.ErrorNoFoundAcc {
-						answer.Status = http.StatusNotFound
-					} else if err == usecase.ErrorWrongAccOpenStatus || err == usecase.ErrorNotEnoughMoneyAmount {
-						answer.Status = http.StatusNotAcceptable
-					} else {
-						answer.Status = http.StatusPreconditionFailed
-					}
-				}
-			}
+			err = accGRPCH.accUC.WidthAcc(ctxWithTrace, account_uuid, float64(acc_data.GetAdditionalData()))
 		}
 
 		if err == nil {
 			answer_topic = TopicResult
 			answer.Result = &acc_proto_api.EventStatus_Info{"Success"}
-			answer.Status = http.StatusOK
 		} else {
+			flag_error = true
 			accGRPCH.accLog.Error(err)
-			answer.Result = &acc_proto_api.EventStatus_Info{err.Error()}
+			answer_error.Status = GetErrorCode(err)
+			answer_error.Info = err.Error()
 		}
 	}
 
-	answer_data, err := proto.Marshal(answer)
+	var answer_data []byte
+	if flag_error {
+		answer_data, err = proto.Marshal(answer_error)
+	} else {
+		answer_data, err = proto.Marshal(answer)
+	}
 	if err != nil {
 		accGRPCH.accLog.Error(err)
 		return err

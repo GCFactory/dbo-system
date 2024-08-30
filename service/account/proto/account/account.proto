@@ -15,26 +15,29 @@ message OperationDetails {
 //  Данные event-а
 message EventData{
   string saga_uuid = 1;                         //  UUID sag-и
-  string operation_name = 2;                    // Тип операции
+  string event_uuid = 2;                        //  UUID evnet-a
+  string operation_name = 3;                    // Тип операции
   oneof data{
-    platform.AccountDetails account_data = 3;   //  Реквизиты счёта
-    OperationDetails additional_info = 4;       //  Дополнительная информация по операции
+    platform.AccountDetails account_data = 4;   //  Реквизиты счёта
+    OperationDetails additional_info = 5;       //  Дополнительная информация по операции
   }
 }
 
 //  Результат event-а
 message EventStatus{
   string saga_uuid = 1;                     //  UUID sag-и
-  string operation_name = 2;                //  Тип выполняемой операции
-  uint32 status = 3;                        //  Статус event-а
+  string event_uuid = 2;                    //  UUID evnet-a
+  string operation_name = 3;                //  Тип выполняемой операции
   oneof result{
     string info = 4;                        //  Дополнительная информация по event-у
     platform.FullAccountData acc_data = 5;  //  Данные счета
   }
 }
 
-//  Сервис регистрации
-service AccountService{
-  //  Регистрация пользователя
-  rpc ReserveAccount(EventData) returns (EventStatus);
+message EventError{
+  string saga_uuid = 1;                     //  UUID sag-и
+  string event_uuid = 2;                    //  UUID evnet-a
+  string operation_name = 3;                //  Тип выполняемой операции
+  uint32 status = 4;                        //  Event error status
+  string info = 5;                          //  Дополнительная информация по event-у
 }

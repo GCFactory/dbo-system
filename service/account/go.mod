@@ -1,6 +1,8 @@
 module github.com/GCFactory/dbo-system/service/account
 
-go 1.22.4
+go 1.21
+
+toolchain go1.23.0
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
@@ -19,7 +21,7 @@ require (
 	github.com/uber/jaeger-lib v2.4.1+incompatible
 	golang.org/x/net v0.25.0
 	google.golang.org/grpc v1.65.0
-	google.golang.org/protobuf v1.34.1
+	google.golang.org/protobuf v1.34.2
 )
 
 require (

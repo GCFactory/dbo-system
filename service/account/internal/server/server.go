@@ -179,7 +179,24 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 	err := proto.Unmarshal(message.Value, data)
 
 	if err != nil {
-		return err
+
+		s.logger.Error(grpc_handlers.ErrorInvalidInputData.Error())
+
+		answer := &acc_proto_api.EventError{
+			Info:   grpc_handlers.ErrorInvalidInputData.Error(),
+			Status: grpc_handlers.GetErrorCode(grpc_handlers.ErrorInvalidInputData),
+		}
+		answer_data, err := proto.Marshal(answer)
+		if err != nil {
+			s.logger.Error(err)
+			return err
+		}
+		err = s.kafkaProducer.ProduceRecord(grpc_handlers.TopicError, sarama.ByteEncoder(answer_data))
+		if err != nil {
+			s.logger.Error(err)
+			return err
+		}
+		return nil
 	}
 
 	switch data.GetOperationName() {
@@ -187,7 +204,7 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 		{
 			// Unpack data and handle func
 			if extracted_data := data.GetAccountData(); extracted_data != nil {
-				if err = s.grpcHandlers.ReserveAccount(context.Background(), data.GetSagaUuid(), extracted_data, s.kafkaProducer); err != nil {
+				if err = s.grpcHandlers.ReserveAccount(context.Background(), data.GetSagaUuid(), data.GetEventUuid(), extracted_data, s.kafkaProducer); err != nil {
 					return err
 				}
 			} else {
@@ -198,7 +215,7 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 		{
 			// Unpack data and handle func
 			if extracted_data := data.GetAdditionalInfo(); extracted_data != nil {
-				if err = s.grpcHandlers.ChangeAccountStatus(context.Background(), data.GetSagaUuid(), data.GetOperationName(), extracted_data, s.kafkaProducer); err != nil {
+				if err = s.grpcHandlers.ChangeAccountStatus(context.Background(), data.GetSagaUuid(), data.GetEventUuid(), data.GetOperationName(), extracted_data, s.kafkaProducer); err != nil {
 					return err
 				}
 			} else {
@@ -209,7 +226,7 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 		{
 			// Unpack data and handle func
 			if extracted_data := data.GetAdditionalInfo(); extracted_data != nil {
-				if err = s.grpcHandlers.GetAccountData(context.Background(), data.GetSagaUuid(), extracted_data, s.kafkaProducer); err != nil {
+				if err = s.grpcHandlers.GetAccountData(context.Background(), data.GetSagaUuid(), data.GetEventUuid(), extracted_data, s.kafkaProducer); err != nil {
 					return err
 				}
 			} else {
@@ -221,7 +238,7 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 		{
 			// Unpack data and handle func
 			if extracted_data := data.GetAdditionalInfo(); extracted_data != nil {
-				if err = s.grpcHandlers.OperationWithAccAmount(context.Background(), data.GetSagaUuid(), data.GetOperationName(), extracted_data, s.kafkaProducer); err != nil {
+				if err = s.grpcHandlers.OperationWithAccAmount(context.Background(), data.GetSagaUuid(), data.GetEventUuid(), data.GetOperationName(), extracted_data, s.kafkaProducer); err != nil {
 					return err
 				}
 			} else {
@@ -230,10 +247,11 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 		}
 	default:
 		{
-			answer := &acc_proto_api.EventStatus{
+			answer := &acc_proto_api.EventError{
 				SagaUuid:      data.GetSagaUuid(),
-				Result:        &acc_proto_api.EventStatus_Info{"Unknown operation name!"},
-				Status:        http.StatusPreconditionFailed,
+				EventUuid:     data.GetEventUuid(),
+				Info:          grpc_handlers.ErrorWrongOperationName.Error(),
+				Status:        grpc_handlers.GetErrorCode(grpc_handlers.ErrorWrongOperationName),
 				OperationName: data.GetOperationName(),
 			}
 			answer_data, err := proto.Marshal(answer)

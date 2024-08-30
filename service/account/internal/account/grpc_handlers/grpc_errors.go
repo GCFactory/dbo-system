@@ -7,69 +7,82 @@ import (
 
 var (
 	ErrorWrongOperationName = errors.New("Wrong operation name!")
+	ErrorInvalidInputData   = errors.New("Wrong input data!")
+
+	GRPCErrors = map[error]uint32{
+		usecase.ErrorNotEnoughMoneyAmount: 1,
+
+		usecase.ErrorWrongAccReservedStatus: 10,
+		usecase.ErrorWrongAccCreatedStatus:  11,
+		usecase.ErrorWrongAccOpenStatus:     12,
+		usecase.ErrorWrongAccCloseStatus:    13,
+		usecase.ErrorWrongAccBlockStatus:    14,
+
+		usecase.ErrorAccIsExisting: 20,
+		usecase.ErrorNoFoundAcc:    21,
+
+		ErrorWrongOperationName: 100,
+
+		usecase.ErrorWrongCulcNumberLen: 110,
+
+		usecase.ErrorWrongBICLen: 120,
+
+		usecase.ErrorWrongAccCorrNumberLen: 130,
+		usecase.ErrorWrongAccCorrNumber:    131,
+
+		usecase.ErrorWrongAccKPPLen: 140,
+		usecase.ErrorWrongAccKPP:    141,
+
+		usecase.ErrorWrongOwnerLen: 150,
+		usecase.ErrorWrongOwner:    151,
+
+		usecase.ErrorWrongActivityLen: 160,
+		usecase.ErrorWrongActivity:    161,
+
+		usecase.ErrorWrongCurrencyLen:   170,
+		usecase.ErrorWrongCurrencyValue: 171,
+
+		usecase.ErrorWrongPaymentSystemLen: 180,
+		usecase.ErrorWrongPaymentSystem:    181,
+
+		usecase.ErrorWrongAccCountryLen: 190,
+		usecase.ErrorWrongAccCountry:    191,
+
+		usecase.ErrorWrongAccCountryRegionLen: 200,
+		usecase.ErrorWrongAccCountryRegion:    201,
+
+		usecase.ErrorWrongAccMainOfficeLen: 210,
+		usecase.ErrorWrongAccMainOffice:    211,
+
+		usecase.ErrorWrongAccBankNumberLen: 220,
+		usecase.ErrorWrongAccBankNumber:    221,
+
+		usecase.ErrorWrongAccCorrFirstGroupNumber: 230,
+
+		usecase.ErrorWrongAccCorrBankNumber: 240,
+
+		usecase.ErrorWrongAccCorrOwnerLen: 250,
+		usecase.ErrorWrongAccCorrOwner:    251,
+
+		usecase.ErrorReasonIsExisting: 1000,
+
+		usecase.ErrorOverflowAmount: 1010,
+
+		usecase.ErrorUpdateAmountValue: 1020,
+		usecase.ErrorUpdateAccStatus:   1021,
+		usecase.ErrorCreateAcc:         1022,
+
+		ErrorInvalidInputData: 1030,
+	}
 )
 
-var GRPCErrors = map[uint32]error{
-	1: usecase.ErrorNotEnoughMoneyAmount,
+func GetErrorCode(err error) uint32 {
+	var result uint32
+	result, ok := GRPCErrors[err]
 
-	10: usecase.ErrorWrongAccReservedStatus,
-	11: usecase.ErrorWrongAccCreatedStatus,
-	12: usecase.ErrorWrongAccOpenStatus,
-	13: usecase.ErrorWrongAccCloseStatus,
-	14: usecase.ErrorWrongAccBlockStatus,
+	if !ok {
+		result = 4294967295
+	}
 
-	20: usecase.ErrorAccIsExisting,
-	21: usecase.ErrorNoFoundAcc,
-
-	100: ErrorWrongOperationName,
-
-	110: usecase.ErrorWrongCulcNumberLen,
-
-	120: usecase.ErrorWrongBICLen,
-
-	130: usecase.ErrorWrongAccCorrNumberLen,
-	131: usecase.ErrorWrongAccCorrNumber,
-
-	140: usecase.ErrorWrongAccKPPLen,
-	141: usecase.ErrorWrongAccKPP,
-
-	150: usecase.ErrorWrongOwnerLen,
-	151: usecase.ErrorWrongOwner,
-
-	160: usecase.ErrorWrongActivityLen,
-	161: usecase.ErrorWrongActivity,
-
-	170: usecase.ErrorWrongCurrencyLen,
-	171: usecase.ErrorWrongCurrencyValue,
-
-	180: usecase.ErrorWrongPaymentSystemLen,
-	181: usecase.ErrorWrongPaymentSystem,
-
-	190: usecase.ErrorWrongAccCountryLen,
-	191: usecase.ErrorWrongAccCountry,
-
-	200: usecase.ErrorWrongAccCountryRegionLen,
-	201: usecase.ErrorWrongAccCountryRegion,
-
-	210: usecase.ErrorWrongAccMainOfficeLen,
-	211: usecase.ErrorWrongAccMainOffice,
-
-	220: usecase.ErrorWrongAccBankNumberLen,
-	221: usecase.ErrorWrongAccBankNumber,
-
-	230: usecase.ErrorWrongAccCorrFirstGroupNumber,
-
-	240: usecase.ErrorWrongAccCorrBankNumber,
-
-	250: usecase.ErrorWrongAccCorrOwnerLen,
-	251: usecase.ErrorWrongAccCorrOwner,
-
-	1000: usecase.ErrorReasonIsExisting,
-
-	1010: usecase.ErrorOverflowAmount,
-
-	1020: usecase.ErrorUpdateAmountValue,
-	1021: usecase.ErrorUpdateAccStatus,
-
-	1022: usecase.ErrorCreateAcc,
+	return result
 }
