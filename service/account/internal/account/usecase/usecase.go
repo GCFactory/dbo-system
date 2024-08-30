@@ -74,7 +74,16 @@ func (UC *accountUC) CreateAcc(ctx context.Context, acc_uuid uuid.UUID) error {
 	}
 
 	if acc.Acc_status != AccStatusReserved {
-		return ErrorWrongAccReservedStatus
+		switch acc.Acc_status {
+		case AccStatusCreated:
+			return ErrorWrongAccCreatedStatus
+		case AccStatusOpen:
+			return ErrorWrongAccOpenStatus
+		case AccStatusClose:
+			return ErrorWrongAccCloseStatus
+		case AccStatusBlocked:
+			return ErrorWrongAccBlockStatus
+		}
 	}
 
 	err = UC.accountRepo.UpdateAccountStatus(ctxWithTrace, acc_uuid, AccStatusCreated)
@@ -96,7 +105,16 @@ func (UC *accountUC) OpenAcc(ctx context.Context, acc_uuid uuid.UUID) error {
 	}
 
 	if acc.Acc_status != AccStatusCreated {
-		return ErrorWrongAccOpenStatus
+		switch acc.Acc_status {
+		case AccStatusReserved:
+			return ErrorWrongAccReservedStatus
+		case AccStatusOpen:
+			return ErrorWrongAccOpenStatus
+		case AccStatusClose:
+			return ErrorWrongAccCloseStatus
+		case AccStatusBlocked:
+			return ErrorWrongAccBlockStatus
+		}
 	}
 
 	err = UC.accountRepo.UpdateAccountStatus(ctxWithTrace, acc_uuid, AccStatusOpen)
@@ -118,7 +136,16 @@ func (UC *accountUC) CloseAcc(ctx context.Context, acc_uuid uuid.UUID) error {
 	}
 
 	if acc.Acc_status != AccStatusOpen {
-		return ErrorWrongAccCloseStatus
+		switch acc.Acc_status {
+		case AccStatusReserved:
+			return ErrorWrongAccReservedStatus
+		case AccStatusCreated:
+			return ErrorWrongAccCreatedStatus
+		case AccStatusClose:
+			return ErrorWrongAccCloseStatus
+		case AccStatusBlocked:
+			return ErrorWrongAccBlockStatus
+		}
 	}
 
 	err = UC.accountRepo.UpdateAccountStatus(ctxWithTrace, acc_uuid, AccStatusClose)
@@ -140,7 +167,16 @@ func (UC *accountUC) BlockAcc(ctx context.Context, acc_uuid uuid.UUID) error {
 	}
 
 	if acc.Acc_status != AccStatusOpen {
-		return ErrorWrongAccBlockStatus
+		switch acc.Acc_status {
+		case AccStatusReserved:
+			return ErrorWrongAccReservedStatus
+		case AccStatusCreated:
+			return ErrorWrongAccCreatedStatus
+		case AccStatusClose:
+			return ErrorWrongAccCloseStatus
+		case AccStatusBlocked:
+			return ErrorWrongAccBlockStatus
+		}
 	}
 
 	err = UC.accountRepo.UpdateAccountStatus(ctxWithTrace, acc_uuid, AccStatusBlocked)
@@ -191,7 +227,16 @@ func (UC *accountUC) AddingAcc(ctx context.Context, acc_uuid uuid.UUID, add_valu
 	if err != nil {
 		return ErrorNoFoundAcc
 	} else if acc.Acc_status != AccStatusOpen {
-		return ErrorWrongAccOpenStatus
+		switch acc.Acc_status {
+		case AccStatusReserved:
+			return ErrorWrongAccReservedStatus
+		case AccStatusCreated:
+			return ErrorWrongAccCreatedStatus
+		case AccStatusClose:
+			return ErrorWrongAccCloseStatus
+		case AccStatusBlocked:
+			return ErrorWrongAccBlockStatus
+		}
 	}
 
 	new_value := acc.Acc_money_amount + add_value
@@ -217,7 +262,16 @@ func (UC *accountUC) WidthAcc(ctx context.Context, acc_uuid uuid.UUID, width_val
 	if err != nil {
 		return ErrorNoFoundAcc
 	} else if acc.Acc_status != AccStatusOpen {
-		return ErrorWrongAccOpenStatus
+		switch acc.Acc_status {
+		case AccStatusReserved:
+			return ErrorWrongAccReservedStatus
+		case AccStatusCreated:
+			return ErrorWrongAccCreatedStatus
+		case AccStatusClose:
+			return ErrorWrongAccCloseStatus
+		case AccStatusBlocked:
+			return ErrorWrongAccBlockStatus
+		}
 	}
 
 	new_value := acc.Acc_money_amount - width_value

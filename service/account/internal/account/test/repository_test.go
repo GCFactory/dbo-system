@@ -57,6 +57,7 @@ func TestAccountRepo_CreateAccount(t *testing.T) {
 		mock.ExpectBegin()
 		mock.ExpectExec(repository.CreateAccount).WithArgs(
 			&account.Acc_uuid,
+			&account.Acc_status,
 			&account.Acc_culc_number,
 			&account.Acc_corr_number,
 			&account.Acc_bic,
@@ -85,6 +86,7 @@ func TestAccountRepo_CreateAccount(t *testing.T) {
 		mock.ExpectBegin()
 		mock.ExpectExec(repository.CreateAccount).WithArgs(
 			&account.Acc_uuid,
+			&account.Acc_status,
 			&account.Acc_culc_number,
 			&account.Acc_corr_number,
 			&account.Acc_bic,
@@ -109,6 +111,7 @@ func TestAccountRepo_CreateAccount(t *testing.T) {
 		mock.ExpectBegin()
 		mock.ExpectExec(repository.CreateAccount).WithArgs(
 			&account.Acc_uuid,
+			&account.Acc_status,
 			&account.Acc_culc_number,
 			&account.Acc_corr_number,
 			&account.Acc_bic,

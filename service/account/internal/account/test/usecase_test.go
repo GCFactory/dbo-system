@@ -752,14 +752,47 @@ func TestAccountUC_CreateAcc(t *testing.T) {
 		require.Equal(t, err, usecase.ErrorNoFoundAcc)
 	})
 
-	t.Run("Error wrong acc status", func(t *testing.T) {
+	t.Run("Error wrong acc status (create)", func(t *testing.T) {
+		tmp := acc_data.Acc_status
+		acc_data.Acc_status = usecase.AccStatusCreated
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+
+		err = accUC.CreateAcc(ctx, acc_uuid)
+		require.Equal(t, err, usecase.ErrorWrongAccCreatedStatus)
+		acc_data.Acc_status = tmp
+	})
+
+	t.Run("Error wrong acc status (open)", func(t *testing.T) {
+		tmp := acc_data.Acc_status
+		acc_data.Acc_status = usecase.AccStatusOpen
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+
+		err = accUC.CreateAcc(ctx, acc_uuid)
+		require.Equal(t, err, usecase.ErrorWrongAccOpenStatus)
+		acc_data.Acc_status = tmp
+	})
+
+	t.Run("Error wrong acc status (close)", func(t *testing.T) {
+		tmp := acc_data.Acc_status
+		acc_data.Acc_status = usecase.AccStatusClose
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+
+		err = accUC.CreateAcc(ctx, acc_uuid)
+		require.Equal(t, err, usecase.ErrorWrongAccCloseStatus)
+		acc_data.Acc_status = tmp
+	})
+
+	t.Run("Error wrong acc status (blocked)", func(t *testing.T) {
 		tmp := acc_data.Acc_status
 		acc_data.Acc_status = usecase.AccStatusBlocked
 
 		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
 
 		err = accUC.CreateAcc(ctx, acc_uuid)
-		require.Equal(t, err, usecase.ErrorWrongAccReservedStatus)
+		require.Equal(t, err, usecase.ErrorWrongAccBlockStatus)
 		acc_data.Acc_status = tmp
 	})
 
@@ -818,14 +851,47 @@ func TestAccountUC_OpenAcc(t *testing.T) {
 		require.Equal(t, err, usecase.ErrorNoFoundAcc)
 	})
 
-	t.Run("Error wrong acc status", func(t *testing.T) {
+	t.Run("Error wrong acc status (reserved)", func(t *testing.T) {
+		tmp := acc_data.Acc_status
+		acc_data.Acc_status = usecase.AccStatusReserved
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+
+		err = accUC.OpenAcc(ctx, acc_uuid)
+		require.Equal(t, err, usecase.ErrorWrongAccReservedStatus)
+		acc_data.Acc_status = tmp
+	})
+
+	t.Run("Error wrong acc status (open)", func(t *testing.T) {
+		tmp := acc_data.Acc_status
+		acc_data.Acc_status = usecase.AccStatusOpen
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+
+		err = accUC.OpenAcc(ctx, acc_uuid)
+		require.Equal(t, err, usecase.ErrorWrongAccOpenStatus)
+		acc_data.Acc_status = tmp
+	})
+
+	t.Run("Error wrong acc status (close)", func(t *testing.T) {
+		tmp := acc_data.Acc_status
+		acc_data.Acc_status = usecase.AccStatusClose
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+
+		err = accUC.OpenAcc(ctx, acc_uuid)
+		require.Equal(t, err, usecase.ErrorWrongAccCloseStatus)
+		acc_data.Acc_status = tmp
+	})
+
+	t.Run("Error wrong acc status (blocked)", func(t *testing.T) {
 		tmp := acc_data.Acc_status
 		acc_data.Acc_status = usecase.AccStatusBlocked
 
 		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
 
 		err = accUC.OpenAcc(ctx, acc_uuid)
-		require.Equal(t, err, usecase.ErrorWrongAccOpenStatus)
+		require.Equal(t, err, usecase.ErrorWrongAccBlockStatus)
 		acc_data.Acc_status = tmp
 	})
 
@@ -884,14 +950,47 @@ func TestAccountUC_CloseAcc(t *testing.T) {
 		require.Equal(t, err, usecase.ErrorNoFoundAcc)
 	})
 
-	t.Run("Error wrong acc status", func(t *testing.T) {
+	t.Run("Error wrong acc status (reserved)", func(t *testing.T) {
+		tmp := acc_data.Acc_status
+		acc_data.Acc_status = usecase.AccStatusReserved
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+
+		err = accUC.CloseAcc(ctx, acc_uuid)
+		require.Equal(t, err, usecase.ErrorWrongAccReservedStatus)
+		acc_data.Acc_status = tmp
+	})
+
+	t.Run("Error wrong acc status (created)", func(t *testing.T) {
+		tmp := acc_data.Acc_status
+		acc_data.Acc_status = usecase.AccStatusCreated
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+
+		err = accUC.CloseAcc(ctx, acc_uuid)
+		require.Equal(t, err, usecase.ErrorWrongAccCreatedStatus)
+		acc_data.Acc_status = tmp
+	})
+
+	t.Run("Error wrong acc status (close)", func(t *testing.T) {
+		tmp := acc_data.Acc_status
+		acc_data.Acc_status = usecase.AccStatusClose
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+
+		err = accUC.CloseAcc(ctx, acc_uuid)
+		require.Equal(t, err, usecase.ErrorWrongAccCloseStatus)
+		acc_data.Acc_status = tmp
+	})
+
+	t.Run("Error wrong acc status (blocked)", func(t *testing.T) {
 		tmp := acc_data.Acc_status
 		acc_data.Acc_status = usecase.AccStatusBlocked
 
 		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
 
 		err = accUC.CloseAcc(ctx, acc_uuid)
-		require.Equal(t, err, usecase.ErrorWrongAccCloseStatus)
+		require.Equal(t, err, usecase.ErrorWrongAccBlockStatus)
 		acc_data.Acc_status = tmp
 	})
 
@@ -950,7 +1049,40 @@ func TestAccountUC_BlockAcc(t *testing.T) {
 		require.Equal(t, err, usecase.ErrorNoFoundAcc)
 	})
 
-	t.Run("Error wrong acc status", func(t *testing.T) {
+	t.Run("Error wrong acc status (reserved)", func(t *testing.T) {
+		tmp := acc_data.Acc_status
+		acc_data.Acc_status = usecase.AccStatusReserved
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+
+		err = accUC.BlockAcc(ctx, acc_uuid)
+		require.Equal(t, err, usecase.ErrorWrongAccReservedStatus)
+		acc_data.Acc_status = tmp
+	})
+
+	t.Run("Error wrong acc status (created)", func(t *testing.T) {
+		tmp := acc_data.Acc_status
+		acc_data.Acc_status = usecase.AccStatusCreated
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+
+		err = accUC.BlockAcc(ctx, acc_uuid)
+		require.Equal(t, err, usecase.ErrorWrongAccCreatedStatus)
+		acc_data.Acc_status = tmp
+	})
+
+	t.Run("Error wrong acc status (close)", func(t *testing.T) {
+		tmp := acc_data.Acc_status
+		acc_data.Acc_status = usecase.AccStatusClose
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+
+		err = accUC.BlockAcc(ctx, acc_uuid)
+		require.Equal(t, err, usecase.ErrorWrongAccCloseStatus)
+		acc_data.Acc_status = tmp
+	})
+
+	t.Run("Error wrong acc status (blocked)", func(t *testing.T) {
 		tmp := acc_data.Acc_status
 		acc_data.Acc_status = usecase.AccStatusBlocked
 
@@ -1090,14 +1222,62 @@ func TestAccountUC_AddingAcc(t *testing.T) {
 		require.Equal(t, err, usecase.ErrorNoFoundAcc)
 	})
 
-	t.Run("Error acc status", func(t *testing.T) {
+	t.Run("Error acc status (reserved)", func(t *testing.T) {
+		tmp := acc_data.Acc_status
+		acc_data.Acc_status = usecase.AccStatusReserved
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+
+		err = accUC.AddingAcc(ctx, acc_uuid, add_value)
+		require.Equal(t, err, usecase.ErrorWrongAccReservedStatus)
+
+		acc_data.Acc_status = tmp
+	})
+
+	t.Run("Error acc status (reserved)", func(t *testing.T) {
+		tmp := acc_data.Acc_status
+		acc_data.Acc_status = usecase.AccStatusReserved
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+
+		err = accUC.AddingAcc(ctx, acc_uuid, add_value)
+		require.Equal(t, err, usecase.ErrorWrongAccReservedStatus)
+
+		acc_data.Acc_status = tmp
+	})
+
+	t.Run("Error acc status (created)", func(t *testing.T) {
+		tmp := acc_data.Acc_status
+		acc_data.Acc_status = usecase.AccStatusCreated
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+
+		err = accUC.AddingAcc(ctx, acc_uuid, add_value)
+		require.Equal(t, err, usecase.ErrorWrongAccCreatedStatus)
+
+		acc_data.Acc_status = tmp
+	})
+
+	t.Run("Error acc status (close)", func(t *testing.T) {
 		tmp := acc_data.Acc_status
 		acc_data.Acc_status = usecase.AccStatusClose
 
 		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
 
 		err = accUC.AddingAcc(ctx, acc_uuid, add_value)
-		require.Equal(t, err, usecase.ErrorWrongAccOpenStatus)
+		require.Equal(t, err, usecase.ErrorWrongAccCloseStatus)
+
+		acc_data.Acc_status = tmp
+	})
+
+	t.Run("Error acc status (block)", func(t *testing.T) {
+		tmp := acc_data.Acc_status
+		acc_data.Acc_status = usecase.AccStatusBlocked
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+
+		err = accUC.AddingAcc(ctx, acc_uuid, add_value)
+		require.Equal(t, err, usecase.ErrorWrongAccBlockStatus)
 
 		acc_data.Acc_status = tmp
 	})
@@ -1172,14 +1352,62 @@ func TestAccountUC_WidthAcc(t *testing.T) {
 		require.Equal(t, err, usecase.ErrorNoFoundAcc)
 	})
 
-	t.Run("Error acc status", func(t *testing.T) {
+	t.Run("Error acc status (reserved)", func(t *testing.T) {
+		tmp := acc_data.Acc_status
+		acc_data.Acc_status = usecase.AccStatusReserved
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+
+		err = accUC.AddingAcc(ctx, acc_uuid, width_value)
+		require.Equal(t, err, usecase.ErrorWrongAccReservedStatus)
+
+		acc_data.Acc_status = tmp
+	})
+
+	t.Run("Error acc status (reserved)", func(t *testing.T) {
+		tmp := acc_data.Acc_status
+		acc_data.Acc_status = usecase.AccStatusReserved
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+
+		err = accUC.WidthAcc(ctx, acc_uuid, width_value)
+		require.Equal(t, err, usecase.ErrorWrongAccReservedStatus)
+
+		acc_data.Acc_status = tmp
+	})
+
+	t.Run("Error acc status (created)", func(t *testing.T) {
+		tmp := acc_data.Acc_status
+		acc_data.Acc_status = usecase.AccStatusCreated
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+
+		err = accUC.WidthAcc(ctx, acc_uuid, width_value)
+		require.Equal(t, err, usecase.ErrorWrongAccCreatedStatus)
+
+		acc_data.Acc_status = tmp
+	})
+
+	t.Run("Error acc status (close)", func(t *testing.T) {
 		tmp := acc_data.Acc_status
 		acc_data.Acc_status = usecase.AccStatusClose
 
 		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
 
 		err = accUC.WidthAcc(ctx, acc_uuid, width_value)
-		require.Equal(t, err, usecase.ErrorWrongAccOpenStatus)
+		require.Equal(t, err, usecase.ErrorWrongAccCloseStatus)
+
+		acc_data.Acc_status = tmp
+	})
+
+	t.Run("Error acc status (block)", func(t *testing.T) {
+		tmp := acc_data.Acc_status
+		acc_data.Acc_status = usecase.AccStatusBlocked
+
+		mockRepo.EXPECT().GetAccountData(gomock.Eq(ctxWithTrace), gomock.Eq(acc_uuid)).Return(acc_data, nil)
+
+		err = accUC.WidthAcc(ctx, acc_uuid, width_value)
+		require.Equal(t, err, usecase.ErrorWrongAccBlockStatus)
 
 		acc_data.Acc_status = tmp
 	})
