@@ -3,7 +3,7 @@ package kafka
 import (
 	"fmt"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
-	"github.com/GCFactory/dbo-system/service/account/config"
+	"github.com/GCFactory/dbo-system/service/users/config"
 	"github.com/IBM/sarama"
 	"strings"
 	"sync"

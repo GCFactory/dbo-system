@@ -1,5 +1,7 @@
 package server
 
+import "github.com/labstack/echo/v4"
+
 func (s *Server) MapHandlers(e *echo.Echo) error {
 	//metrics, err := metric.CreateMetrics(s.cfg.Metrics.URL, s.cfg.Metrics.ServiceName)
 	//if err != nil {
