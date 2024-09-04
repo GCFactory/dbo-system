@@ -1,0 +1,7 @@
+{
+  "saga_uuid": "0123456789abcdef",
+  "event_uuid": "0123456789abcdef",
+  "operation_name": "width_acc",
+  "status": 21,
+  "info": "No account found!"
+}
