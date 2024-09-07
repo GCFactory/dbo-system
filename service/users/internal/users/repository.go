@@ -7,7 +7,7 @@ import (
 )
 
 type Repository interface {
-	AddUser(ctx context.Context, user_data models.User_full_data) error
+	AddUser(ctx context.Context, user_data *models.User_full_data) error
 	GetUserData(ctx context.Context, user_uuid uuid.UUID) (*models.User_full_data, error)
 	UpdatePassport(ctx context.Context, passport *models.Passport) error
 	UpdateUserAccount(ctx context.Context, user_uuid uuid.UUID, accounts string) error

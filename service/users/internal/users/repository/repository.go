@@ -13,7 +13,7 @@ type UserRepository struct {
 	db *sqlx.DB
 }
 
-func (repo UserRepository) AddUser(ctx context.Context, user_data models.User_full_data) error {
+func (repo UserRepository) AddUser(ctx context.Context, user_data *models.User_full_data) error {
 	span, local_ctx := opentracing.StartSpanFromContext(ctx, "UserRepository.AddUser")
 	defer span.Finish()
 

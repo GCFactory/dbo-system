@@ -2,7 +2,6 @@ package models
 
 import (
 	"github.com/google/uuid"
-	"time"
 )
 
 type Passport struct {
@@ -12,11 +11,11 @@ type Passport struct {
 	Name                string    `json:"name" db:"name" validate:"required"`
 	Surname             string    `json:"surname" db:"surname" validate:"required"`
 	Patronimic          string    `json:"patronimic" db:"patronimic" validate:"required"`
-	Birth_date          time.Time `json:"birth_date" db:"birth_date" validate:"required,datetime"`
+	Birth_date          string    `json:"birth_date" db:"birth_date" validate:"required,datetime"`
 	Birth_location      string    `json:"birth_location" db:"birth_location" validate:"required"`
 	Pick_up_point       string    `json:"pick_up_point" db:"pick_up_point" validate:"required"`
 	Authority           string    `json:"authority" db:"authority" validate:"required,len=7"`
-	Authority_date      time.Time `json:"authority_date" db:"authority_date" validate:"required,datetime"`
+	Authority_date      string    `json:"authority_date" db:"authority_date" validate:"required,datetime"`
 	Registration_adress string    `json:"registration_adress" db:"registration_adress" validate:"required"`
 }
 
