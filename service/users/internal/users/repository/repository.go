@@ -17,7 +17,7 @@ func (repo UserRepository) AddUser(ctx context.Context, user_data *models.User_f
 	span, local_ctx := opentracing.StartSpanFromContext(ctx, "UserRepository.AddUser")
 	defer span.Finish()
 
-	tx, err := repo.db.BeginTx(local_ctx, nil)
+	tx, err := repo.db.Begin()
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func (repo UserRepository) GetUserData(ctx context.Context, user_uuid uuid.UUID)
 	span, local_ctx := opentracing.StartSpanFromContext(ctx, "UserRepository.GetUserData")
 	defer span.Finish()
 
-	tx, err := repo.db.BeginTx(local_ctx, nil)
+	tx, err := repo.db.Begin()
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func (repo UserRepository) UpdatePassport(ctx context.Context, passport *models.
 	span, local_ctx := opentracing.StartSpanFromContext(ctx, "UserRepository.UpdatePassport")
 	defer span.Finish()
 
-	tx, err := repo.db.BeginTx(local_ctx, nil)
+	tx, err := repo.db.Begin()
 	if err != nil {
 		return err
 	}
@@ -145,7 +145,7 @@ func (repo UserRepository) UpdateUserAccount(ctx context.Context, user_uuid uuid
 	span, local_ctx := opentracing.StartSpanFromContext(ctx, "UserRepository.UpdateUserAccount")
 	defer span.Finish()
 
-	tx, err := repo.db.BeginTx(local_ctx, nil)
+	tx, err := repo.db.Begin()
 	if err != nil {
 		return err
 	}
@@ -175,13 +175,17 @@ func (repo UserRepository) GetUsersAccounts(ctx context.Context, user_uuid uuid.
 	span, local_ctx := opentracing.StartSpanFromContext(ctx, "UserRepository.GetUsersAccounts")
 	defer span.Finish()
 
-	tx, err := repo.db.BeginTx(local_ctx, nil)
+	tx, err := repo.db.Begin()
 	if err != nil {
 		return "", err
 	}
 	defer tx.Rollback()
 
-	var result string
+	type accounts_struct struct {
+		User_accounts string `json:"user_accounts" db:"user_accounts" validate:"required,json"`
+	}
+
+	var result accounts_struct
 
 	if err = repo.db.QueryRowxContext(local_ctx,
 		GetUsersAccounts,
@@ -194,7 +198,7 @@ func (repo UserRepository) GetUsersAccounts(ctx context.Context, user_uuid uuid.
 		return "", err
 	}
 
-	return result, nil
+	return result.User_accounts, nil
 }
 
 func NewUserRepository(db *sqlx.DB) users.Repository {

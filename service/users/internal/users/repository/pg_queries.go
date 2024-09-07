@@ -54,7 +54,7 @@ const (
 		set users_accounts = $2 
 		where user_uuid = $1;`
 
-	GetUsersAccounts = `select users_accounts
+	GetUsersAccounts = `select user_accounts
 		from only users
 		where user_uuid = $1;`
 )
