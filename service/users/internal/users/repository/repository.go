@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/GCFactory/dbo-system/service/users/internal/models"
 	"github.com/GCFactory/dbo-system/service/users/internal/users"
 	"github.com/google/uuid"
@@ -44,12 +45,15 @@ func (repo UserRepository) AddUser(ctx context.Context, user_data *models.User_f
 	}
 
 	user := user_data.User
+
+	accounts, err := json.Marshal(user.User_accounts)
+
 	if _, err = repo.db.ExecContext(local_ctx,
 		AddUser,
 		user.User_uuid,
 		user.Passport_uuid,
 		user.User_inn,
-		user.User_accounts,
+		accounts,
 	); err != nil {
 		return ErrorAddUser
 	}
@@ -76,10 +80,16 @@ func (repo UserRepository) GetUserData(ctx context.Context, user_uuid uuid.UUID)
 
 	var passport models.Passport
 
+	var tmp []byte
+
 	if err = repo.db.QueryRowxContext(local_ctx,
 		GetUserData,
 		&user_uuid,
-	).StructScan(&user); err != nil {
+	).Scan(&user.User_uuid, &user.Passport_uuid, &user.User_inn, &tmp); err != nil {
+		return nil, ErrorGetUser
+	}
+
+	if err = json.Unmarshal(tmp, &user.User_accounts); err != nil {
 		return nil, ErrorGetUser
 	}
 

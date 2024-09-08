@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package platform;
+
+option go_package = "./proto/platform";
+
+import "google/protobuf/timestamp.proto";
+
+//  ФИО
+message FCs{
+  string name = 1;        //  Имя
+  string surname = 2;     //  Фамилия
+  string patronymic = 3;  //  Отчество
+}
+
+//  Вид деятельности
+enum ActivityType{
+  UNKNOWNACTTYPE = 0;         //  Неизвестный
+  AGRICULTUREINDUSTRY = 1;    //  Сельское хозяйство
+  MININGINDUSTRY = 2;         //  Добывающая отрасль
+  PRODUCTION = 3;             //  Произвоство
+  CONSTRUCTION = 4;           //  Строительство
+  TRADING = 5;                //  Торговля
+  SERVICESECTOR = 6;          //  Сфера услуг
+  SOCHIALSHPERE = 7;          //  Социально-значимые сферы
+}
+
+//  Тип налогообложения
+enum TaxationType{
+  UNKNOWNTAXTYPE = 0; //  Неизвестный
+  OSNO = 1;       	//  ОСНО
+  USH = 2;        	//  УСН
+  PSN = 3;        	//  ПСН
+  NPD = 4;        	//  НПД
+  ESXH = 5;       	//  УСХН
+}
+
+//  Паспорт
+message Passport{
+  string series = 1;              			        //  Серия
+  string number = 2;              			        //  Номер
+  FCs fcs = 3;                    			        //  ФИО
+  google.protobuf.Timestamp birth_date = 4;   	//  Дата рождения
+  string birth_location = 5;      			        //  Место рождения
+  string pick_up_point = 6;       			        //  Пункт выдачи паспорта
+  string authority = 7;	    			              //  Код пункта выдачи
+  google.protobuf.Timestamp authority_date = 8; //  Дата выдачи пасорта
+  string registration_adress = 9; 			        //  Адресс регистрации
+}
+
+//  Реквизиты счёта
+message AccountDetails{
+  string culc_number = 1;     // Расчётный номер
+  string corr_number = 2;     // Корреспондентский номер
+  string bic = 3;             //  БИК
+  string cio = 4;             //  КПП
+  string reserve_reason = 5;  //  Причина резервирования
+}
+
+message FullAccountData{
+  AccountDetails acc_details = 1; //  Реквизиты счёта
+  uint64 acc_status = 2;          //  Статус счёта
+  uint64 acc_money_value = 3;     //  Денежная величина
+  float acc_money_amount = 4;     //  Кол-во денег на счету
+}

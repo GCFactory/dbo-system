@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/GCFactory/dbo-system/platform/config"
 	"github.com/GCFactory/dbo-system/service/users/internal/models"
@@ -52,12 +53,14 @@ func TestRepository_AddUser(t *testing.T) {
 		User_uuid:     uuid.New(),
 		Passport_uuid: passport.Passport_uuid,
 		User_inn:      "01234567890123456789",
-		User_accounts: "{\"accounts\": [" +
-			"\"" + uuid.New().String() + "\"," +
-			"\"" + uuid.New().String() + "\"" +
-			"]" +
-			"}",
+		User_accounts: models.ListOfAccounts{},
 	}
+
+	user.User_accounts.Data = append(user.User_accounts.Data, uuid.New())
+	user.User_accounts.Data = append(user.User_accounts.Data, uuid.New())
+
+	accounts_marshal, err := json.Marshal(user.User_accounts)
+	require.Nil(t, err)
 
 	user_full := &models.User_full_data{
 		User:     user,
@@ -87,7 +90,7 @@ func TestRepository_AddUser(t *testing.T) {
 			&user.User_uuid,
 			&user.Passport_uuid,
 			&user.User_inn,
-			&user.User_accounts,
+			accounts_marshal,
 		).WillReturnResult(sqlmock.NewResult(1, 1))
 
 		mock.ExpectCommit()
@@ -160,7 +163,7 @@ func TestRepository_AddUser(t *testing.T) {
 			&user.User_uuid,
 			&user.Passport_uuid,
 			&user.User_inn,
-			&user.User_accounts,
+			accounts_marshal,
 		).WillReturnError(err)
 
 		mock.ExpectRollback()
@@ -201,7 +204,7 @@ func TestRepository_AddUser(t *testing.T) {
 			&user.User_uuid,
 			&user.Passport_uuid,
 			&user.User_inn,
-			&user.User_accounts,
+			accounts_marshal,
 		).WillReturnError(err)
 
 		mock.ExpectRollback().WillReturnError(err)
@@ -257,12 +260,14 @@ func TestRepository_GetUSerData(t *testing.T) {
 		User_uuid:     uuid.New(),
 		Passport_uuid: passport.Passport_uuid,
 		User_inn:      "01234567890123456789",
-		User_accounts: "{\"accounts\": [" +
-			"\"" + uuid.New().String() + "\"," +
-			"\"" + uuid.New().String() + "\"" +
-			"]" +
-			"}",
+		User_accounts: models.ListOfAccounts{},
 	}
+
+	user.User_accounts.Data = append(user.User_accounts.Data, uuid.New())
+	user.User_accounts.Data = append(user.User_accounts.Data, uuid.New())
+
+	accounts_marshal, err := json.Marshal(user.User_accounts)
+	require.Nil(t, err)
 
 	user_full := &models.User_full_data{
 		User:     user,
@@ -308,7 +313,7 @@ func TestRepository_GetUSerData(t *testing.T) {
 			user.User_uuid,
 			user.Passport_uuid,
 			user.User_inn,
-			user.User_accounts,
+			accounts_marshal,
 		)
 
 		mock.ExpectBegin()
@@ -359,7 +364,7 @@ func TestRepository_GetUSerData(t *testing.T) {
 			user.User_uuid,
 			user.Passport_uuid,
 			user.User_inn,
-			user.User_accounts,
+			accounts_marshal,
 		)
 
 		mock.ExpectBegin()

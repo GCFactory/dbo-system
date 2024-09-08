@@ -19,11 +19,15 @@ type Passport struct {
 	Registration_adress string    `json:"registration_adress" db:"registration_adress" validate:"required"`
 }
 
+type ListOfAccounts struct {
+	Data []uuid.UUID `json:"accounts" db:"accounts"`
+}
+
 type User struct {
-	User_uuid     uuid.UUID `json:"user_uuid" db:"user_uuid" validate:"required,uuid4"`
-	Passport_uuid uuid.UUID `json:"passport_uuid" db:"passport_uuid" validate:"required,uuid4"`
-	User_inn      string    `json:"user_inn" db:"user_inn" validate:"required,number,len=20"`
-	User_accounts string    `json:"user_accounts" db:"user_accounts" validate:"required,json"`
+	User_uuid     uuid.UUID      `json:"user_uuid" db:"user_uuid" validate:"required,uuid4"`
+	Passport_uuid uuid.UUID      `json:"passport_uuid" db:"passport_uuid" validate:"required,uuid4"`
+	User_inn      string         `json:"user_inn" db:"user_inn" validate:"required,number,len=20"`
+	User_accounts ListOfAccounts `json:"user_accounts" db:"user_accounts" validate:"required,json"`
 }
 
 type User_full_data struct {
@@ -33,8 +37,4 @@ type User_full_data struct {
 
 type Accounts struct {
 	User_accounts string `json:"user_accounts" db:"user_accounts" validate:"required,json"`
-}
-
-type ListOfAccounts struct {
-	Data []uuid.UUID `json:"accounts"`
 }

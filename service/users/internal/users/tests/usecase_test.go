@@ -58,8 +58,11 @@ func TestUsersUC_AddUser(t *testing.T) {
 		User_uuid:     uuid.New(),
 		Passport_uuid: passport.Passport_uuid,
 		User_inn:      "01234567890123456789",
-		User_accounts: "{\"accounts\": [] }",
+		User_accounts: models.ListOfAccounts{},
 	}
+
+	user.User_accounts.Data = append(user.User_accounts.Data, uuid.New())
+	user.User_accounts.Data = append(user.User_accounts.Data, uuid.New())
 
 	user_full := &models.User_full_data{
 		User:     user,
@@ -136,8 +139,11 @@ func TestUsersUC_GetUserData(t *testing.T) {
 		User_uuid:     uuid.New(),
 		Passport_uuid: passport.Passport_uuid,
 		User_inn:      "01234567890123456789",
-		User_accounts: "{\"accounts\": [] }",
+		User_accounts: models.ListOfAccounts{},
 	}
+
+	user.User_accounts.Data = append(user.User_accounts.Data, uuid.New())
+	user.User_accounts.Data = append(user.User_accounts.Data, uuid.New())
 
 	user_full := &models.User_full_data{
 		User:     user,
@@ -216,8 +222,11 @@ func TestUsersUC_UpdateUsersPassport(t *testing.T) {
 		User_uuid:     uuid.New(),
 		Passport_uuid: passport.Passport_uuid,
 		User_inn:      "01234567890123456789",
-		User_accounts: "{\"accounts\": [] }",
+		User_accounts: models.ListOfAccounts{},
 	}
+
+	user.User_accounts.Data = append(user.User_accounts.Data, uuid.New())
+	user.User_accounts.Data = append(user.User_accounts.Data, uuid.New())
 
 	user_full := &models.User_full_data{
 		User:     user,
@@ -292,12 +301,11 @@ func TestUsersUC_AddUserAccount(t *testing.T) {
 		User_uuid:     uuid.New(),
 		Passport_uuid: passport.Passport_uuid,
 		User_inn:      "01234567890123456789",
-		User_accounts: "{\"accounts\": [" +
-			"\"" + uuid.New().String() + "\"," +
-			"\"" + uuid.New().String() + "\"" +
-			"]" +
-			"}",
+		User_accounts: models.ListOfAccounts{},
 	}
+
+	user.User_accounts.Data = append(user.User_accounts.Data, uuid.New())
+	user.User_accounts.Data = append(user.User_accounts.Data, uuid.New())
 
 	new_account := uuid.New()
 
@@ -313,18 +321,11 @@ func TestUsersUC_AddUserAccount(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 
-		var tmp models.ListOfAccounts
+		tmp := user.User_accounts
 
-		err := json.Unmarshal([]byte(user.User_accounts), &tmp)
-		require.Nil(t, err)
+		tmp.Data = append(tmp.Data, new_account)
 
-		accounts := tmp.Data
-
-		accounts = append(accounts, new_account)
-
-		tmp.Data = accounts
-
-		bytes, err := json.Marshal(tmp)
+		bytes, err := json.Marshal(tmp.Data)
 		require.Nil(t, err)
 
 		mockRepo.EXPECT().GetUserData(gomock.Eq(ctxWithTrace), gomock.Eq(user.User_uuid)).Return(user_full, nil)
@@ -348,25 +349,15 @@ func TestUsersUC_AddUserAccount(t *testing.T) {
 
 		save := user.User_accounts
 
-		var tmp models.ListOfAccounts
-
-		err := json.Unmarshal([]byte(user.User_accounts), &tmp)
-		require.Nil(t, err)
-
-		accounts := tmp.Data
+		accounts := user.User_accounts.Data
 
 		accounts = append(accounts, new_account)
 
-		tmp.Data = accounts
-
-		bytes, err := json.Marshal(tmp)
-		require.Nil(t, err)
-
-		user.User_accounts = string(bytes)
+		user.User_accounts.Data = accounts
 
 		mockRepo.EXPECT().GetUserData(gomock.Eq(ctxWithTrace), gomock.Eq(user.User_uuid)).Return(user_full, nil)
 
-		err = usersUC.AddUserAccount(ctx, user.User_uuid, new_account)
+		err := usersUC.AddUserAccount(ctx, user.User_uuid, new_account)
 		require.Equal(t, err, usecase.ErrorAccountAlreadyExists)
 
 		user.User_accounts = save
@@ -375,18 +366,11 @@ func TestUsersUC_AddUserAccount(t *testing.T) {
 
 	t.Run("Error update accounts", func(t *testing.T) {
 
-		var tmp models.ListOfAccounts
+		tmp := user.User_accounts
 
-		err := json.Unmarshal([]byte(user.User_accounts), &tmp)
-		require.Nil(t, err)
+		tmp.Data = append(tmp.Data, new_account)
 
-		accounts := tmp.Data
-
-		accounts = append(accounts, new_account)
-
-		tmp.Data = accounts
-
-		bytes, err := json.Marshal(tmp)
+		bytes, err := json.Marshal(tmp.Data)
 		require.Nil(t, err)
 
 		local_error := errors.New("Some error")
@@ -431,25 +415,27 @@ func TestUsersUC_GetUserAccounts(t *testing.T) {
 		User_uuid:     uuid.New(),
 		Passport_uuid: passport.Passport_uuid,
 		User_inn:      "01234567890123456789",
-		User_accounts: "{\"accounts\": [" +
-			"\"" + uuid.New().String() + "\"," +
-			"\"" + uuid.New().String() + "\"" +
-			"]" +
-			"}",
+		User_accounts: models.ListOfAccounts{},
 	}
+
+	user.User_accounts.Data = append(user.User_accounts.Data, uuid.New())
+	user.User_accounts.Data = append(user.User_accounts.Data, uuid.New())
 
 	ctx := context.Background()
 
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "userUsecase.GetUserAccounts")
 	defer span.Finish()
 
+	result_marshal, err := json.Marshal(user.User_accounts)
+	require.Nil(t, err)
+
 	t.Run("Success", func(t *testing.T) {
 
-		mockRepo.EXPECT().GetUsersAccounts(gomock.Eq(ctxWithTrace), gomock.Eq(user.User_uuid)).Return(user.User_accounts, nil)
+		mockRepo.EXPECT().GetUsersAccounts(gomock.Eq(ctxWithTrace), gomock.Eq(user.User_uuid)).Return(string(result_marshal), nil)
 
 		result, err := usersUC.GetUserAccounts(ctx, user.User_uuid)
 		require.Nil(t, err)
-		require.Equal(t, user.User_accounts, result)
+		require.Equal(t, &user.User_accounts, result)
 
 	})
 
@@ -459,7 +445,7 @@ func TestUsersUC_GetUserAccounts(t *testing.T) {
 
 		result, err := usersUC.GetUserAccounts(ctx, user.User_uuid)
 		require.Equal(t, err, usecase.ErrorUserNotFound)
-		require.Equal(t, result, "")
+		require.Nil(t, result)
 
 	})
 }

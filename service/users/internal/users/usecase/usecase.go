@@ -57,6 +57,8 @@ func (uc userUsecase) UpdateUsersPassport(ctx context.Context, user_uuid uuid.UU
 		return ErrorUserNotFound
 	}
 
+	passport.Passport_uuid = user.Passport.Passport_uuid
+
 	err := uc.usersRepo.UpdatePassport(ctxWithTrace, passport)
 	if err != nil {
 		return err
@@ -75,14 +77,7 @@ func (uc userUsecase) AddUserAccount(ctx context.Context, user_uuid uuid.UUID, a
 		return ErrorUserNotFound
 	}
 
-	var result models.ListOfAccounts
-
-	err := json.Unmarshal([]byte(user.User.User_accounts), &result)
-	if err != nil {
-		return ErrorUnMarshal
-	}
-
-	list_of_accounts := result.Data
+	list_of_accounts := user.User.User_accounts.Data
 
 	for i := 0; i < len(list_of_accounts); i++ {
 		if list_of_accounts[i] == account {
@@ -91,10 +86,9 @@ func (uc userUsecase) AddUserAccount(ctx context.Context, user_uuid uuid.UUID, a
 	}
 
 	list_of_accounts = append(list_of_accounts, account)
+	user.User.User_accounts.Data = list_of_accounts
 
-	result.Data = list_of_accounts
-
-	bytes, err := json.Marshal(result)
+	bytes, err := json.Marshal(user.User.User_accounts)
 	if err != nil {
 		return ErrorMarshal
 	}
@@ -107,17 +101,24 @@ func (uc userUsecase) AddUserAccount(ctx context.Context, user_uuid uuid.UUID, a
 	return nil
 }
 
-func (uc userUsecase) GetUserAccounts(ctx context.Context, user_uuid uuid.UUID) (string, error) {
+func (uc userUsecase) GetUserAccounts(ctx context.Context, user_uuid uuid.UUID) (*models.ListOfAccounts, error) {
 
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "userUsecase.GetUserAccounts")
 	defer span.Finish()
 
 	accounts, _ := uc.usersRepo.GetUsersAccounts(ctxWithTrace, user_uuid)
 	if accounts == "" {
-		return "", ErrorUserNotFound
+		return nil, ErrorUserNotFound
 	}
 
-	return accounts, nil
+	var result *models.ListOfAccounts
+
+	err := json.Unmarshal([]byte(accounts), &result)
+	if err != nil {
+		return nil, ErrorUnMarshal
+	}
+
+	return result, nil
 }
 
 func NewUsersUseCase(cfg *config.Config, users_repo users.Repository, log logger.Logger) users.UseCase {

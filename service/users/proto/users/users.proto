@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package account;
+
+option go_package = "./proto/api";
+
+import "platform/platform.proto";
+
+//  Дополнительные сведения для операции
+message OperationDetails {
+  string user_uuid = 1;  //  UUID счёта
+  oneof AdditionalData {
+      platform.Passport passport = 2;
+      string some_data = 3;
+  }
+}
+
+message UserInfo{
+  platform.Passport passport = 1;             //  Passport
+  string user_inn = 2;
+}
+
+//  Данные event-а
+message EventData{
+  string saga_uuid = 1;                         //  UUID sag-и
+  string event_uuid = 2;                        //  UUID evnet-a
+  string operation_name = 3;                    // Тип операции
+  oneof data{
+    UserInfo user_info = 4;
+    OperationDetails additional_info = 5;       //  Дополнительная информация по операции
+  }
+}
+
+message ListOfAccounts{
+  repeated string accounts = 1;
+}
+
+message FullData {
+  platform.Passport passport = 1;
+  string user_inn = 2;
+  ListOfAccounts accounts = 3;
+}
+
+//  Результат event-а
+message EventSuccess{
+  string saga_uuid = 1;                     //  UUID sag-и
+  string event_uuid = 2;                    //  UUID evnet-a
+  string operation_name = 3;                //  Тип выполняемой операции
+  oneof result{
+    string info = 4;                        //  Дополнительная информация по event-у
+    FullData full_data = 5;                 //  Full user data
+    ListOfAccounts accounts = 6;
+  }
+}
+
+message EventError{
+  string saga_uuid = 1;                     //  UUID sag-и
+  string event_uuid = 2;                    //  UUID evnet-a
+  string operation_name = 3;                //  Тип выполняемой операции
+  uint32 status = 4;                        //  Event error status
+  string info = 5;                          //  Дополнительная информация по event-у
+}

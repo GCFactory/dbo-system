@@ -1,7 +1,7 @@
 package repository
 
 const (
-	AddPassport = `insert into pasport 
+	AddPassport = `insert into passport 
     	(
 			passport_uuid, 
 			passport_series, 
@@ -35,7 +35,7 @@ const (
 		from users 
 		where user_uuid = $1;`
 
-	UpdatePassport = `update pasport 
+	UpdatePassport = `update passport 
 		set 
 			passport_series = $2, 
 			passport_number = $3, 
@@ -51,7 +51,7 @@ const (
 		where passport_uuid = $1;`
 
 	UpdateUsersAccounts = `update users 
-		set users_accounts = $2 
+		set user_accounts = $2 
 		where user_uuid = $1;`
 
 	GetUsersAccounts = `select user_accounts
