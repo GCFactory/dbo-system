@@ -9,6 +9,7 @@ require (
 	github.com/GCFactory/dbo-system/platform v1.2.0
 	github.com/IBM/sarama v1.43.3
 	github.com/golang-migrate/migrate/v4 v4.17.1
+	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.4.0
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/labstack/echo/v4 v4.12.0
@@ -31,6 +32,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.15.5 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
+	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect

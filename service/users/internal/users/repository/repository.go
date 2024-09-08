@@ -181,11 +181,7 @@ func (repo UserRepository) GetUsersAccounts(ctx context.Context, user_uuid uuid.
 	}
 	defer tx.Rollback()
 
-	type accounts_struct struct {
-		User_accounts string `json:"user_accounts" db:"user_accounts" validate:"required,json"`
-	}
-
-	var result accounts_struct
+	var result models.Accounts
 
 	if err = repo.db.QueryRowxContext(local_ctx,
 		GetUsersAccounts,

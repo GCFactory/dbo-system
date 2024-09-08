@@ -30,3 +30,11 @@ type User_full_data struct {
 	User     *User
 	Passport *Passport
 }
+
+type Accounts struct {
+	User_accounts string `json:"user_accounts" db:"user_accounts" validate:"required,json"`
+}
+
+type ListOfAccounts struct {
+	Data []uuid.UUID `json:"accounts"`
+}
