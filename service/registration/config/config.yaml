@@ -47,9 +47,9 @@ logger:
 postgres:
   PostgresqlHost: localhost
   PostgresqlPort: 5432
-  PostgresqlUser: diploma
-  PostgresqlPassword: diploma
-  PostgresqlDbname: diploma
+  PostgresqlUser: postgres
+  PostgresqlPassword: postgres
+  PostgresqlDbname: main
   PostgresqlSSLMode: false
   PgDriver: pgx
 
