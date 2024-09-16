@@ -14,3 +14,12 @@ type Repository interface {
 	UpdateSagaStatus(ctx context.Context, saga_uuid uuid.UUID, saga_status uint) error
 	UpdateSagaEvents(ctx context.Context, saga_uuid uuid.UUID, events string) error
 }
+
+// CreateSaga
+// GetSaga
+// DeleteSaga
+// UpdateSagaEvents
+// GetSagaConnections
+// CreateEvent
+// GetEvent
+// DeleteEvent
