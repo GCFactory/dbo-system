@@ -12,6 +12,7 @@ type Saga struct {
 
 type Event struct {
 	Event_uuid          uuid.UUID `json:"event_uuid" db:"event_uuid" validate:"len=36 required uuid"`
+	Saga_uuid           uuid.UUID `json:"saga_uuid" db:"saga_uuid" validate:"len=36 required uuid"`
 	Event_status        uint      `json:"event_status" db:"event_status" validate:"min=0 max=255 required"`
 	Event_name          string    `json:"event_name" db:"event_name" validate:"max=64 required"`
 	Event_result        string    `json:"event_result" db:"event_result" validate:"json required"`

@@ -9,17 +9,15 @@ import (
 
 type Repository interface {
 	CreateSaga(ctx context.Context, saga models.Saga) error
+	GetSaga(ctx context.Context, id uuid.UUID) (*models.Saga, error)
 	DeleteSaga(ctx context.Context, saga_uuid uuid.UUID) error
-	GetSagaById(ctx context.Context, saga_uuid uuid.UUID) (*models.Saga, error)
-	UpdateSagaStatus(ctx context.Context, saga_uuid uuid.UUID, saga_status uint) error
-	UpdateSagaEvents(ctx context.Context, saga_uuid uuid.UUID, events string) error
+	UpdateSaga(ctx context.Context, saga *models.Saga) error
+	CreateSagaConnection(ctx context.Context, sagaConnection *models.SagaConnection) error
+	GetSagaConnections(ctx context.Context, saga_uuid uuid.UUID) (*models.ListOfSagaConnections, error)
+	DeleteSagaConnection(ctx context.Context, sagaConnection *models.SagaConnection) error
+	CreateEvent(ctx context.Context, event *models.Event) error
+	GetEvent(ctx context.Context, id uuid.UUID) (*models.Event, error)
+	DeleteEvent(ctx context.Context, event_uuid uuid.UUID) error
+	UpdateEvent(ctx context.Context, event *models.Event) error
+	GetListOfSagaEvents(ctx context.Context, saga_uuid uuid.UUID) (*models.SagaListEvents, error)
 }
-
-// CreateSaga
-// GetSaga
-// DeleteSaga
-// UpdateSagaEvents
-// GetSagaConnections
-// CreateEvent
-// GetEvent
-// DeleteEvent
