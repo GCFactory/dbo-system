@@ -6,7 +6,7 @@ const (
                   saga_status, 
                   saga_type, 
                   saga_name)
-				VALUES ($1, $2, $3, $4, $5)`
+				VALUES ($1, $2, $3, $4)`
 	DeleteSaga = `DELETE FROM saga 
        			WHERE saga_uuid=$1`
 	GetSaga = `SELECT * FROM saga 
@@ -21,7 +21,7 @@ const (
 							next_saga_uuid,
                              acc_connection_status)
 							Values ($1, $2, $3)`
-	GetSagaConnectionsCurrentSaga = `SELECT * as list_of_connections
+	GetSagaConnectionsCurrentSaga = `SELECT * 
 						FROM saga_connection
 						WHERE current_saga_uuid = $1`
 	GetSagaConnectionsNextSaga = `SELECT * as list_of_connections
@@ -42,9 +42,10 @@ const (
 				saga_uuid,
 				event_status,
 				event_name,
+			   event_is_roll_back,
 				event_result,
 				event_rollback_uuid)
-				VALUES ($1, $2, $3, $4, $5, $6)`
+				VALUES ($1, $2, $3, $4, $5, $6, $7)`
 	GetEvent = `SELECT * 
 				FROM event
 				WHERE event_uuid = $1`
@@ -52,9 +53,8 @@ const (
 				WHERE event_uuid = $1`
 	UpdateEvent = `UPDATE event
 					SET event_status = $2,
-					    event_name = $3,
-					    event_result = $4,
-					    event_rollback_uuid = $5
+					    event_result = $3,
+					    event_rollback_uuid = $4
 					WHERE event_uuid = $1`
 	GetListOfSagaEvents = `SELECT event_uuid as list_of_events
 						FROM event

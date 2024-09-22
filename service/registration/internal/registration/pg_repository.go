@@ -8,7 +8,7 @@ import (
 )
 
 type Repository interface {
-	CreateSaga(ctx context.Context, saga models.Saga) error
+	CreateSaga(ctx context.Context, saga *models.Saga) error
 	GetSaga(ctx context.Context, id uuid.UUID) (*models.Saga, error)
 	DeleteSaga(ctx context.Context, saga_uuid uuid.UUID) error
 	UpdateSaga(ctx context.Context, saga *models.Saga) error

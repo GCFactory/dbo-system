@@ -7,6 +7,7 @@ var (
 	ErrorDeleteSaga                = errors.New("registrationRepo.DeleteSaga")
 	ErrorGetSaga                   = errors.New("registrationRepo.GetSaga")
 	ErrorUpdateSaga                = errors.New("registrationRepo.UpdateSaga.ExecContext")
+	ErrorUpdateSagaConnection      = errors.New("registrationRepo.UpdateSagaConnection.ExecContext")
 	ErrorCreateSagaConnection      = errors.New("registrationRepo.CreateSagaConnection")
 	ErrorGetSagaCurrentConnections = errors.New("registrationRepo.GetSagaCurrentConnections")
 	ErrorGetSagaNextConnections    = errors.New("registrationRepo.GetSagaNextConnections")

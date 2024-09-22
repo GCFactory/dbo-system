@@ -13,19 +13,31 @@ type registrationRepo struct {
 	db *sqlx.DB
 }
 
-func (repo registrationRepo) CreateSaga(ctx context.Context, saga models.Saga) error {
+func (repo registrationRepo) CreateSaga(ctx context.Context, saga *models.Saga) error {
+
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.CreateSaga")
 	defer span.Finish()
 
-	_, err := repo.db.ExecContext(ctxWithTrace,
+	tx, err := repo.db.BeginTx(ctxWithTrace, nil)
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	_, err = repo.db.ExecContext(ctxWithTrace,
 		CreateSaga,
-		&saga.Saga_uuid,
-		&saga.Saga_status,
-		&saga.Saga_type,
-		&saga.Saga_name,
+		saga.Saga_uuid,
+		saga.Saga_status,
+		saga.Saga_type,
+		saga.Saga_name,
 	)
 	if err != nil {
 		return ErrorCreateSaga
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
 	}
 
 	return nil
@@ -34,6 +46,13 @@ func (repo registrationRepo) CreateSaga(ctx context.Context, saga models.Saga) e
 func (repo registrationRepo) DeleteSaga(ctx context.Context, saga_uuid uuid.UUID) error {
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.DeleteSaga")
 	defer span.Finish()
+
+	tx, err := repo.db.BeginTx(ctxWithTrace, nil)
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
 
 	result, err := repo.db.ExecContext(ctxWithTrace,
 		DeleteSaga,
@@ -46,6 +65,10 @@ func (repo registrationRepo) DeleteSaga(ctx context.Context, saga_uuid uuid.UUID
 		return ErrorDeleteSaga
 	}
 
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -53,12 +76,23 @@ func (repo registrationRepo) GetSaga(ctx context.Context, id uuid.UUID) (*models
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.GetSaga")
 	defer span.Finish()
 
-	var result *models.Saga
+	tx, err := repo.db.BeginTx(ctxWithTrace, nil)
+	if err != nil {
+		return nil, err
+	}
 
-	if err := repo.db.QueryRowContext(ctxWithTrace,
+	defer tx.Rollback()
+
+	result := &models.Saga{}
+
+	if err := repo.db.QueryRowxContext(ctxWithTrace,
 		GetSaga,
-		id).Scan(&result); err != nil {
+		id).StructScan(result); err != nil {
 		return nil, ErrorGetSaga
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, err
 	}
 
 	return result, nil
@@ -67,6 +101,13 @@ func (repo registrationRepo) GetSaga(ctx context.Context, id uuid.UUID) (*models
 func (repo registrationRepo) UpdateSaga(ctx context.Context, saga *models.Saga) error {
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.UpdateSaga")
 	defer span.Finish()
+
+	tx, err := repo.db.BeginTx(ctxWithTrace, nil)
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
 
 	result, err := repo.db.ExecContext(ctxWithTrace,
 		UpdateSaga,
@@ -82,14 +123,26 @@ func (repo registrationRepo) UpdateSaga(ctx context.Context, saga *models.Saga) 
 		return ErrorUpdateSaga
 	}
 
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (repo registrationRepo) CreateSagaConnection(ctx context.Context, sagaConnection *models.SagaConnection) error {
+
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.CreateSagaConnection")
 	defer span.Finish()
 
-	_, err := repo.db.ExecContext(ctxWithTrace,
+	tx, err := repo.db.BeginTx(ctxWithTrace, nil)
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	_, err = repo.db.ExecContext(ctxWithTrace,
 		CreateSagaConnection,
 		&sagaConnection.Current_saga_uuid,
 		&sagaConnection.Next_saga_uuid,
@@ -100,12 +153,24 @@ func (repo registrationRepo) CreateSagaConnection(ctx context.Context, sagaConne
 		return ErrorCreateSagaConnection
 	}
 
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (repo registrationRepo) GetSagaConnectionsCurrentSaga(ctx context.Context, current_saga_uuid uuid.UUID) (*models.ListOfSagaConnections, error) {
+
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.GetSagaConnectionsCurrentSaga")
 	defer span.Finish()
+
+	tx, err := repo.db.BeginTx(ctxWithTrace, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
 
 	rows, err := repo.db.QueryxContext(
 		ctxWithTrace,
@@ -131,16 +196,28 @@ func (repo registrationRepo) GetSagaConnectionsCurrentSaga(ctx context.Context, 
 
 	}
 
+	if err = tx.Commit(); err != nil {
+		return nil, err
+	}
+
 	return result, nil
 }
 
 func (repo registrationRepo) GetSagaConnectionsNextSaga(ctx context.Context, next_saga_uuid uuid.UUID) (*models.ListOfSagaConnections, error) {
+
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.GetSagaConnectionsNextSaga")
 	defer span.Finish()
 
+	tx, err := repo.db.BeginTx(ctxWithTrace, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
 	rows, err := repo.db.QueryxContext(
 		ctxWithTrace,
-		GetSagaConnectionsCurrentSaga,
+		GetSagaConnectionsNextSaga,
 		&next_saga_uuid,
 	)
 
@@ -162,12 +239,24 @@ func (repo registrationRepo) GetSagaConnectionsNextSaga(ctx context.Context, nex
 
 	}
 
+	if err = tx.Commit(); err != nil {
+		return nil, err
+	}
+
 	return result, nil
 }
 
 func (repo registrationRepo) DeleteSagaConnection(ctx context.Context, sagaConnection *models.SagaConnection) error {
+
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.DeleteSagaConnection")
 	defer span.Finish()
+
+	tx, err := repo.db.BeginTx(ctxWithTrace, nil)
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
 
 	result, err := repo.db.ExecContext(ctxWithTrace,
 		DeleteSagaConnection,
@@ -180,23 +269,40 @@ func (repo registrationRepo) DeleteSagaConnection(ctx context.Context, sagaConne
 		return ErrorDeleteSagaConnection
 	}
 
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (repo registrationRepo) UpdateSagaConnection(ctx context.Context, sagaConnection *models.SagaConnection) error {
+
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.UpdateSagaConnection")
 	defer span.Finish()
+
+	tx, err := repo.db.BeginTx(ctxWithTrace, nil)
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
 
 	result, err := repo.db.ExecContext(ctxWithTrace,
 		UpdateSagaConnection,
 		&sagaConnection.Current_saga_uuid,
 		&sagaConnection.Next_saga_uuid,
+		&sagaConnection.Acc_connection_status,
 	)
 
 	if err != nil {
-		return ErrorUpdateSaga
+		return ErrorUpdateSagaConnection
 	} else if count, err := result.RowsAffected(); err != nil || count == 0 {
-		return ErrorUpdateSaga
+		return ErrorUpdateSagaConnection
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
 	}
 
 	return nil
@@ -208,15 +314,28 @@ func (repo registrationRepo) CreateEvent(ctx context.Context, event *models.Even
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.CreateEvent")
 	defer span.Finish()
 
+	tx, err := repo.db.BeginTx(ctxWithTrace, nil)
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
 	if _, err := repo.db.ExecContext(ctxWithTrace,
 		CreateEvent,
 		&event.Event_uuid,
+		&event.Saga_uuid,
 		&event.Event_status,
 		&event.Event_name,
+		&event.Event_is_roll_back,
 		&event.Event_result,
 		&event.Event_rollback_uuid,
 	); err != nil {
 		return ErrorCreateEvent
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
 	}
 
 	return nil
@@ -227,12 +346,23 @@ func (repo registrationRepo) GetEvent(ctx context.Context, id uuid.UUID) (*model
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.GetEvent")
 	defer span.Finish()
 
-	var result *models.Event
+	tx, err := repo.db.BeginTx(ctxWithTrace, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	result := &models.Event{}
 
 	if err := repo.db.QueryRowxContext(ctxWithTrace,
 		GetEvent,
-		id).StructScan(&result); err != nil {
+		id).StructScan(result); err != nil {
 		return nil, ErrorGetEvent
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, err
 	}
 
 	return result, nil
@@ -242,6 +372,13 @@ func (repo registrationRepo) DeleteEvent(ctx context.Context, event_uuid uuid.UU
 
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.DeleteEvent")
 	defer span.Finish()
+
+	tx, err := repo.db.BeginTx(ctxWithTrace, nil)
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
 
 	result, err := repo.db.ExecContext(ctxWithTrace,
 		DeleteEvent,
@@ -253,6 +390,10 @@ func (repo registrationRepo) DeleteEvent(ctx context.Context, event_uuid uuid.UU
 		return ErrorDeleteEvent
 	}
 
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -261,11 +402,17 @@ func (repo registrationRepo) UpdateEvent(ctx context.Context, event *models.Even
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.UpdateEvent")
 	defer span.Finish()
 
+	tx, err := repo.db.BeginTx(ctxWithTrace, nil)
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
 	result, err := repo.db.ExecContext(ctxWithTrace,
 		UpdateEvent,
 		&event.Event_uuid,
 		&event.Event_status,
-		&event.Event_name,
 		&event.Event_result,
 		&event.Event_rollback_uuid,
 	)
@@ -276,6 +423,10 @@ func (repo registrationRepo) UpdateEvent(ctx context.Context, event *models.Even
 		return ErrorUpdateEvent
 	}
 
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -283,6 +434,13 @@ func (repo registrationRepo) GetListOfSagaEvents(ctx context.Context, saga_uuid 
 
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.GetListOfSagaEvents")
 	defer span.Finish()
+
+	tx, err := repo.db.BeginTx(ctxWithTrace, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
 
 	rows, err := repo.db.QueryxContext(
 		ctxWithTrace,
@@ -304,6 +462,10 @@ func (repo registrationRepo) GetListOfSagaEvents(ctx context.Context, saga_uuid 
 		}
 
 		result.EventList = append(result.EventList, event_uuid)
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, err
 	}
 
 	return result, nil
