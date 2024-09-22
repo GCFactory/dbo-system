@@ -23,7 +23,6 @@ func (repo registrationRepo) CreateSaga(ctx context.Context, saga models.Saga) e
 		&saga.Saga_status,
 		&saga.Saga_type,
 		&saga.Saga_name,
-		&saga.Saga_list_of_events,
 	)
 	if err != nil {
 		return ErrorCreateSaga
@@ -75,7 +74,6 @@ func (repo registrationRepo) UpdateSaga(ctx context.Context, saga *models.Saga) 
 		&saga.Saga_status,
 		&saga.Saga_type,
 		&saga.Saga_name,
-		&saga.Saga_list_of_events,
 	)
 
 	if err != nil {
@@ -95,6 +93,7 @@ func (repo registrationRepo) CreateSagaConnection(ctx context.Context, sagaConne
 		CreateSagaConnection,
 		&sagaConnection.Current_saga_uuid,
 		&sagaConnection.Next_saga_uuid,
+		&sagaConnection.Acc_connection_status,
 	)
 
 	if err != nil {
@@ -104,16 +103,63 @@ func (repo registrationRepo) CreateSagaConnection(ctx context.Context, sagaConne
 	return nil
 }
 
-func (repo registrationRepo) GetSagaConnections(ctx context.Context, saga_uuid uuid.UUID) (*models.ListOfSagaConnections, error) {
-	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.GetSagaConnections")
+func (repo registrationRepo) GetSagaConnectionsCurrentSaga(ctx context.Context, current_saga_uuid uuid.UUID) (*models.ListOfSagaConnections, error) {
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.GetSagaConnectionsCurrentSaga")
 	defer span.Finish()
 
-	var result *models.ListOfSagaConnections
+	rows, err := repo.db.QueryxContext(
+		ctxWithTrace,
+		GetSagaConnectionsCurrentSaga,
+		&current_saga_uuid,
+	)
 
-	if err := repo.db.QueryRowxContext(ctxWithTrace,
-		GetSagaConnections,
-		&saga_uuid).StructScan(&result); err != nil {
-		return nil, ErrorGetSagaConnections
+	if err != nil {
+		return nil, ErrorGetSagaCurrentConnections
+	}
+
+	result := &models.ListOfSagaConnections{}
+
+	for rows.Next() {
+
+		saga_connection := &models.SagaConnection{}
+
+		if err := rows.StructScan(saga_connection); err != nil {
+			return nil, ErrorGetSagaCurrentConnections
+		}
+
+		result.List_of_connetcions = append(result.List_of_connetcions, saga_connection)
+
+	}
+
+	return result, nil
+}
+
+func (repo registrationRepo) GetSagaConnectionsNextSaga(ctx context.Context, next_saga_uuid uuid.UUID) (*models.ListOfSagaConnections, error) {
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.GetSagaConnectionsNextSaga")
+	defer span.Finish()
+
+	rows, err := repo.db.QueryxContext(
+		ctxWithTrace,
+		GetSagaConnectionsCurrentSaga,
+		&next_saga_uuid,
+	)
+
+	if err != nil {
+		return nil, ErrorGetSagaNextConnections
+	}
+
+	result := &models.ListOfSagaConnections{}
+
+	for rows.Next() {
+
+		saga_connection := &models.SagaConnection{}
+
+		if err := rows.StructScan(saga_connection); err != nil {
+			return nil, ErrorGetSagaNextConnections
+		}
+
+		result.List_of_connetcions = append(result.List_of_connetcions, saga_connection)
+
 	}
 
 	return result, nil
@@ -135,6 +181,26 @@ func (repo registrationRepo) DeleteSagaConnection(ctx context.Context, sagaConne
 	}
 
 	return nil
+}
+
+func (repo registrationRepo) UpdateSagaConnection(ctx context.Context, sagaConnection *models.SagaConnection) error {
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.UpdateSagaConnection")
+	defer span.Finish()
+
+	result, err := repo.db.ExecContext(ctxWithTrace,
+		UpdateSagaConnection,
+		&sagaConnection.Current_saga_uuid,
+		&sagaConnection.Next_saga_uuid,
+	)
+
+	if err != nil {
+		return ErrorUpdateSaga
+	} else if count, err := result.RowsAffected(); err != nil || count == 0 {
+		return ErrorUpdateSaga
+	}
+
+	return nil
+
 }
 
 func (repo registrationRepo) CreateEvent(ctx context.Context, event *models.Event) error {
@@ -218,13 +284,26 @@ func (repo registrationRepo) GetListOfSagaEvents(ctx context.Context, saga_uuid 
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.GetListOfSagaEvents")
 	defer span.Finish()
 
-	var result *models.SagaListEvents
-
-	if err := repo.db.QueryRowxContext(ctxWithTrace,
+	rows, err := repo.db.QueryxContext(
+		ctxWithTrace,
 		GetListOfSagaEvents,
 		saga_uuid,
-	).StructScan(&result); err != nil {
+	)
+
+	if err != nil {
 		return nil, ErrorGetListOfSagaEvents
+	}
+
+	result := &models.SagaListEvents{}
+
+	for rows.Next() {
+		var event_uuid uuid.UUID
+
+		if err := rows.Scan(&event_uuid); err != nil {
+			return nil, ErrorGetListOfSagaEvents
+		}
+
+		result.EventList = append(result.EventList, event_uuid)
 	}
 
 	return result, nil

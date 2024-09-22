@@ -13,7 +13,9 @@ type Repository interface {
 	DeleteSaga(ctx context.Context, saga_uuid uuid.UUID) error
 	UpdateSaga(ctx context.Context, saga *models.Saga) error
 	CreateSagaConnection(ctx context.Context, sagaConnection *models.SagaConnection) error
-	GetSagaConnections(ctx context.Context, saga_uuid uuid.UUID) (*models.ListOfSagaConnections, error)
+	GetSagaConnectionsCurrentSaga(ctx context.Context, current_saga_uuid uuid.UUID) (*models.ListOfSagaConnections, error)
+	GetSagaConnectionsNextSaga(ctx context.Context, next_saga_uuid uuid.UUID) (*models.ListOfSagaConnections, error)
+	UpdateSagaConnection(ctx context.Context, sagaConnection *models.SagaConnection) error
 	DeleteSagaConnection(ctx context.Context, sagaConnection *models.SagaConnection) error
 	CreateEvent(ctx context.Context, event *models.Event) error
 	GetEvent(ctx context.Context, id uuid.UUID) (*models.Event, error)
