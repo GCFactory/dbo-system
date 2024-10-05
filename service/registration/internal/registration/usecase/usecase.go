@@ -863,7 +863,11 @@ func (regUC registrationUC) CreateSagaTree(ctx context.Context, list_root_saga_t
 
 						err = regUC.registrationRepo.CreateSagaConnection(ctxWithTrace, saga_connection)
 						if err != nil {
-							// TODO: complete
+							err = regUC.ClearSagaTree(ctxWithTrace, saga_tree)
+							if err != nil {
+								return nil, err
+							}
+							return nil, ErrorInvalidSagaType
 						}
 					}
 				}
@@ -922,7 +926,7 @@ func (regUC registrationUC) FillNewSagaTreeLayer(ctx context.Context, saga_tree 
 	return result
 }
 
-func (regUC registrationUC) StartOperation(ctx context.Context, operation_type uint8) (result []*models.Event, error) {
+func (regUC registrationUC) StartOperation(ctx context.Context, operation_type uint8) (result []*models.Event, err error) {
 
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.StartOperation")
 	defer span.Finish()
@@ -932,7 +936,6 @@ func (regUC registrationUC) StartOperation(ctx context.Context, operation_type u
 	}
 
 	var list_of_root_saga []*models.Saga = nil
-	var err error
 
 	switch operation_type {
 	case OperationCreateUser:

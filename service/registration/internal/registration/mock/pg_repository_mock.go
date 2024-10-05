@@ -36,8 +36,22 @@ func (m *MockRepository) EXPECT() *MockRepositoryMockRecorder {
 	return m.recorder
 }
 
+// CreateEvent mocks base method.
+func (m *MockRepository) CreateEvent(ctx context.Context, event *models.Event) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateEvent", ctx, event)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateEvent indicates an expected call of CreateEvent.
+func (mr *MockRepositoryMockRecorder) CreateEvent(ctx, event interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateEvent", reflect.TypeOf((*MockRepository)(nil).CreateEvent), ctx, event)
+}
+
 // CreateSaga mocks base method.
-func (m *MockRepository) CreateSaga(ctx context.Context, saga models.Saga) error {
+func (m *MockRepository) CreateSaga(ctx context.Context, saga *models.Saga) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateSaga", ctx, saga)
 	ret0, _ := ret[0].(error)
@@ -48,6 +62,34 @@ func (m *MockRepository) CreateSaga(ctx context.Context, saga models.Saga) error
 func (mr *MockRepositoryMockRecorder) CreateSaga(ctx, saga interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSaga", reflect.TypeOf((*MockRepository)(nil).CreateSaga), ctx, saga)
+}
+
+// CreateSagaConnection mocks base method.
+func (m *MockRepository) CreateSagaConnection(ctx context.Context, sagaConnection *models.SagaConnection) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateSagaConnection", ctx, sagaConnection)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateSagaConnection indicates an expected call of CreateSagaConnection.
+func (mr *MockRepositoryMockRecorder) CreateSagaConnection(ctx, sagaConnection interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSagaConnection", reflect.TypeOf((*MockRepository)(nil).CreateSagaConnection), ctx, sagaConnection)
+}
+
+// DeleteEvent mocks base method.
+func (m *MockRepository) DeleteEvent(ctx context.Context, event_uuid uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteEvent", ctx, event_uuid)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteEvent indicates an expected call of DeleteEvent.
+func (mr *MockRepositoryMockRecorder) DeleteEvent(ctx, event_uuid interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteEvent", reflect.TypeOf((*MockRepository)(nil).DeleteEvent), ctx, event_uuid)
 }
 
 // DeleteSaga mocks base method.
@@ -64,45 +106,133 @@ func (mr *MockRepositoryMockRecorder) DeleteSaga(ctx, saga_uuid interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSaga", reflect.TypeOf((*MockRepository)(nil).DeleteSaga), ctx, saga_uuid)
 }
 
-// GetSagaById mocks base method.
-func (m *MockRepository) GetSagaById(ctx context.Context, saga_uuid uuid.UUID) (*models.Saga, error) {
+// DeleteSagaConnection mocks base method.
+func (m *MockRepository) DeleteSagaConnection(ctx context.Context, sagaConnection *models.SagaConnection) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSagaById", ctx, saga_uuid)
+	ret := m.ctrl.Call(m, "DeleteSagaConnection", ctx, sagaConnection)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteSagaConnection indicates an expected call of DeleteSagaConnection.
+func (mr *MockRepositoryMockRecorder) DeleteSagaConnection(ctx, sagaConnection interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSagaConnection", reflect.TypeOf((*MockRepository)(nil).DeleteSagaConnection), ctx, sagaConnection)
+}
+
+// GetEvent mocks base method.
+func (m *MockRepository) GetEvent(ctx context.Context, id uuid.UUID) (*models.Event, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEvent", ctx, id)
+	ret0, _ := ret[0].(*models.Event)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetEvent indicates an expected call of GetEvent.
+func (mr *MockRepositoryMockRecorder) GetEvent(ctx, id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEvent", reflect.TypeOf((*MockRepository)(nil).GetEvent), ctx, id)
+}
+
+// GetListOfSagaEvents mocks base method.
+func (m *MockRepository) GetListOfSagaEvents(ctx context.Context, saga_uuid uuid.UUID) (*models.SagaListEvents, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetListOfSagaEvents", ctx, saga_uuid)
+	ret0, _ := ret[0].(*models.SagaListEvents)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetListOfSagaEvents indicates an expected call of GetListOfSagaEvents.
+func (mr *MockRepositoryMockRecorder) GetListOfSagaEvents(ctx, saga_uuid interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetListOfSagaEvents", reflect.TypeOf((*MockRepository)(nil).GetListOfSagaEvents), ctx, saga_uuid)
+}
+
+// GetSaga mocks base method.
+func (m *MockRepository) GetSaga(ctx context.Context, id uuid.UUID) (*models.Saga, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSaga", ctx, id)
 	ret0, _ := ret[0].(*models.Saga)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetSagaById indicates an expected call of GetSagaById.
-func (mr *MockRepositoryMockRecorder) GetSagaById(ctx, saga_uuid interface{}) *gomock.Call {
+// GetSaga indicates an expected call of GetSaga.
+func (mr *MockRepositoryMockRecorder) GetSaga(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSagaById", reflect.TypeOf((*MockRepository)(nil).GetSagaById), ctx, saga_uuid)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSaga", reflect.TypeOf((*MockRepository)(nil).GetSaga), ctx, id)
 }
 
-// UpdateSagaEvents mocks base method.
-func (m *MockRepository) UpdateSagaEvents(ctx context.Context, saga_uuid uuid.UUID, events string) error {
+// GetSagaConnectionsCurrentSaga mocks base method.
+func (m *MockRepository) GetSagaConnectionsCurrentSaga(ctx context.Context, current_saga_uuid uuid.UUID) (*models.ListOfSagaConnections, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateSagaEvents", ctx, saga_uuid, events)
+	ret := m.ctrl.Call(m, "GetSagaConnectionsCurrentSaga", ctx, current_saga_uuid)
+	ret0, _ := ret[0].(*models.ListOfSagaConnections)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSagaConnectionsCurrentSaga indicates an expected call of GetSagaConnectionsCurrentSaga.
+func (mr *MockRepositoryMockRecorder) GetSagaConnectionsCurrentSaga(ctx, current_saga_uuid interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSagaConnectionsCurrentSaga", reflect.TypeOf((*MockRepository)(nil).GetSagaConnectionsCurrentSaga), ctx, current_saga_uuid)
+}
+
+// GetSagaConnectionsNextSaga mocks base method.
+func (m *MockRepository) GetSagaConnectionsNextSaga(ctx context.Context, next_saga_uuid uuid.UUID) (*models.ListOfSagaConnections, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSagaConnectionsNextSaga", ctx, next_saga_uuid)
+	ret0, _ := ret[0].(*models.ListOfSagaConnections)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSagaConnectionsNextSaga indicates an expected call of GetSagaConnectionsNextSaga.
+func (mr *MockRepositoryMockRecorder) GetSagaConnectionsNextSaga(ctx, next_saga_uuid interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSagaConnectionsNextSaga", reflect.TypeOf((*MockRepository)(nil).GetSagaConnectionsNextSaga), ctx, next_saga_uuid)
+}
+
+// UpdateEvent mocks base method.
+func (m *MockRepository) UpdateEvent(ctx context.Context, event *models.Event) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateEvent", ctx, event)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// UpdateSagaEvents indicates an expected call of UpdateSagaEvents.
-func (mr *MockRepositoryMockRecorder) UpdateSagaEvents(ctx, saga_uuid, events interface{}) *gomock.Call {
+// UpdateEvent indicates an expected call of UpdateEvent.
+func (mr *MockRepositoryMockRecorder) UpdateEvent(ctx, event interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSagaEvents", reflect.TypeOf((*MockRepository)(nil).UpdateSagaEvents), ctx, saga_uuid, events)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEvent", reflect.TypeOf((*MockRepository)(nil).UpdateEvent), ctx, event)
 }
 
-// UpdateSagaStatus mocks base method.
-func (m *MockRepository) UpdateSagaStatus(ctx context.Context, saga_uuid uuid.UUID, saga_status uint) error {
+// UpdateSaga mocks base method.
+func (m *MockRepository) UpdateSaga(ctx context.Context, saga *models.Saga) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateSagaStatus", ctx, saga_uuid, saga_status)
+	ret := m.ctrl.Call(m, "UpdateSaga", ctx, saga)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// UpdateSagaStatus indicates an expected call of UpdateSagaStatus.
-func (mr *MockRepositoryMockRecorder) UpdateSagaStatus(ctx, saga_uuid, saga_status interface{}) *gomock.Call {
+// UpdateSaga indicates an expected call of UpdateSaga.
+func (mr *MockRepositoryMockRecorder) UpdateSaga(ctx, saga interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSagaStatus", reflect.TypeOf((*MockRepository)(nil).UpdateSagaStatus), ctx, saga_uuid, saga_status)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSaga", reflect.TypeOf((*MockRepository)(nil).UpdateSaga), ctx, saga)
+}
+
+// UpdateSagaConnection mocks base method.
+func (m *MockRepository) UpdateSagaConnection(ctx context.Context, sagaConnection *models.SagaConnection) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateSagaConnection", ctx, sagaConnection)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateSagaConnection indicates an expected call of UpdateSagaConnection.
+func (mr *MockRepositoryMockRecorder) UpdateSagaConnection(ctx, sagaConnection interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSagaConnection", reflect.TypeOf((*MockRepository)(nil).UpdateSagaConnection), ctx, sagaConnection)
 }
