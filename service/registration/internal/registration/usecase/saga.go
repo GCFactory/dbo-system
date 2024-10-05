@@ -1,14 +1,129 @@
 package usecase
 
+import "github.com/GCFactory/dbo-system/service/registration/internal/models"
+
 const (
-	StatusUndefined uint = 0
-	StatusCreated   uint = 1
-	StatusInProcess uint = 2
-	StatusCompleted uint = 3
-	StatusFallBack  uint = 4
-	StatusError     uint = 255
+	SagaStatusUndefined         uint = 0
+	SagaStatusCreated           uint = 10
+	SagaStatusInProcess         uint = 20
+	SagaStatusCompleted         uint = 30
+	SagaStatusFallBackInProcess uint = 40
+	SagaStatusFallBackSuccess   uint = 50
+	SagaStatusFallBackError     uint = 60
+	SagaStatusError             uint = 255
 )
 
 const (
-	SagaRegistration uint = 0
+	SagaTypeCreateUser              string = "create_user"
+	SagaTypeReserveAccount          string = "reserve_account"
+	SagaTypeCreateAccount           string = "create_account"
+	SagaTypeOpenAccountAndAddToUser string = "open_account_and_add_to_user"
 )
+
+var PossibleSagaTypes = []string{
+	SagaTypeCreateUser,
+	SagaTypeReserveAccount,
+	SagaTypeCreateAccount,
+	SagaTypeOpenAccountAndAddToUser,
+}
+
+func ValidateSagaType(saga_type string) bool {
+
+	for i := 0; i < len(PossibleSagaTypes); i++ {
+		if PossibleSagaTypes[i] == saga_type {
+			return true
+		}
+	}
+
+	return false
+
+}
+
+const (
+	SagaGroupCreateUser    uint8 = 0
+	SagaGroupCreateAccount uint8 = 1
+)
+
+var PossibleSagaGroups = []uint8{
+	SagaGroupCreateUser,
+	SagaGroupCreateAccount,
+}
+
+func ValidateSagaGroup(saga_group uint8) bool {
+	for i := 0; i < len(PossibleSagaGroups); i++ {
+		if saga_group == PossibleSagaGroups[i] {
+			return true
+		}
+	}
+
+	return false
+}
+
+var PossibleEventsListForSagaType = map[string][]string{
+	SagaTypeCreateUser: {
+		EventTypeCreateUser,
+	},
+	SagaTypeReserveAccount: {
+		EventTypeReserveAccount,
+	},
+	SagaTypeCreateAccount: {
+		EventTypeCreateAccount,
+	},
+	SagaTypeOpenAccountAndAddToUser: {
+		EventTypeOpenAccount,
+		EventTypeAddAccountToUser,
+	},
+}
+
+var ListOfSagaDepend = map[string]models.SagaDepend{
+	SagaTypeCreateUser: {
+		Parents:  nil,
+		Children: nil,
+	},
+	SagaTypeReserveAccount: models.SagaDepend{
+		Parents: nil,
+		Children: []string{
+			SagaTypeCreateAccount,
+		},
+	},
+	SagaTypeCreateAccount: models.SagaDepend{
+		Parents: []string{
+			SagaTypeReserveAccount,
+		},
+		Children: []string{
+			SagaTypeOpenAccountAndAddToUser,
+		},
+	},
+	SagaTypeOpenAccountAndAddToUser: models.SagaDepend{
+		Parents: []string{
+			SagaTypeCreateAccount,
+		},
+		Children: nil,
+	},
+}
+
+const (
+	SagaConnectionStatusUnknown  uint8 = 0
+	SagaConnectionStatusWaiting  uint8 = 10
+	SagaConnectionStatusSuccess  uint8 = 20
+	SagaConnectionStatusFallBack uint8 = 30
+	SagaConnectionStatusFailed   uint8 = 255
+)
+
+var PossibleSagaConnectionStatus = []uint8{
+	SagaConnectionStatusUnknown,
+	SagaConnectionStatusWaiting,
+	SagaConnectionStatusSuccess,
+	SagaConnectionStatusFallBack,
+	SagaConnectionStatusFailed,
+}
+
+func ValidateSagaConnectionStatus(saga_connection_status uint8) bool {
+	for i := 0; i < len(PossibleSagaConnectionStatus); i++ {
+		if PossibleSagaConnectionStatus[i] == saga_connection_status {
+			return true
+		}
+	}
+
+	return false
+}
