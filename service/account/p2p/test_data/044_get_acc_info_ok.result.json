@@ -1,0 +1,17 @@
+{
+  "saga_uuid": "0123456789abcdef",
+  "event_uuid": "0123456789abcdef",
+  "operation_name": "get_acc_data",
+  "acc_data": {
+    "acc_details": {
+      "culc_number": "40705810990123456789",
+      "corr_number": "30125810502500000025",
+      "bic": "245025025",
+      "cio": "509910012",
+      "reserve_reason": "test reserve"
+    },
+    "acc_status": 10,
+    "acc_money_value": 0,
+    "acc_money_amount": 0
+  }
+}

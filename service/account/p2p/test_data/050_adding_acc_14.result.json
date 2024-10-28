@@ -1,0 +1,7 @@
+{
+  "saga_uuid": "0123456789abcdef",
+  "event_uuid": "0123456789abcdef",
+  "operation_name": "adding_acc",
+  "status": 14,
+  "info": "For this operation account has wrong status: blocked!"
+}
