@@ -482,12 +482,14 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 		// List of Saga's events
 		var events []*models.Event = nil
 
-		for _, event_uuid := range list_of_events.EventList {
-			event, err := regUC.registrationRepo.GetEvent(ctxWithTrace, event_uuid)
-			if err != nil {
-				return result, err
+		if list_of_events != nil {
+			for _, event_uuid := range list_of_events.EventList {
+				event, err := regUC.registrationRepo.GetEvent(ctxWithTrace, event_uuid)
+				if err != nil {
+					return result, err
+				}
+				events = append(events, event)
 			}
-			events = append(events, event)
 		}
 
 		switch saga.Saga_status {

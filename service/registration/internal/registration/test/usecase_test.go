@@ -49,6 +49,9 @@ func TestRegistrationUC_ProcessingSagaAndEvents(t *testing.T) {
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.ProcessingSagaAndEvents")
 	defer span.Finish()
 
+	//span, ctxWithTrace_2 := opentracing.StartSpanFromContext(ctxWithTrace, "registrationUC.ProcessingSagaAndEvents")
+	//defer span.Finish()
+
 	t.Parallel()
 
 	t.Run("Events", func(t *testing.T) {
@@ -213,6 +216,80 @@ func TestRegistrationUC_ProcessingSagaAndEvents(t *testing.T) {
 	})
 
 	t.Run("Sagas", func(t *testing.T) {
-		// TODO: complete
+		t.Run("Saga status error", func(t *testing.T) {
+			saga := &models.Saga{
+				Saga_uuid:   uuid.New(),
+				Saga_status: usecase.SagaStatusUndefined,
+				Saga_type:   usecase.SagaGroupCreateUser,
+				Saga_name:   usecase.SagaTypeCreateUser,
+			}
+
+			mockRepo.EXPECT().GetSaga(gomock.Eq(ctxWithTrace), gomock.Eq(saga.Saga_uuid)).Return(saga, nil)
+			mockRepo.EXPECT().GetListOfSagaEvents(gomock.Eq(ctxWithTrace), gomock.Eq(saga.Saga_uuid)).Return(nil, nil)
+
+			result, err := regUC.ProcessingSagaAndEvents(ctx, saga.Saga_uuid, uuid.Nil, true)
+			require.Nil(t, result)
+			require.Equal(t, usecase.ErrorInvalidSagaStatus, err)
+		})
+
+		t.Run("Saga created", func(t *testing.T) {
+
+			//saga := &models.Saga{
+			//	Saga_uuid:   uuid.New(),
+			//	Saga_status: usecase.SagaStatusCreated,
+			//	Saga_type:   usecase.SagaGroupCreateUser,
+			//	Saga_name:   usecase.SagaTypeCreateUser,
+			//}
+			//
+			//event_1 := &models.Event{
+			//	Event_uuid:          uuid.New(),
+			//	Saga_uuid:           saga.Saga_uuid,
+			//	Event_status:        usecase.EventStatusCreated,
+			//	Event_name:          usecase.EventTypeCreateUser,
+			//	Event_result:        "",
+			//	Event_rollback_uuid: uuid.Nil,
+			//	Event_is_roll_back:  false,
+			//}
+			//
+			//event_2 := &models.Event{
+			//	Event_uuid:          uuid.New(),
+			//	Saga_uuid:           saga.Saga_uuid,
+			//	Event_status:        usecase.EventStatusCreated,
+			//	Event_name:          usecase.EventTypeReserveAccount,
+			//	Event_result:        "",
+			//	Event_rollback_uuid: uuid.Nil,
+			//	Event_is_roll_back:  false,
+			//}
+			//
+			//var list_of_events_uuids_data []uuid.UUID = nil
+			//list_of_events_uuids_data = append(list_of_events_uuids_data, event_1.Event_uuid, event_2.Event_uuid)
+			//
+			//list_of_events_uuids := &models.SagaListEvents{
+			//	EventList: list_of_events_uuids_data,
+			//}
+			//
+			//var list_of_events []*models.Event = nil
+			//list_of_events = append(list_of_events, event_1, event_2)
+			//
+			//mockRepo.EXPECT().GetSaga(gomock.Eq(ctxWithTrace), gomock.Eq(saga.Saga_uuid)).Return(saga, nil)
+			//mockRepo.EXPECT().GetListOfSagaEvents(gomock.Eq(ctxWithTrace), gomock.Eq(saga.Saga_uuid)).Return(list_of_events_uuids, nil)
+			//
+			//mockRepo.EXPECT().GetEvent(gomock.Eq(ctxWithTrace_2), gomock.Eq(event_1.Event_uuid)).Return(event_1, nil)
+			//event_1.Event_status = usecase.EventStatusInProgress
+			//mockRepo.EXPECT().UpdateEvent(gomock.Eq(ctxWithTrace_2), gomock.Eq(event_1)).Return(nil)
+			//
+			//mockRepo.EXPECT().GetEvent(gomock.Eq(ctxWithTrace_2), gomock.Eq(event_2.Event_uuid)).Return(event_2, nil)
+			//event_2.Event_status = usecase.EventStatusInProgress
+			//mockRepo.EXPECT().UpdateEvent(gomock.Eq(ctxWithTrace_2), gomock.Eq(event_2)).Return(nil)
+			//
+			//saga.Saga_status = usecase.SagaStatusInProcess
+			//mockRepo.EXPECT().UpdateSaga(gomock.Eq(ctxWithTrace), gomock.Eq(saga)).Return(nil)
+			//
+			//saga.Saga_status = usecase.SagaStatusCreated
+			//result, err := regUC.ProcessingSagaAndEvents(ctx, saga.Saga_uuid, uuid.Nil, true)
+			//require.Nil(t, err)
+			//require.Equal(t, result, list_of_events)
+
+		})
 	})
 }
