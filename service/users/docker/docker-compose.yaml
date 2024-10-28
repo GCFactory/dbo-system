@@ -45,7 +45,7 @@ services:
 
   postgesql:
     image: postgres:14-alpine
-    container_name: api_postgesql
+    container_name: postgesql_users
     ports:
       - "5434:5432"
     restart: on-failure
@@ -54,7 +54,7 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=users
     volumes:
-      - ./.pgdata:/var/lib/postgresql/data
+      - ./.postgesql_users:/var/lib/postgresql/data_acc
     networks:
       - web_api
 
