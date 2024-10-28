@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/service/registration/config"
 	"github.com/GCFactory/dbo-system/service/registration/pkg/kafka"
@@ -94,17 +93,6 @@ func (s *Server) Run() error {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
 	go s.RunKafkaConsumer(ctxWithCancel, s.kafkaConsumerChan)
-	//// Remove example
-	go func() {
-		for i := 0; i < 10; i++ {
-			err := s.kafkaProducer.ProduceRecord("test", []byte("test message"))
-			if err != nil {
-				s.logger.Warnf("Error on produce: %v", err)
-			}
-			time.Sleep(time.Second * 10)
-		}
-	}()
-	//// Remove example
 
 	for {
 		select {
@@ -131,11 +119,8 @@ func (s *Server) Run() error {
 
 func (s *Server) RunKafkaConsumer(ctx context.Context, quitChan chan<- int) {
 	consumer := kafka.Consumer{
-		Ready: make(chan bool),
-		HandlerFunc: func(message *sarama.ConsumerMessage) error {
-			fmt.Printf("Message claimed: value = %s, timestamp = %v, topic = %s\n", string(message.Value), message.Timestamp, message.Topic)
-			return nil
-		},
+		Ready:       make(chan bool),
+		HandlerFunc: s.handleData,
 	}
 	for {
 		if err := s.kafkaConsumer.Consumer.Consume(ctx, s.cfg.KafkaConsumer.Topics, &consumer); err != nil {
@@ -153,4 +138,9 @@ func (s *Server) RunKafkaConsumer(ctx context.Context, quitChan chan<- int) {
 		s.logger.Info("Stopping kafka consumer...")
 		consumer.Ready = make(chan bool)
 	}
+}
+
+func (s *Server) handleData(message *sarama.ConsumerMessage) error {
+	// TODO: complete
+	return nil
 }

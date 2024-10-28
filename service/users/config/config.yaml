@@ -1,28 +1,26 @@
 version: 1.0.0
-http-server:
-  AppVersion: 1.0.0
-  Env: Development
-  Port: :8080
-  PprofPort: :5555
-  Mode: Development
-  JwtSecretKey: secretkey
-  CookieName: jwt-token
-  ReadTimeout: 5
-  WriteTimeout: 5
-  SSL: false
-  CtxDefaultTimeout: 12
-  CSRF: true
-  Debug: false
+#http-server:
+#  AppVersion: 1.0.0
+#  Env: Development
+#  Port: :8080
+#  PprofPort: :5555
+#  Mode: Development
+#  JwtSecretKey: secretkey
+#  CookieName: jwt-token
+#  ReadTimeout: 5
+#  WriteTimeout: 5
+#  SSL: false
+#  CtxDefaultTimeout: 12
+#  CSRF: true
+#  Debug: false
 
 kafkaConsumer:
-  #brokers: localhost:9092;locahost:9091
   brokers: localhost:9092
   groupID: users-group
   topics:
     - users_cons
 
 kafkaProducer:
-  #brokers: localhost:9092;locahost:9091
   brokers: localhost:9092
   topics:
     - users_res
@@ -47,10 +45,10 @@ logger:
 
 postgres:
   PostgresqlHost: localhost
-  PostgresqlPort: 5433
+  PostgresqlPort: 5434
   PostgresqlUser: postgres
   PostgresqlPassword: postgres
-  PostgresqlDbname: main
+  PostgresqlDbname: users
   PostgresqlSSLMode: false
   PgDriver: pgx
 

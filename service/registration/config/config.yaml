@@ -15,17 +15,19 @@ http-server:
   Debug: false
 
 kafkaConsumer:
-  #brokers: localhost:9092;locahost:9091
   brokers: localhost:9092
-  groupID: group-1
+  groupID: registration-group
   topics:
-    - test
+    - users_ok
+    - users_err
+    - acc_ok
+    - acc_err
 
 kafkaProducer:
-  #brokers: localhost:9092;locahost:9091
   brokers: localhost:9092
   topics:
-    - test
+    - users
+    - acc
 
 jaeger:
   Host: localhost:6831
@@ -46,10 +48,10 @@ logger:
 
 postgres:
   PostgresqlHost: localhost
-  PostgresqlPort: 5432
+  PostgresqlPort: 5433
   PostgresqlUser: postgres
   PostgresqlPassword: postgres
-  PostgresqlDbname: main
+  PostgresqlDbname: registration
   PostgresqlSSLMode: false
   PgDriver: pgx
 

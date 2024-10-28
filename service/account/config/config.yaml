@@ -47,10 +47,10 @@ logger:
 
 postgres:
   PostgresqlHost: localhost
-  PostgresqlPort: 5433
+  PostgresqlPort: 5435
   PostgresqlUser: postgres
   PostgresqlPassword: postgres
-  PostgresqlDbname: main
+  PostgresqlDbname: account
   PostgresqlSSLMode: false
   PgDriver: pgx
 
