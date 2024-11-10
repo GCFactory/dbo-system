@@ -20,4 +20,5 @@ var (
 	ErrorInvalidEventStatus             = errors.New("Invalid event status")
 	ErrorInvalidSagaStatus              = errors.New("Invalid saga status")
 	ErrorNoReventEvent                  = errors.New("No revent event")
+	ErrorEventDataNotExist              = errors.New("Event data not exist")
 )

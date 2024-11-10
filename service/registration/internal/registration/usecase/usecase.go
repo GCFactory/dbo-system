@@ -2,8 +2,8 @@ package usecase
 
 import (
 	"context"
-	"github.com/GCFactory/dbo-system/platform/config"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
+	"github.com/GCFactory/dbo-system/service/registration/config"
 	"github.com/GCFactory/dbo-system/service/registration/internal/models"
 	"github.com/GCFactory/dbo-system/service/registration/internal/registration"
 	"github.com/GCFactory/dbo-system/service/registration/internal/registration/repository"
@@ -53,13 +53,20 @@ func (regUC registrationUC) CreateEvent(ctx context.Context, event_type string, 
 		}
 	}
 
+	event_data, ok := EventListOfData[event_type]
+	if !ok {
+		return nil, ErrorEventDataNotExist
+	}
+
 	local_event := &models.Event{
 		Event_uuid:          uuid.New(),
 		Saga_uuid:           saga_uuid,
 		Event_is_roll_back:  is_fall_back,
 		Event_rollback_uuid: revet_event_uuid,
+		Event_required_data: event_data,
 		Event_name:          event_type,
 		Event_status:        EventStatusCreated,
+		Event_result:        "{}",
 	}
 
 	err = regUC.registrationRepo.CreateEvent(ctxWithTrace, local_event)
@@ -67,10 +74,12 @@ func (regUC registrationUC) CreateEvent(ctx context.Context, event_type string, 
 		return nil, err
 	}
 
-	revert_event.Event_rollback_uuid = local_event.Event_uuid
-	err = regUC.registrationRepo.UpdateEvent(ctxWithTrace, revert_event)
-	if err != nil {
-		return nil, err
+	if revert_event != nil {
+		revert_event.Event_rollback_uuid = local_event.Event_uuid
+		err = regUC.registrationRepo.UpdateEvent(ctxWithTrace, revert_event)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return local_event, nil
@@ -154,7 +163,7 @@ func (regUC registrationUC) DeleteEvent(ctx context.Context, event_uuid uuid.UUI
 	return nil
 }
 
-func (regUC registrationUC) CreateSaga(ctx context.Context, saga_type string, saga_group uint8) (saga *models.Saga, err error) {
+func (regUC registrationUC) CreateSaga(ctx context.Context, saga_type string, saga_group uint8, saga_data map[string]interface{}) (saga *models.Saga, err error) {
 
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.CreateSaga")
 	defer span.Finish()
@@ -170,6 +179,7 @@ func (regUC registrationUC) CreateSaga(ctx context.Context, saga_type string, sa
 		Saga_status: SagaStatusUndefined,
 		Saga_type:   saga_group,
 		Saga_name:   saga_type,
+		Saga_data:   saga_data,
 	}
 
 	err = regUC.registrationRepo.CreateSaga(ctxWithTrace, saga)
@@ -195,13 +205,13 @@ func (regUC registrationUC) CreateSaga(ctx context.Context, saga_type string, sa
 			}
 			return nil, ErrorInvalidEventType
 		}
-		_, err := regUC.CreateEvent(ctxWithTrace, event_type, saga.Saga_uuid, false, uuid.Nil)
-		if err != nil {
+		_, local_err := regUC.CreateEvent(ctxWithTrace, event_type, saga.Saga_uuid, false, uuid.Nil)
+		if local_err != nil {
 			err = regUC.DeleteSaga(ctxWithTrace, saga.Saga_uuid)
 			if err != nil {
 				return nil, err
 			}
-			return nil, err
+			return nil, local_err
 		}
 	}
 
@@ -362,7 +372,7 @@ func (regUC registrationUC) DeleteSaga(ctx context.Context, saga_uuid uuid.UUID)
 
 }
 
-func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uuid uuid.UUID, event_uuid uuid.UUID, success bool) (result []*models.Event, err error) {
+func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uuid uuid.UUID, event_uuid uuid.UUID, success bool, data map[string]interface{}) (result []*models.Event, err error) {
 
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.ProcessingSagaAndEvents")
 	defer span.Finish()
@@ -383,12 +393,21 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 			}
 		case EventStatusCreated:
 			{
-				event.Event_status = EventStatusInProgress
-				err = regUC.registrationRepo.UpdateEvent(ctxWithTrace, event)
-				if err != nil {
-					return result, err
+				if regUC.CheckEventDataIsReady(ctxWithTrace, saga_uuid, event_uuid) {
+					event.Event_status = EventStatusInProgress
+					err = regUC.registrationRepo.UpdateEvent(ctxWithTrace, event)
+					if err != nil {
+						return result, err
+					}
+					result = append(result, event)
+				} else {
+					event.Event_status = EventStatusError
+					event.Event_result = "{ \"Local error\": \"Event hasn't got all data from saga!\"}"
+					err = regUC.registrationRepo.UpdateEvent(ctxWithTrace, event)
+					if err != nil {
+						return result, err
+					}
 				}
-				result = append(result, event)
 			}
 		case EventStatusInProgress:
 			{
@@ -399,7 +418,7 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 						return result, err
 					}
 					if event.Event_is_roll_back {
-						new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, uuid.Nil, event.Event_rollback_uuid, true)
+						new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, uuid.Nil, event.Event_rollback_uuid, true, nil)
 						if err != nil {
 							return result, err
 						}
@@ -412,7 +431,7 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 						return result, err
 					}
 					if event.Event_is_roll_back {
-						new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, uuid.Nil, event.Event_rollback_uuid, false)
+						new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, uuid.Nil, event.Event_rollback_uuid, false, nil)
 						if err != nil {
 							return result, err
 						}
@@ -431,6 +450,11 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 						return result, ErrorNoReventEvent
 					}
 					result = append(result, new_event)
+				} else {
+					err = regUC.SetOrUpdateSagaData(ctxWithTrace, event.Saga_uuid, data)
+					if err != nil {
+						return result, err
+					}
 				}
 			}
 		case EventStatusFallBackInProcess:
@@ -500,7 +524,7 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 		case SagaStatusCreated:
 			{
 				for _, event := range events {
-					new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, uuid.Nil, event.Event_uuid, true)
+					new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, uuid.Nil, event.Event_uuid, true, nil)
 					if err != nil {
 						return result, err
 					}
@@ -531,7 +555,7 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 					if err != nil {
 						return result, err
 					}
-					new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, saga_uuid, uuid.Nil, true)
+					new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, saga_uuid, uuid.Nil, true, nil)
 					if err != nil {
 						return result, err
 					}
@@ -544,7 +568,7 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 					if err != nil {
 						return result, err
 					}
-					new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, saga_uuid, uuid.Nil, true)
+					new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, saga_uuid, uuid.Nil, true, nil)
 					if err != nil {
 						return result, err
 					}
@@ -565,7 +589,12 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 						if err != nil {
 							return result, err
 						}
-						new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, connection.Next_saga_uuid, uuid.Nil, true)
+						err = regUC.SetOrUpdateSagaData(ctxWithTrace, connection.Next_saga_uuid, data)
+						if err != nil {
+							return result, err
+						}
+
+						new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, connection.Next_saga_uuid, uuid.Nil, true, nil)
 						if err != nil {
 							return result, err
 						}
@@ -577,7 +606,7 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 						if connection.Acc_connection_status != SagaConnectionStatusFallBack {
 							all_child_reverts = false
 							if connection.Acc_connection_status == SagaConnectionStatusSuccess {
-								new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, connection.Next_saga_uuid, uuid.Nil, false)
+								new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, connection.Next_saga_uuid, uuid.Nil, false, nil)
 								if err != nil {
 									return result, err
 								}
@@ -622,7 +651,7 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 					if err != nil {
 						return result, err
 					}
-					new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, saga_uuid, uuid.Nil, true)
+					new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, saga_uuid, uuid.Nil, true, nil)
 					if err != nil {
 						return result, err
 					}
@@ -636,7 +665,7 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 						return result, err
 					}
 
-					new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, saga_uuid, uuid.Nil, true)
+					new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, saga_uuid, uuid.Nil, true, nil)
 					if err != nil {
 						return result, err
 					}
@@ -655,7 +684,7 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 					if err != nil {
 						return result, err
 					}
-					new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, saga_uuid, uuid.Nil, false)
+					new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, saga_uuid, uuid.Nil, false, nil)
 					if err != nil {
 						return result, err
 					}
@@ -691,7 +720,7 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 						if err != nil {
 							return result, err
 						}
-						new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, saga_uuid, uuid.Nil, false)
+						new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, saga_uuid, uuid.Nil, false, nil)
 						if err != nil {
 							return result, err
 						}
@@ -715,7 +744,7 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 								return result, ErrorNoReventEvent
 							}
 							result = append(result, reverted_event)
-							new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, uuid.Nil, reverted_event.Event_uuid, true)
+							new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, uuid.Nil, reverted_event.Event_uuid, true, nil)
 							if err != nil {
 								return result, err
 							}
@@ -735,7 +764,7 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 						if err != nil {
 							return result, err
 						}
-						new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, connection.Current_saga_uuid, uuid.Nil, false)
+						new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, connection.Current_saga_uuid, uuid.Nil, false, nil)
 						if err != nil {
 							return result, err
 						}
@@ -756,7 +785,59 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 
 }
 
-func (regUC registrationUC) CreateSagaTree(ctx context.Context, list_root_saga_types []string, saga_group uint8) (list_root_saga []*models.Saga, err error) {
+func (regUC registrationUC) GetEventData(ctx context.Context, event_uuid uuid.UUID) (result map[string]interface{}, err error) {
+	result = make(map[string]interface{})
+	err = nil
+
+	event, err := regUC.registrationRepo.GetEvent(ctx, event_uuid)
+	if err != nil {
+		return result, err
+	}
+	saga, err := regUC.registrationRepo.GetSaga(ctx, event.Saga_uuid)
+	if err != nil {
+		return result, err
+	}
+
+	saga_data := saga.Saga_data
+	if regUC.CheckEventDataIsReady(ctx, saga.Saga_uuid, event_uuid) {
+		for _, field := range event.Event_required_data {
+			result[field] = saga_data[field]
+		}
+	} else {
+		return result, ErrorEventDataNotExist
+	}
+
+	return result, err
+}
+
+func (regUC registrationUC) SetOrUpdateSagaData(ctx context.Context, saga_uuid uuid.UUID, new_saga_data map[string]interface{}) (err error) {
+	err = nil
+
+	if new_saga_data == nil {
+		return err
+	}
+
+	saga, err := regUC.registrationRepo.GetSaga(ctx, saga_uuid)
+	if err != nil {
+		return err
+	}
+
+	saga_data := saga.Saga_data
+
+	for key, value := range new_saga_data {
+		saga_data[key] = value
+	}
+
+	saga.Saga_data = saga_data
+	err = regUC.registrationRepo.UpdateSaga(ctx, saga)
+	if err != nil {
+		return err
+	}
+
+	return err
+}
+
+func (regUC registrationUC) CreateSagaTree(ctx context.Context, list_root_saga_types []string, saga_group uint8, start_data map[string]interface{}) (list_root_saga []*models.Saga, err error) {
 
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.CreateSagaTree")
 	defer span.Finish()
@@ -765,7 +846,7 @@ func (regUC registrationUC) CreateSagaTree(ctx context.Context, list_root_saga_t
 
 	// create root layer of saga tree
 	for _, saga_type := range list_root_saga_types {
-		saga, err := regUC.CreateSaga(ctxWithTrace, saga_type, saga_group)
+		saga, err := regUC.CreateSaga(ctxWithTrace, saga_type, saga_group, start_data)
 		if err != nil {
 			if list_root_saga != nil {
 				for _, saga := range list_root_saga {
@@ -780,15 +861,15 @@ func (regUC registrationUC) CreateSagaTree(ctx context.Context, list_root_saga_t
 		list_root_saga = append(list_root_saga, saga)
 	}
 
-	var saga_tree map[uint8][]*models.Saga = nil
+	var saga_tree map[uint8][]*models.Saga = make(map[uint8][]*models.Saga)
 
 	layer_number := uint8(0)
 	saga_tree[layer_number] = list_root_saga
 
 	layer_number++
 
-	var previous_saga_tree_layer map[string]*models.Saga = nil
-	var current_saga_tree_layer map[string]*models.Saga = nil
+	var previous_saga_tree_layer map[string]*models.Saga = make(map[string]*models.Saga)
+	var current_saga_tree_layer map[string]*models.Saga = make(map[string]*models.Saga)
 
 	// fill previous_saga_tree_layer_types
 	for _, saga := range list_root_saga {
@@ -818,7 +899,7 @@ func (regUC registrationUC) CreateSagaTree(ctx context.Context, list_root_saga_t
 				}
 				_, is_exist = current_saga_tree_layer[child_type]
 				if !is_exist {
-					saga_child, local_err := regUC.CreateSaga(ctxWithTrace, child_type, saga_group)
+					saga_child, local_err := regUC.CreateSaga(ctxWithTrace, child_type, saga_group, nil)
 					if local_err != nil {
 						saga_tree = regUC.FillNewSagaTreeLayer(ctxWithTrace, saga_tree, layer_number, current_saga_tree_layer)
 						err = regUC.ClearSagaTree(ctxWithTrace, saga_tree)
@@ -928,7 +1009,7 @@ func (regUC registrationUC) FillNewSagaTreeLayer(ctx context.Context, saga_tree 
 	return result
 }
 
-func (regUC registrationUC) StartOperation(ctx context.Context, operation_type uint8) (result []*models.Event, err error) {
+func (regUC registrationUC) StartOperation(ctx context.Context, operation_type uint8, start_data map[string]interface{}) (result []*models.Event, err error) {
 
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.StartOperation")
 	defer span.Finish()
@@ -946,7 +1027,7 @@ func (regUC registrationUC) StartOperation(ctx context.Context, operation_type u
 			if !is_exist {
 				return nil, ErrorNoRootsSagas
 			}
-			list_of_root_saga, err = regUC.CreateSagaTree(ctxWithTrace, list_of_root_saga_types, operation_type)
+			list_of_root_saga, err = regUC.CreateSagaTree(ctxWithTrace, list_of_root_saga_types, operation_type, start_data)
 			if err != nil {
 				return nil, err
 			}
@@ -958,7 +1039,7 @@ func (regUC registrationUC) StartOperation(ctx context.Context, operation_type u
 	result = nil
 
 	for _, saga := range list_of_root_saga {
-		new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, saga.Saga_uuid, uuid.Nil, true)
+		new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, saga.Saga_uuid, uuid.Nil, true, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -966,6 +1047,32 @@ func (regUC registrationUC) StartOperation(ctx context.Context, operation_type u
 	}
 
 	return result, nil
+}
+
+func (regUC registrationUC) CheckEventDataIsReady(ctx context.Context, event_uuid uuid.UUID, saga_uuid uuid.UUID) (result bool) {
+	result = true
+
+	saga, err := regUC.registrationRepo.GetSaga(ctx, event_uuid)
+	if err != nil {
+		result = false
+	} else {
+		event, err := regUC.registrationRepo.GetEvent(ctx, event_uuid)
+		if err != nil {
+			result = false
+		} else {
+			saga_data := saga.Saga_data
+			event_fields := event.Event_required_data
+
+			for _, field := range event_fields {
+				if _, ok := saga_data[field]; !ok {
+					result = false
+					break
+				}
+			}
+		}
+	}
+
+	return result
 }
 
 func NewRegistrationUseCase(cfg *config.Config, registration_repo registration.Repository, log logger.Logger) registration.UseCase {

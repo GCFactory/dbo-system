@@ -4,11 +4,20 @@ import (
 	"github.com/google/uuid"
 )
 
-type Saga struct {
+type SagaFromDB struct {
 	Saga_uuid   uuid.UUID `json:"saga_uuid" db:"saga_uuid" validate:"len=36 required uuid"`
 	Saga_status uint      `json:"saga_status" db:"saga_status" validate:"min=0 max=255 required"`
 	Saga_type   uint8     `json:"saga_type" db:"saga_type" validate:"min=0 max=9 required"`
 	Saga_name   string    `json:"saga_name" db:"saga_name" validate:"max=50 required"`
+	Saga_data   string    `json:"saga_data" db:"saga_data" validate:"required_with"`
+}
+
+type Saga struct {
+	Saga_uuid   uuid.UUID              `json:"saga_uuid" db:"saga_uuid" validate:"len=36 required uuid"`
+	Saga_status uint                   `json:"saga_status" db:"saga_status" validate:"min=0 max=255 required"`
+	Saga_type   uint8                  `json:"saga_type" db:"saga_type" validate:"min=0 max=9 required"`
+	Saga_name   string                 `json:"saga_name" db:"saga_name" validate:"max=50 required"`
+	Saga_data   map[string]interface{} `json:"saga_data" db:"saga_data" validate:"required_with"`
 }
 
 type Event struct {
@@ -18,6 +27,17 @@ type Event struct {
 	Event_name          string    `json:"event_name" db:"event_name" validate:"max=64 required"`
 	Event_is_roll_back  bool      `json:"event_is_roll_back" db:"event_is_roll_back" validate:"bool required"`
 	Event_result        string    `json:"event_result" db:"event_result" validate:"json required"`
+	Event_required_data []string  `json:"event_required_data" db:"event_required_data" validate:"json required"`
+	Event_rollback_uuid uuid.UUID `json:"event_rollback_uuid" db:"event_rollback_uuid" validate:"len=36 required uuid"`
+}
+type EventFromDB struct {
+	Event_uuid          uuid.UUID `json:"event_uuid" db:"event_uuid" validate:"len=36 required uuid"`
+	Saga_uuid           uuid.UUID `json:"saga_uuid" db:"saga_uuid" validate:"len=36 required uuid"`
+	Event_status        uint8     `json:"event_status" db:"event_status" validate:"min=0 max=255 required"`
+	Event_name          string    `json:"event_name" db:"event_name" validate:"max=64 required"`
+	Event_is_roll_back  bool      `json:"event_is_roll_back" db:"event_is_roll_back" validate:"bool required"`
+	Event_result        string    `json:"event_result" db:"event_result" validate:"json required"`
+	Event_required_data string    `json:"event_required_data" db:"event_required_data" validate:"json required"`
 	Event_rollback_uuid uuid.UUID `json:"event_rollback_uuid" db:"event_rollback_uuid" validate:"len=36 required uuid"`
 }
 

@@ -60,6 +60,13 @@ func ValidateEventStatus(status uint8) bool {
 	return false
 }
 
+var EventListOfData = map[string][]string{
+	EventTypeCreateUser: []string{
+		"passport_data",
+		"user_inn",
+	},
+}
+
 const (
 // Here will be reverts events
 )

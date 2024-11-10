@@ -5,6 +5,10 @@ import (
 	"errors"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/service/registration/config"
+	"github.com/GCFactory/dbo-system/service/registration/internal/registration"
+	"github.com/GCFactory/dbo-system/service/registration/internal/registration/grpc"
+	"github.com/GCFactory/dbo-system/service/registration/internal/registration/repository"
+	"github.com/GCFactory/dbo-system/service/registration/internal/registration/usecase"
 	"github.com/GCFactory/dbo-system/service/registration/pkg/kafka"
 	"github.com/IBM/sarama"
 	"github.com/jmoiron/sqlx"
@@ -33,6 +37,7 @@ type Server struct {
 	cfg           *config.Config
 	db            *sqlx.DB
 	logger        logger.Logger
+	grpcH         registration.RegistrationGRPCHandlers
 	// Channel to control goroutines
 	kafkaConsumerChan chan int
 }
@@ -47,6 +52,21 @@ func NewServer(cfg *config.Config, kConsumer *kafka.ConsumerGroup, kProducer *ka
 		kafkaConsumerChan: make(chan int, 3),
 		kafkaProducer:     kProducer,
 	}
+	RepoRegistration := repository.NewRegistrationRepository(
+		server.db,
+	)
+	UCHandlers := usecase.NewRegistrationUseCase(
+		cfg,
+		RepoRegistration,
+		server.logger,
+	)
+	grpcHandlers := grpc.NewRegistrationGRPCHandlers(
+		cfg,
+		kProducer,
+		UCHandlers,
+		server.logger,
+	)
+	server.grpcH = grpcHandlers
 	server.echo.HidePort = true
 	server.echo.HideBanner = true
 	return &server
@@ -122,6 +142,13 @@ func (s *Server) RunKafkaConsumer(ctx context.Context, quitChan chan<- int) {
 		Ready:       make(chan bool),
 		HandlerFunc: s.handleData,
 	}
+
+	// TODO: remove
+	test_data := make(map[string]interface{})
+	test_data["user_inn"] = "agjsdjasdjhgasjhgdjhgasdjgh"
+	s.grpcH.StartOperation(ctx, usecase.OperationCreateUser, test_data)
+	// TODO: remove
+
 	for {
 		if err := s.kafkaConsumer.Consumer.Consume(ctx, s.cfg.KafkaConsumer.Topics, &consumer); err != nil {
 			if errors.Is(err, sarama.ErrClosedConsumerGroup) {

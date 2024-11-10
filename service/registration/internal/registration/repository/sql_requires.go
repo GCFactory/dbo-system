@@ -5,8 +5,9 @@ const (
                   saga_uuid, 
                   saga_status, 
                   saga_type, 
-                  saga_name)
-				VALUES ($1, $2, $3, $4)`
+                  saga_name,
+                  saga_data)
+				VALUES ($1, $2, $3, $4, $5)`
 	DeleteSaga = `DELETE FROM saga 
        			WHERE saga_uuid=$1`
 	GetSaga = `SELECT * FROM saga 
@@ -14,7 +15,8 @@ const (
 	UpdateSaga = `UPDATE saga 
 				SET saga_status = $2,
 				    saga_type = $3,
-				    saga_name = $4
+				    saga_name = $4,
+				    saga_data = $5
 				WHERE saga_uuid = $1`
 	CreateSagaConnection = `INSERT INTO saga_connection (
                         	current_saga_uuid,
@@ -42,10 +44,11 @@ const (
 				saga_uuid,
 				event_status,
 				event_name,
-			   event_is_roll_back,
+			   	event_is_roll_back,
+			   	event_required_data,
 				event_result,
 				event_rollback_uuid)
-				VALUES ($1, $2, $3, $4, $5, $6, $7)`
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
 	GetEvent = `SELECT * 
 				FROM event
 				WHERE event_uuid = $1`
@@ -53,8 +56,9 @@ const (
 				WHERE event_uuid = $1`
 	UpdateEvent = `UPDATE event
 					SET event_status = $2,
-					    event_result = $3,
-					    event_rollback_uuid = $4
+					    event_required_data = $3,
+					    event_result = $4,
+					    event_rollback_uuid = $5
 					WHERE event_uuid = $1`
 	GetListOfSagaEvents = `SELECT event_uuid as list_of_events
 						FROM event

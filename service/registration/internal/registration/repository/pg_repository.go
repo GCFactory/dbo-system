@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"encoding/json"
 	"github.com/GCFactory/dbo-system/service/registration/internal/models"
 	"github.com/GCFactory/dbo-system/service/registration/internal/registration"
 	"github.com/google/uuid"
@@ -25,12 +26,18 @@ func (repo registrationRepo) CreateSaga(ctx context.Context, saga *models.Saga) 
 
 	defer tx.Rollback()
 
+	saga_data, err := json.Marshal(saga.Saga_data)
+	if err != nil {
+		return ErrorCreateSaga
+	}
+
 	_, err = repo.db.ExecContext(ctxWithTrace,
 		CreateSaga,
 		saga.Saga_uuid,
 		saga.Saga_status,
 		saga.Saga_type,
 		saga.Saga_name,
+		saga_data,
 	)
 	if err != nil {
 		return ErrorCreateSaga
@@ -83,12 +90,26 @@ func (repo registrationRepo) GetSaga(ctx context.Context, id uuid.UUID) (*models
 
 	defer tx.Rollback()
 
-	result := &models.Saga{}
+	data := &models.SagaFromDB{}
 
 	if err := repo.db.QueryRowxContext(ctxWithTrace,
 		GetSaga,
-		id).StructScan(result); err != nil {
+		id).StructScan(data); err != nil {
 		return nil, ErrorGetSaga
+	}
+
+	saga_data := make(map[string]interface{})
+	err = json.Unmarshal([]byte(data.Saga_data), &saga_data)
+	if err != nil {
+		return nil, ErrorGetSaga
+	}
+
+	result := &models.Saga{
+		Saga_uuid:   data.Saga_uuid,
+		Saga_name:   data.Saga_name,
+		Saga_type:   data.Saga_type,
+		Saga_status: data.Saga_status,
+		Saga_data:   saga_data,
 	}
 
 	if err = tx.Commit(); err != nil {
@@ -109,12 +130,18 @@ func (repo registrationRepo) UpdateSaga(ctx context.Context, saga *models.Saga) 
 
 	defer tx.Rollback()
 
+	saga_data, err := json.Marshal(saga.Saga_data)
+	if err != nil {
+		return ErrorUpdateSaga
+	}
+
 	result, err := repo.db.ExecContext(ctxWithTrace,
 		UpdateSaga,
 		&saga.Saga_uuid,
 		&saga.Saga_status,
 		&saga.Saga_type,
 		&saga.Saga_name,
+		saga_data,
 	)
 
 	if err != nil {
@@ -321,6 +348,11 @@ func (repo registrationRepo) CreateEvent(ctx context.Context, event *models.Even
 
 	defer tx.Rollback()
 
+	event_data, err := json.Marshal(event.Event_required_data)
+	if err != nil {
+		return ErrorCreateEvent
+	}
+
 	if _, err := repo.db.ExecContext(ctxWithTrace,
 		CreateEvent,
 		&event.Event_uuid,
@@ -328,6 +360,7 @@ func (repo registrationRepo) CreateEvent(ctx context.Context, event *models.Even
 		&event.Event_status,
 		&event.Event_name,
 		&event.Event_is_roll_back,
+		event_data,
 		&event.Event_result,
 		&event.Event_rollback_uuid,
 	); err != nil {
@@ -353,12 +386,28 @@ func (repo registrationRepo) GetEvent(ctx context.Context, id uuid.UUID) (*model
 
 	defer tx.Rollback()
 
-	result := &models.Event{}
+	event_data := &models.EventFromDB{}
 
 	if err := repo.db.QueryRowxContext(ctxWithTrace,
 		GetEvent,
-		id).StructScan(result); err != nil {
+		id).StructScan(event_data); err != nil {
 		return nil, ErrorGetEvent
+	}
+
+	var event_data_arr []string
+	err = json.Unmarshal([]byte(event_data.Event_required_data), &event_data_arr)
+	if err != nil {
+		return nil, ErrorGetEvent
+	}
+	result := &models.Event{
+		Event_uuid:          event_data.Event_uuid,
+		Event_name:          event_data.Event_name,
+		Event_is_roll_back:  event_data.Event_is_roll_back,
+		Event_status:        event_data.Event_status,
+		Event_result:        event_data.Event_result,
+		Saga_uuid:           event_data.Saga_uuid,
+		Event_rollback_uuid: event_data.Event_rollback_uuid,
+		Event_required_data: event_data_arr,
 	}
 
 	if err = tx.Commit(); err != nil {
@@ -409,10 +458,16 @@ func (repo registrationRepo) UpdateEvent(ctx context.Context, event *models.Even
 
 	defer tx.Rollback()
 
+	event_data, err := json.Marshal(event.Event_required_data)
+	if err != nil {
+		return ErrorUpdateEvent
+	}
+
 	result, err := repo.db.ExecContext(ctxWithTrace,
 		UpdateEvent,
 		&event.Event_uuid,
 		&event.Event_status,
+		event_data,
 		&event.Event_result,
 		&event.Event_rollback_uuid,
 	)

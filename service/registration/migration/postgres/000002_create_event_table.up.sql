@@ -9,6 +9,7 @@ CREATE TABLE event
     event_status            numeric(3)                  NOT NULL,
     event_name              varchar(64)                 NOT NULL DEFAULT 'No name'::varchar,
     event_is_roll_back      bool                        NOT NULL default false,
+    event_required_data     text                        NOT NULL,
     event_result            json                        NOT NULL,
     event_rollback_uuid     UUID                        default null
 );
