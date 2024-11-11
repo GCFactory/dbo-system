@@ -146,6 +146,7 @@ func (s *Server) RunKafkaConsumer(ctx context.Context, quitChan chan<- int) {
 	// TODO: remove
 	test_data := make(map[string]interface{})
 	test_data["user_inn"] = "agjsdjasdjhgasjhgdjhgasdjgh"
+	//test_data["passport_data"] = "asdasdasd"
 	s.grpcH.StartOperation(ctx, usecase.OperationCreateUser, test_data)
 	// TODO: remove
 

@@ -393,7 +393,7 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 			}
 		case EventStatusCreated:
 			{
-				if regUC.CheckEventDataIsReady(ctxWithTrace, saga_uuid, event_uuid) {
+				if regUC.CheckEventDataIsReady(ctxWithTrace, event_uuid, event.Saga_uuid) {
 					event.Event_status = EventStatusInProgress
 					err = regUC.registrationRepo.UpdateEvent(ctxWithTrace, event)
 					if err != nil {
@@ -407,6 +407,11 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 					if err != nil {
 						return result, err
 					}
+					new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, event.Saga_uuid, uuid.Nil, false, nil)
+					if err != nil {
+						return result, err
+					}
+					result = append(result, new_events...)
 				}
 			}
 		case EventStatusInProgress:
@@ -523,17 +528,31 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 			}
 		case SagaStatusCreated:
 			{
+				all_is_ok := true
 				for _, event := range events {
+					if event.Event_status == EventStatusError {
+						all_is_ok = false
+					}
 					new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, uuid.Nil, event.Event_uuid, true, nil)
 					if err != nil {
 						return result, err
 					}
 					result = append(result, new_events...)
 				}
-				saga.Saga_status = SagaStatusInProcess
-				err = regUC.registrationRepo.UpdateSaga(ctxWithTrace, saga)
+				check_saga, err := regUC.registrationRepo.GetSaga(ctxWithTrace, saga.Saga_uuid)
 				if err != nil {
 					return result, err
+				}
+				if check_saga.Saga_status == saga.Saga_status {
+					if all_is_ok {
+						saga.Saga_status = SagaStatusInProcess
+					} else {
+						saga.Saga_status = SagaStatusError
+					}
+					err = regUC.registrationRepo.UpdateSaga(ctxWithTrace, saga)
+					if err != nil {
+						return result, err
+					}
 				}
 			}
 		case SagaStatusInProcess:
@@ -1052,7 +1071,7 @@ func (regUC registrationUC) StartOperation(ctx context.Context, operation_type u
 func (regUC registrationUC) CheckEventDataIsReady(ctx context.Context, event_uuid uuid.UUID, saga_uuid uuid.UUID) (result bool) {
 	result = true
 
-	saga, err := regUC.registrationRepo.GetSaga(ctx, event_uuid)
+	saga, err := regUC.registrationRepo.GetSaga(ctx, saga_uuid)
 	if err != nil {
 		result = false
 	} else {
