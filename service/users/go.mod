@@ -2,8 +2,6 @@ module github.com/GCFactory/dbo-system/service/users
 
 go 1.21
 
-toolchain go1.23.0
-
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/GCFactory/dbo-system/platform v1.2.0

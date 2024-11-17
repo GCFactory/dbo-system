@@ -17,6 +17,8 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 .pgdata
+service/docker/db
+service/docker/services
 
 # Go workspace file
 go.work
