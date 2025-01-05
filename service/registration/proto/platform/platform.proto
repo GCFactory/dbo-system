@@ -43,7 +43,7 @@ message Passport{
     google.protobuf.Timestamp birth_date = 4;   	//  Дата рождения
     string birth_location = 5;      			//  Место рождения
     string pick_up_point = 6;       			//  Пункт выдачи паспорта
-    uint32 authority = 7;	    			//  Код пункта выдачи
+    string authority = 7;	    			//  Код пункта выдачи
     google.protobuf.Timestamp authority_date = 8;   	//  Дата выдачи пасорта
     string registration_adress = 9; 			//  Адресс регистрации
 }

@@ -5,12 +5,15 @@ import (
 	"errors"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/service/registration/config"
+	"github.com/GCFactory/dbo-system/service/registration/gen_proto/proto/api"
 	"github.com/GCFactory/dbo-system/service/registration/internal/registration"
 	"github.com/GCFactory/dbo-system/service/registration/internal/registration/grpc"
 	"github.com/GCFactory/dbo-system/service/registration/internal/registration/repository"
 	"github.com/GCFactory/dbo-system/service/registration/internal/registration/usecase"
 	"github.com/GCFactory/dbo-system/service/registration/pkg/kafka"
 	"github.com/IBM/sarama"
+	"github.com/golang/protobuf/proto"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"net/http"
@@ -145,8 +148,18 @@ func (s *Server) RunKafkaConsumer(ctx context.Context, quitChan chan<- int) {
 
 	// TODO: remove
 	test_data := make(map[string]interface{})
-	test_data["user_inn"] = "agjsdjasdjhgasjhgdjhgasdjgh"
-	//test_data["passport_data"] = "asdasdasd"
+	test_data["user_inn"] = "01234567890123456789"
+	test_data["passport_number"] = "456789"
+	test_data["passport_series"] = "0123"
+	test_data["name"] = "test_name"
+	test_data["surname"] = "test_surname"
+	test_data["patronimic"] = "test_last_name"
+	test_data["birth_date"] = "16-09-2001 03:23:12"
+	test_data["birth_location"] = "test"
+	test_data["pick_up_point"] = "test"
+	test_data["authority"] = "123-321"
+	test_data["authority_date"] = "16-10-2023 12:13:14"
+	test_data["registration_adress"] = "test"
 	s.grpcH.StartOperation(ctx, usecase.OperationCreateUser, test_data)
 	// TODO: remove
 
@@ -170,5 +183,48 @@ func (s *Server) RunKafkaConsumer(ctx context.Context, quitChan chan<- int) {
 
 func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 	// TODO: complete
+	s.logger.Info("GET MSG")
+
+	switch message.Topic {
+	case grpc.ServerTopicUsersProducerRes:
+		{
+			break
+		}
+	case grpc.ServerTopicUsersProducerErr:
+		{
+			event_error := &api.EventError{}
+			err := proto.Unmarshal(message.Value, event_error)
+			if err != nil {
+				s.logger.Errorf("Error unmarshalling event error: %v", err)
+				return err
+			}
+
+			saga_uuid, err := uuid.Parse(event_error.SagaUuid)
+			if err != nil {
+				s.logger.Errorf("Error parsing saga uuid: %v", err)
+				return err
+			}
+			event_uuid, err := uuid.Parse(event_error.EventUuid)
+			if err != nil {
+				s.logger.Errorf("Error parsing event uuid: %v", err)
+				return err
+			}
+			data := make(map[string]interface{})
+			data["info"] = event_error.Info
+			data["operation_name"] = event_error.OperationName
+			data["status"] = event_error.Status
+			err = s.grpcH.Process(context.Background(), saga_uuid, nil, event_uuid, nil, data /*, false*/)
+			if err != nil {
+				return err
+			}
+			//s.grpcH.Process(context.Background(), )
+		}
+	default:
+		{
+			s.logger.Errorf("Message was gotten from wrong topic <%v>!", message.Topic)
+		}
+	}
+
 	return nil
+
 }

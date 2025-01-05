@@ -102,44 +102,68 @@ services:
     networks:
       - web_api
 
-  users:
-    container_name: service_users
+  postgresql_registration:
+    image: postgres:14-alpine
+    hostname: postgresql_account
+    container_name: postgresql_registration
+    ports:
+      - "5435:5432"
+    restart: on-failure
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=registration
+    volumes:
+      - ./db/db_registration:/var/lib/postgresql/data
+    networks:
+      - web_api
+
+  service_users:
     build:
       context: ./../users
       dockerfile: ./docker/Dockerfile
     image: users_image
+    deploy:
+      mode: replicated
+      replicas: 1
     ports:
-      - "8090:8080"
+      - "8090-8099:8080"
     links:
-      - postgresql_users
       - jaeger
       - kafka
-    cap_add:
-      - SYS_PTRACE
+      - postgresql_users
     depends_on:
+      - jaeger
+      - kafka
       - postgresql_users
     restart: always
+    cap_add:
+      - SYS_PTRACE
     volumes:
       - ./services/users/users_config:/usr/src/app/config
     networks:
       - web_api
 
-  accounts:
-    container_name: service_accounts
+  service_accounts:
     build:
       context: ./../account
       dockerfile: ./docker/Dockerfile
     image: accounts_image
+    deploy:
+      mode: replicated
+      replicas: 1
     ports:
-      - "8091:8080"
+      - "8100-8109:8080"
     links:
-      - postgresql_account
       - jaeger
       - kafka
+      - postgresql_account
+    depends_on:
+      - jaeger
+      - kafka
+      - postgresql_account
     cap_add:
       - SYS_PTRACE
-    depends_on:
-      - postgresql_account
     restart: always
     volumes:
       - ./services/accounts/accounts_config:/usr/src/app/config
@@ -155,3 +179,4 @@ volumes:
   users_config:
   db_accounts:
   accounts_config:
+  db_registration:

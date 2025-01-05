@@ -1,7 +1,7 @@
 package usecase
 
 const (
-	EventTypeCreateUser       string = "create_user"
+	EventTypeCreateUser       string = "add_user"
 	EventTypeReserveAccount   string = "reserve_account"
 	EventTypeCreateAccount    string = "create_account"
 	EventTypeOpenAccount      string = "open_account"
@@ -62,8 +62,18 @@ func ValidateEventStatus(status uint8) bool {
 
 var EventListOfData = map[string][]string{
 	EventTypeCreateUser: []string{
-		"passport_data",
 		"user_inn",
+		"passport_number",
+		"passport_series",
+		"name",
+		"surname",
+		"patronimic",
+		"birth_date",
+		"birth_location",
+		"pick_up_point",
+		"authority",
+		"authority_date",
+		"registration_adress",
 	},
 }
 
