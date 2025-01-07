@@ -3,9 +3,12 @@ package server
 import (
 	"github.com/GCFactory/dbo-system/platform/pkg/csrf"
 	"github.com/GCFactory/dbo-system/platform/pkg/metric"
+	"github.com/GCFactory/dbo-system/platform/pkg/utils"
 	apiMiddlewares "github.com/GCFactory/dbo-system/service/registration/internal/middleware"
+	registrationHttp "github.com/GCFactory/dbo-system/service/registration/internal/registration/delivery/http"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"net/http"
 	"strings"
 )
 
@@ -66,6 +69,19 @@ func (s *Server) MapHandlers(e *echo.Echo) error {
 	if s.cfg.HTTPServer.Debug {
 		e.Use(mw.DebugMiddleware)
 	}
+
+	v1 := e.Group("/api/v1")
+
+	health := e.Group("/health/ready")
+	health.GET("", func(c echo.Context) error {
+		s.logger.Infof("Health check RequestID: %s", utils.GetRequestID(c))
+		return c.JSON(http.StatusOK, map[string]string{"status": "OK"})
+	})
+
+	rGroup := v1.Group("/registration")
+	rHandlers := registrationHttp.NewRegistrationHandlers(s.cfg, s.logger, s.useCase, s.grpcH)
+
+	registrationHttp.MapRegistrationRoutes(rGroup, rHandlers, mw)
 
 	return nil
 }

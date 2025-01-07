@@ -41,6 +41,7 @@ type Server struct {
 	db            *sqlx.DB
 	logger        logger.Logger
 	grpcH         registration.RegistrationGRPCHandlers
+	useCase       registration.UseCase
 	// Channel to control goroutines
 	kafkaConsumerChan chan int
 }
@@ -70,6 +71,7 @@ func NewServer(cfg *config.Config, kConsumer *kafka.ConsumerGroup, kProducer *ka
 		server.logger,
 	)
 	server.grpcH = grpcHandlers
+	server.useCase = UCHandlers
 	server.echo.HidePort = true
 	server.echo.HideBanner = true
 	return &server
@@ -209,6 +211,9 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 			data["user_uuid"] = result
 
 			err = s.grpcH.Process(context.Background(), saga_uuid, nil, event_uuid, nil, data, true)
+			if err != nil {
+				s.logger.Errorf("Error processing event: %v", err)
+			}
 
 		}
 	case grpc.ServerTopicUsersProducerErr:
