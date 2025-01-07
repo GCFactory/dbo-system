@@ -33,7 +33,7 @@ func NewKafkaProducer(cfg *config.Config, logger logger.Logger) *ProducerProvide
 		saramaCfg.Producer.RequiredAcks = sarama.WaitForAll
 		saramaCfg.Producer.Partitioner = sarama.NewRoundRobinPartitioner
 		saramaCfg.Producer.Transaction.Retry.Backoff = 10
-		saramaCfg.Producer.Transaction.ID = "txn_producer"
+		saramaCfg.Producer.Transaction.ID = "txn_producer_users"
 		saramaCfg.Net.MaxOpenRequests = 1
 		suffix := provider.transactionIdGenerator
 		// Append transactionIdGenerator to current saramaCfg.Producer.Transaction.ID to ensure transaction-id uniqueness.

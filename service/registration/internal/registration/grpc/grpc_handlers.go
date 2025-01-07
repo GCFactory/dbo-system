@@ -26,7 +26,6 @@ type GRPCRegistrationHandlers struct {
 }
 
 func (h *GRPCRegistrationHandlers) StartOperation(ctx context.Context, operation_type uint8, operation_data map[string]interface{}) (err error) {
-	// TODO: complete
 
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "GRPCRegistrationHandlers.StartOperation")
 	defer span.Finish()
@@ -51,7 +50,7 @@ func (h *GRPCRegistrationHandlers) StartOperation(ctx context.Context, operation
 	}
 
 	for _, event := range list_of_events {
-		err = h.Process(ctxWithTrace, event.Saga_uuid, nil, event.Event_uuid, event, operation_data)
+		err = h.Process(ctxWithTrace, event.Saga_uuid, nil, event.Event_uuid, event, operation_data, true)
 		if err != nil {
 			h.regLog.Error(err)
 		}
@@ -59,7 +58,7 @@ func (h *GRPCRegistrationHandlers) StartOperation(ctx context.Context, operation
 	return nil
 }
 
-func (h *GRPCRegistrationHandlers) Process(ctx context.Context, saga_uuid uuid.UUID, saga *models.Saga, event_uuid uuid.UUID, event *models.Event, data map[string]interface{}) (err error) {
+func (h *GRPCRegistrationHandlers) Process(ctx context.Context, saga_uuid uuid.UUID, saga *models.Saga, event_uuid uuid.UUID, event *models.Event, data map[string]interface{}, is_success bool) (err error) {
 
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "GRPCRegistrationHandlers.Process")
 	defer span.Finish()
@@ -75,15 +74,37 @@ func (h *GRPCRegistrationHandlers) Process(ctx context.Context, saga_uuid uuid.U
 			return err
 		}
 	} else {
-		// TODO: complete
+		list_of_events, local_err := h.registrationUC.ProcessingSagaAndEvents(ctxWithTrace,
+			saga_uuid,
+			event_uuid,
+			is_success,
+			data,
+		)
+		if local_err != nil {
+			h.regLog.Error(local_err)
+			return local_err
+		}
+		for _, new_event := range list_of_events {
+			err = h.Process(ctxWithTrace,
+				new_event.Saga_uuid,
+				nil,
+				new_event.Event_uuid,
+				new_event,
+				data,
+				true)
+			if err != nil {
+				h.regLog.Error(err)
+				return err
+			}
+		}
 	}
 	return nil
 }
 
 func (h *GRPCRegistrationHandlers) SendRequest(ctx context.Context, server uint8, operation_name string, saga_uuid uuid.UUID, event_uuid uuid.UUID, data map[string]interface{}) (err error) {
 
-	//span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "GRPCRegistrationHandlers.Process")
-	//defer span.Finish()
+	span, _ := opentracing.StartSpanFromContext(ctx, "GRPCRegistrationHandlers.SendRequest")
+	defer span.Finish()
 
 	if !ValidateServer(server) {
 		return ErrorInvalidServer

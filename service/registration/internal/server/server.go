@@ -188,7 +188,28 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 	switch message.Topic {
 	case grpc.ServerTopicUsersProducerRes:
 		{
-			break
+			event_success := &api.EventSuccess{}
+			err := proto.Unmarshal(message.Value, event_success)
+			if err != nil {
+				s.logger.Errorf("Error unmarshalling event error: %v", err)
+			}
+
+			saga_uuid, err := uuid.Parse(event_success.SagaUuid)
+			if err != nil {
+				s.logger.Errorf("Error parsing saga uuid: %v", err)
+			}
+			event_uuid, err := uuid.Parse(event_success.EventUuid)
+			if err != nil {
+				s.logger.Errorf("Error parsing event uuid: %v", err)
+			}
+
+			data := make(map[string]interface{})
+			result := event_success.GetInfo()
+
+			data["user_uuid"] = result
+
+			err = s.grpcH.Process(context.Background(), saga_uuid, nil, event_uuid, nil, data, true)
+
 		}
 	case grpc.ServerTopicUsersProducerErr:
 		{
@@ -196,28 +217,25 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 			err := proto.Unmarshal(message.Value, event_error)
 			if err != nil {
 				s.logger.Errorf("Error unmarshalling event error: %v", err)
-				return err
 			}
 
 			saga_uuid, err := uuid.Parse(event_error.SagaUuid)
 			if err != nil {
 				s.logger.Errorf("Error parsing saga uuid: %v", err)
-				return err
 			}
 			event_uuid, err := uuid.Parse(event_error.EventUuid)
 			if err != nil {
 				s.logger.Errorf("Error parsing event uuid: %v", err)
-				return err
 			}
+
 			data := make(map[string]interface{})
 			data["info"] = event_error.Info
 			data["operation_name"] = event_error.OperationName
 			data["status"] = event_error.Status
-			err = s.grpcH.Process(context.Background(), saga_uuid, nil, event_uuid, nil, data /*, false*/)
+			err = s.grpcH.Process(context.Background(), saga_uuid, nil, event_uuid, nil, data, false)
 			if err != nil {
-				return err
+				s.logger.Errorf("Error processing event: %v", err)
 			}
-			//s.grpcH.Process(context.Background(), )
 		}
 	default:
 		{

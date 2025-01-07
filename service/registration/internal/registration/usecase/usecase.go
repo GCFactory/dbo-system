@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/service/registration/config"
 	"github.com/GCFactory/dbo-system/service/registration/internal/models"
@@ -416,6 +417,12 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 			}
 		case EventStatusInProgress:
 			{
+				event_result, err := json.Marshal(data)
+				if err != nil {
+					return result, err
+				}
+				event.Event_result = string(event_result)
+
 				if success {
 					event.Event_status = EventStatusCompleted
 					err = regUC.registrationRepo.UpdateEvent(ctxWithTrace, event)
@@ -428,6 +435,18 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 							return result, err
 						}
 						result = slices.Concat(result, new_events)
+					} else {
+						saga, local_err := regUC.registrationRepo.GetSaga(ctxWithTrace, saga_uuid)
+						if local_err != nil {
+							return result, local_err
+						}
+						for field_name, field_value := range data {
+							saga.Saga_data[field_name] = field_value
+						}
+						local_err = regUC.registrationRepo.UpdateSaga(ctxWithTrace, saga)
+						if local_err != nil {
+							return result, local_err
+						}
 					}
 				} else {
 					event.Event_status = EventStatusError
