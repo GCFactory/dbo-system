@@ -6,6 +6,12 @@ meta {
 
 get {
   url: http://localhost:8080/api/v1/registration/get_operation_status
-  body: none
+  body: json
   auth: none
+}
+
+body:json {
+  {
+    "operation_id": "6bc4946d-c37a-4ef3-a9cf-fe280bc3b282"
+  }
 }

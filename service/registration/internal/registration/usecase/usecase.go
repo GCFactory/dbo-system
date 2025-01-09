@@ -1113,6 +1113,53 @@ func (regUC registrationUC) CheckEventDataIsReady(ctx context.Context, event_uui
 	return result
 }
 
+func (regUC registrationUC) GetOperationStatus(ctx context.Context, saga_uuid uuid.UUID) (status string, err error) {
+	err = nil
+	status = OperationStatusUnknown
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.GetOperationStatus")
+	defer span.Finish()
+
+	saga, err := regUC.registrationRepo.GetSaga(ctx, saga_uuid)
+	if err != nil {
+		return status, ErrorSagaWasNotFound
+	}
+
+	switch saga.Saga_status {
+	case SagaStatusError, SagaStatusFallBackError, SagaStatusFallBackInProcess, SagaStatusFallBackSuccess:
+		status = OperationStatusFailed
+		return status, nil
+	case SagaStatusInProcess, SagaStatusCreated:
+		status = OperationStatusInProgress
+		return status, nil
+	case SagaStatusCompleted:
+		status = OperationStatusSuccess
+		break
+	}
+
+	if status == OperationStatusSuccess {
+		saga_connections, local_err := regUC.registrationRepo.GetSagaConnectionsCurrentSaga(ctxWithTrace, saga_uuid)
+		if local_err != nil {
+			return OperationStatusUnknown, local_err
+		}
+		if saga_connections != nil && len(saga_connections.List_of_connetcions) > 0 {
+			for _, saga_connection := range saga_connections.List_of_connetcions {
+				saga_status, sub_saga_err := regUC.GetOperationStatus(ctxWithTrace, saga_connection.Next_saga_uuid)
+				if sub_saga_err != nil {
+					return OperationStatusUnknown, sub_saga_err
+				}
+				if saga_status == OperationStatusFailed {
+					return OperationStatusFailed, nil
+				} else if saga_status == OperationStatusInProgress {
+					return OperationStatusInProgress, nil
+				}
+			}
+		}
+	}
+
+	return status, err
+}
+
 func NewRegistrationUseCase(cfg *config.Config, registration_repo registration.Repository, log logger.Logger) registration.UseCase {
 	return &registrationUC{cfg: cfg, registrationRepo: registration_repo, logger: log}
 }

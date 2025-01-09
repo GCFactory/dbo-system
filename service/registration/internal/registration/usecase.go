@@ -11,4 +11,5 @@ type UseCase interface {
 	ProcessingSagaAndEvents(ctx context.Context, saga_uuid uuid.UUID, event_uuid uuid.UUID, success bool, data map[string]interface{}) ([]*models.Event, error)
 	GetEventData(ctx context.Context, event_uuid uuid.UUID) (map[string]interface{}, error)
 	SetOrUpdateSagaData(ctx context.Context, saga_uuid uuid.UUID, new_saga_data map[string]interface{}) error
+	GetOperationStatus(ctx context.Context, saga_uuid uuid.UUID) (string, error)
 }

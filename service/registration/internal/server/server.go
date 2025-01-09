@@ -148,23 +148,6 @@ func (s *Server) RunKafkaConsumer(ctx context.Context, quitChan chan<- int) {
 		HandlerFunc: s.handleData,
 	}
 
-	// TODO: remove
-	test_data := make(map[string]interface{})
-	test_data["user_inn"] = "01234567890123456789"
-	test_data["passport_number"] = "456789"
-	test_data["passport_series"] = "0123"
-	test_data["name"] = "test_name"
-	test_data["surname"] = "test_surname"
-	test_data["patronimic"] = "test_last_name"
-	test_data["birth_date"] = "16-09-2001 03:23:12"
-	test_data["birth_location"] = "test"
-	test_data["pick_up_point"] = "test"
-	test_data["authority"] = "123-321"
-	test_data["authority_date"] = "16-10-2023 12:13:14"
-	test_data["registration_adress"] = "test"
-	s.grpcH.StartOperation(ctx, usecase.OperationCreateUser, test_data)
-	// TODO: remove
-
 	for {
 		if err := s.kafkaConsumer.Consumer.Consume(ctx, s.cfg.KafkaConsumer.Topics, &consumer); err != nil {
 			if errors.Is(err, sarama.ErrClosedConsumerGroup) {

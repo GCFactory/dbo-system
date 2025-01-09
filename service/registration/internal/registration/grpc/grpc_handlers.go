@@ -25,10 +25,12 @@ type GRPCRegistrationHandlers struct {
 	regLog         logger.Logger
 }
 
-func (h *GRPCRegistrationHandlers) StartOperation(ctx context.Context, operation_type uint8, operation_data map[string]interface{}) (err error) {
+func (h *GRPCRegistrationHandlers) StartOperation(ctx context.Context, operation_type uint8, operation_data map[string]interface{}) (operation_uuid uuid.UUID, err error) {
 
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "GRPCRegistrationHandlers.StartOperation")
 	defer span.Finish()
+
+	operation_uuid = uuid.Nil
 
 	var list_of_events []*models.Event
 	switch operation_type {
@@ -36,10 +38,10 @@ func (h *GRPCRegistrationHandlers) StartOperation(ctx context.Context, operation
 		{
 			list_of_events, err = h.registrationUC.StartOperation(ctxWithTrace, operation_type, operation_data)
 			if err != nil {
-				return err
+				return operation_uuid, err
 			}
 			if len(list_of_events) == 0 {
-				return ErrorEmptyStartEventList
+				return operation_uuid, ErrorEmptyStartEventList
 			}
 
 		}
@@ -53,9 +55,13 @@ func (h *GRPCRegistrationHandlers) StartOperation(ctx context.Context, operation
 		err = h.Process(ctxWithTrace, event.Saga_uuid, nil, event.Event_uuid, event, operation_data, true)
 		if err != nil {
 			h.regLog.Error(err)
+			return operation_uuid, err
 		}
 	}
-	return nil
+
+	operation_uuid = list_of_events[0].Saga_uuid
+
+	return operation_uuid, nil
 }
 
 func (h *GRPCRegistrationHandlers) Process(ctx context.Context, saga_uuid uuid.UUID, saga *models.Saga, event_uuid uuid.UUID, event *models.Event, data map[string]interface{}, is_success bool) (err error) {
