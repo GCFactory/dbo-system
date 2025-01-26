@@ -1,23 +1,15 @@
 syntax = "proto3";
 
-package users;
+package account;
 
-option go_package = "./proto/api/users";
+option go_package = "./proto/api/account";
 
 import "platform/platform.proto";
 
 //  Дополнительные сведения для операции
 message OperationDetails {
-  string user_uuid = 1;  //  UUID счёта
-  oneof AdditionalData {
-      platform.Passport passport = 2;
-      string some_data = 3;
-  }
-}
-
-message UserInfo{
-  platform.Passport passport = 1;             //  Passport
-  string user_inn = 2;
+  string acc_uuid = 1;  //  UUID счёта
+  float additional_data = 2;  //  Дополнительные данные
 }
 
 //  Данные event-а
@@ -26,30 +18,19 @@ message EventData{
   string event_uuid = 2;                        //  UUID evnet-a
   string operation_name = 3;                    // Тип операции
   oneof data{
-    UserInfo user_info = 4;
+    platform.AccountDetails account_data = 4;   //  Реквизиты счёта
     OperationDetails additional_info = 5;       //  Дополнительная информация по операции
   }
 }
 
-message ListOfAccounts{
-  repeated string accounts = 1;
-}
-
-message FullData {
-  platform.Passport passport = 1;
-  string user_inn = 2;
-  ListOfAccounts accounts = 3;
-}
-
 //  Результат event-а
-message EventSuccess{
+message EventStatus{
   string saga_uuid = 1;                     //  UUID sag-и
   string event_uuid = 2;                    //  UUID evnet-a
   string operation_name = 3;                //  Тип выполняемой операции
   oneof result{
     string info = 4;                        //  Дополнительная информация по event-у
-    FullData full_data = 5;                 //  Full user data
-    ListOfAccounts accounts = 6;
+    platform.FullAccountData acc_data = 5;  //  Данные счета
   }
 }
 

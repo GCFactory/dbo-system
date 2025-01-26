@@ -24,9 +24,12 @@ func ValidateServer(serverType uint8) (res bool) {
 }
 
 const (
-	ServerTopicUsersConsumer    string = "users_cons"
-	ServerTopicUsersProducerRes string = "users_res"
-	ServerTopicUsersProducerErr string = "users_err"
+	ServerTopicUsersConsumer       string = "users_cons"
+	ServerTopicUsersProducerRes    string = "users_res"
+	ServerTopicUsersProducerErr    string = "users_err"
+	ServerTopicAccountsConsumer    string = "account_cons"
+	ServerTopicAccountsProducerRes string = "account_res"
+	ServerTopicAccountsProducerErr string = "account_err"
 )
 
 var PosiibleServerTopics = map[uint8][]string{
@@ -34,6 +37,11 @@ var PosiibleServerTopics = map[uint8][]string{
 		ServerTopicUsersConsumer,
 		ServerTopicUsersProducerRes,
 		ServerTopicUsersProducerErr,
+	},
+	ServerTypeAccounts: {
+		ServerTopicAccountsConsumer,
+		ServerTopicAccountsProducerRes,
+		ServerTopicAccountsProducerErr,
 	},
 }
 
@@ -53,12 +61,24 @@ func ValidateServerTopic(serverType uint8, topic string) (res bool) {
 }
 
 const (
-	OperationCreateUser = "add_user"
+	OperationGetUserData      string = "get_user_data"
+	OperationCreateUser       string = "add_user"
+	OperationAddAccountToUser string = "add_user_accoount"
+	OperationReserveAcc       string = "reserv_acc"
+	OperationCreateAcc        string = "create_acc"
+	OperationOpenAcc          string = "open_acc"
 )
 
 var PossibleServersOperations = map[uint8][]string{
 	ServerTypeUsers: {
 		OperationCreateUser,
+		OperationGetUserData,
+		OperationAddAccountToUser,
+	},
+	ServerTypeAccounts: {
+		OperationReserveAcc,
+		OperationCreateAcc,
+		OperationOpenAcc,
 	},
 }
 
@@ -105,6 +125,26 @@ var RequiredOperationsFields = map[string][]string{
 		"authority",
 		"authority_date",
 		"registration_adress",
+	},
+	OperationGetUserData: {
+		"user_id",
+	},
+	OperationReserveAcc: {
+		"culc_number",
+		"corr_number",
+		"bic",
+		"cio",
+		"reserve_reason",
+	},
+	OperationCreateAcc: {
+		"acc_id",
+	},
+	OperationOpenAcc: {
+		"acc_id",
+	},
+	OperationAddAccountToUser: {
+		"user_id",
+		"acc_id",
 	},
 }
 

@@ -2,14 +2,16 @@ package usecase
 
 const (
 	EventTypeCreateUser       string = "add_user"
+	EventTypeGetUserData      string = "get_user_data"
 	EventTypeReserveAccount   string = "reserve_account"
 	EventTypeCreateAccount    string = "create_account"
 	EventTypeOpenAccount      string = "open_account"
-	EventTypeAddAccountToUser string = "add_account_to_user"
+	EventTypeAddAccountToUser string = "add_user_account"
 )
 
 var PossibleEventsList = [...]string{
 	EventTypeCreateUser,
+	EventTypeGetUserData,
 	EventTypeReserveAccount,
 	EventTypeCreateAccount,
 	EventTypeOpenAccount,
@@ -74,6 +76,26 @@ var EventListOfData = map[string][]string{
 		"authority",
 		"authority_date",
 		"registration_adress",
+	},
+	EventTypeGetUserData: []string{
+		"user_id",
+	},
+	EventTypeReserveAccount: []string{
+		"culc_number",
+		"corr_number",
+		"bic",
+		"cio",
+		"reserve_reason",
+	},
+	EventTypeCreateAccount: []string{
+		"acc_id",
+	},
+	EventTypeOpenAccount: []string{
+		"acc_id",
+	},
+	EventTypeAddAccountToUser: []string{
+		"user_id",
+		"acc_id",
 	},
 }
 

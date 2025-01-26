@@ -15,6 +15,7 @@ const (
 
 const (
 	SagaTypeCreateUser              string = "create_user"
+	SagaTypeCheckUser               string = "check_user"
 	SagaTypeReserveAccount          string = "reserve_account"
 	SagaTypeCreateAccount           string = "create_account"
 	SagaTypeOpenAccountAndAddToUser string = "open_account_and_add_to_user"
@@ -22,6 +23,7 @@ const (
 
 var PossibleSagaTypes = []string{
 	SagaTypeCreateUser,
+	SagaTypeCheckUser,
 	SagaTypeReserveAccount,
 	SagaTypeCreateAccount,
 	SagaTypeOpenAccountAndAddToUser,
@@ -63,6 +65,9 @@ var PossibleEventsListForSagaType = map[string][]string{
 	SagaTypeCreateUser: {
 		EventTypeCreateUser,
 	},
+	SagaTypeCheckUser: {
+		EventTypeGetUserData,
+	},
 	SagaTypeReserveAccount: {
 		EventTypeReserveAccount,
 	},
@@ -80,8 +85,16 @@ var ListOfSagaDepend = map[string]models.SagaDepend{
 		Parents:  nil,
 		Children: nil,
 	},
-	SagaTypeReserveAccount: models.SagaDepend{
+	SagaTypeCheckUser: models.SagaDepend{
 		Parents: nil,
+		Children: []string{
+			SagaTypeReserveAccount,
+		},
+	},
+	SagaTypeReserveAccount: models.SagaDepend{
+		Parents: []string{
+			SagaTypeCheckUser,
+		},
 		Children: []string{
 			SagaTypeCreateAccount,
 		},

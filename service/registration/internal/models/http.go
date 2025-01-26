@@ -22,3 +22,12 @@ type RegistrationUserInfo struct {
 type OperationID struct {
 	Operation_ID string `json:"operation_id" validate:"required,len=36,uuid4"`
 }
+
+type OpenAccountInfo struct {
+	User_ID        string `json:"user_id" validate:"required,uuid4"`
+	Culc_number    string `json:"culc_number" validate:"required, number, len=20"`
+	Corr_number    string `json:"corr_number" validate:"required, number, len=20"`
+	BIC            string `json:"bic" validate:"required, number, len=9"`
+	CIO            string `json:"cio" validate:"required, number, min=9, max=11"`
+	Reserve_reason string `json:"reserve_reason"`
+}

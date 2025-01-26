@@ -117,6 +117,40 @@ func (h RegistrationHandlers) GetOperationStatus() echo.HandlerFunc {
 	}
 }
 
+func (h RegistrationHandlers) OpenAccount() echo.HandlerFunc {
+	return func(c echo.Context) error {
+
+		span, ctxWithTrace := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "RegistrationHandlers.OpenAccount")
+		defer span.Finish()
+
+		operation_info := &models.OpenAccountInfo{}
+		if err := h.safeReadRequest(c, operation_info); err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, err.Error(), nil))
+		}
+
+		data := make(map[string]interface{})
+
+		data["user_id"] = operation_info.User_ID
+		data["culc_number"] = operation_info.Culc_number
+		data["corr_number"] = operation_info.Corr_number
+		data["bic"] = operation_info.BIC
+		data["cio"] = operation_info.CIO
+		data["reserve_reason"] = operation_info.Reserve_reason
+
+		operation_uuid, err := h.registrationGRPC.StartOperation(ctxWithTrace, usecase.OperationAddAccount, data)
+		if err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
+		}
+
+		response := make(map[string]interface{})
+		response["info"] = operation_uuid.String()
+
+		return c.JSON(http.StatusAccepted, response)
+	}
+}
+
 func NewRegistrationHandlers(cfg *config.Config, logger logger.Logger, usecase registration.UseCase, grpc registration.RegistrationGRPCHandlers) registration.Handlers {
 	return &RegistrationHandlers{cfg: cfg, logger: logger, registrationGRPC: grpc, registrationUC: usecase}
 }

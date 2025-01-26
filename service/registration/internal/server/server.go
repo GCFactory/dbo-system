@@ -5,7 +5,7 @@ import (
 	"errors"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/service/registration/config"
-	"github.com/GCFactory/dbo-system/service/registration/gen_proto/proto/api"
+	users_api "github.com/GCFactory/dbo-system/service/registration/gen_proto/proto/api/users"
 	"github.com/GCFactory/dbo-system/service/registration/internal/registration"
 	"github.com/GCFactory/dbo-system/service/registration/internal/registration/grpc"
 	"github.com/GCFactory/dbo-system/service/registration/internal/registration/repository"
@@ -173,7 +173,7 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 	switch message.Topic {
 	case grpc.ServerTopicUsersProducerRes:
 		{
-			event_success := &api.EventSuccess{}
+			event_success := &users_api.EventSuccess{}
 			err := proto.Unmarshal(message.Value, event_success)
 			if err != nil {
 				s.logger.Errorf("Error unmarshalling event error: %v", err)
@@ -201,7 +201,7 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 		}
 	case grpc.ServerTopicUsersProducerErr:
 		{
-			event_error := &api.EventError{}
+			event_error := &users_api.EventError{}
 			err := proto.Unmarshal(message.Value, event_error)
 			if err != nil {
 				s.logger.Errorf("Error unmarshalling event error: %v", err)
