@@ -35,7 +35,7 @@ func (h *GRPCRegistrationHandlers) StartOperation(ctx context.Context, operation
 
 	var list_of_events []*models.Event
 	switch operation_type {
-	case usecase.OperationCreateUser | usecase.OperationAddAccount:
+	case usecase.OperationCreateUser, usecase.OperationAddAccount:
 		{
 			list_of_events, err = h.registrationUC.StartOperation(ctxWithTrace, operation_type, operation_data)
 			if err != nil {
@@ -44,6 +44,8 @@ func (h *GRPCRegistrationHandlers) StartOperation(ctx context.Context, operation
 			if len(list_of_events) == 0 {
 				return operation_uuid, ErrorEmptyStartEventList
 			}
+
+			break
 
 		}
 	default:
@@ -75,6 +77,12 @@ func (h *GRPCRegistrationHandlers) Process(ctx context.Context, saga_uuid uuid.U
 	}
 
 	if event != nil {
+		if len(data) == 0 {
+			data, err = h.registrationUC.GetEventData(ctxWithTrace, event_uuid)
+			if err != nil {
+				return err
+			}
+		}
 		err = h.SendRequest(ctxWithTrace, GetServerByOperation(event.Event_name), event.Event_name, saga_uuid, event_uuid, data)
 		if err != nil {
 			h.regLog.Error(err)
@@ -304,8 +312,7 @@ func (h *GRPCRegistrationHandlers) SendRequest(ctx context.Context, server uint8
 					break
 
 				}
-			case OperationCreateAcc:
-			case OperationOpenAcc:
+			case OperationOpenAcc, OperationCreateAcc:
 				{
 					if !ValidateOperationsData(operation_name, data) {
 						return ErrorInvalidOperationsData

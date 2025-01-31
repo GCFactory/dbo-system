@@ -28,6 +28,6 @@ var OperationsRootsSagas = map[uint8][]string{
 		SagaTypeCreateUser,
 	},
 	OperationAddAccount: []string{
-		SagaTypeReserveAccount,
+		SagaTypeCheckUser,
 	},
 }

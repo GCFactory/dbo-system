@@ -26,7 +26,7 @@ const (
 	GetSagaConnectionsCurrentSaga = `SELECT * 
 						FROM saga_connection
 						WHERE current_saga_uuid = $1`
-	GetSagaConnectionsNextSaga = `SELECT * as list_of_connections
+	GetSagaConnectionsNextSaga = `SELECT *
 						FROM saga_connection
 						WHERE next_saga_uuid = $1`
 	DeleteSagaConnection = `DELETE FROM saga_connection

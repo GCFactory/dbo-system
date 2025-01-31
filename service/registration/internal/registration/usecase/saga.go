@@ -42,8 +42,8 @@ func ValidateSagaType(saga_type string) bool {
 }
 
 const (
-	SagaGroupCreateUser    uint8 = 0
-	SagaGroupCreateAccount uint8 = 1
+	SagaGroupCreateUser    uint8 = 1
+	SagaGroupCreateAccount uint8 = 2
 )
 
 var PossibleSagaGroups = []uint8{

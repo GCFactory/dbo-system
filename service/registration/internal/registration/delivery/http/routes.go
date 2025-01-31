@@ -9,5 +9,5 @@ import (
 func MapRegistrationRoutes(RegistrationGroup *echo.Group, h registration.Handlers, mw *middleware.MiddlewareManager) {
 	RegistrationGroup.POST("/create_user", h.CreateUser())
 	RegistrationGroup.GET("/get_operation_status", h.GetOperationStatus())
-	RegistrationGroup.POST("/open_account", h.GetOperationStatus())
+	RegistrationGroup.POST("/open_account", h.OpenAccount())
 }

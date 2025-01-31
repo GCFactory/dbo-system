@@ -216,43 +216,6 @@ func (regUC registrationUC) CreateSaga(ctx context.Context, saga_type string, sa
 		}
 	}
 
-	//saga_depend, ok := ListOfSagaDepend[saga_type]
-	//if !ok {
-	//	err = regUC.DeleteSaga(ctxWithTrace, saga.Saga_uuid)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	return nil, ErrorNoDependsData
-	//}
-
-	//if saga_depend.Children != nil {
-	//	children := saga_depend.Children
-	//	for _, child_type := range children {
-	//		child_saga, err := regUC.CreateSaga(ctxWithTrace, child_type, saga_group)
-	//		if err != nil {
-	//			err = regUC.DeleteSaga(ctxWithTrace, saga.Saga_uuid)
-	//			if err != nil {
-	//				return nil, err
-	//			}
-	//			return nil, err
-	//		} else {
-	//			saga_connection := &models.SagaConnection{
-	//				Current_saga_uuid:     saga.Saga_uuid,
-	//				Next_saga_uuid:        child_saga.Saga_uuid,
-	//				Acc_connection_status: SagaConnectionStatusWaiting,
-	//			}
-	//			err = regUC.registrationRepo.CreateSagaConnection(ctxWithTrace, saga_connection)
-	//			if err != nil {
-	//				err = regUC.DeleteSaga(ctxWithTrace, saga.Saga_uuid)
-	//				if err != nil {
-	//					return nil, err
-	//				}
-	//				return nil, err
-	//			}
-	//		}
-	//	}
-	//}
-
 	saga.Saga_status = SagaStatusCreated
 	err = regUC.registrationRepo.UpdateSaga(ctxWithTrace, saga)
 	if err != nil {
@@ -547,6 +510,36 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 			}
 		case SagaStatusCreated:
 			{
+
+				saga_connections, local_err := regUC.registrationRepo.GetSagaConnectionsNextSaga(ctxWithTrace, saga_uuid)
+				if local_err != nil {
+					return result, local_err
+				}
+				saga_data := saga.Saga_data
+				for _, saga_connection := range saga_connections.List_of_connetcions {
+
+					parent_saga, local_err := regUC.registrationRepo.GetSaga(ctxWithTrace, saga_connection.Current_saga_uuid)
+					if local_err != nil {
+						return result, local_err
+					}
+
+					for parent_saga_data_filed_name, parent_saga_data_field_data := range parent_saga.Saga_data {
+
+						if saga_data == nil {
+							saga_data = make(map[string]interface{})
+						}
+						saga_data[parent_saga_data_filed_name] = parent_saga_data_field_data
+
+					}
+
+					saga.Saga_data = saga_data
+					err = regUC.registrationRepo.UpdateSaga(ctxWithTrace, saga)
+					if err != nil {
+						return result, err
+					}
+
+				}
+
 				all_is_ok := true
 				for _, event := range events {
 					if event.Event_status == EventStatusError {
@@ -837,7 +830,7 @@ func (regUC registrationUC) GetEventData(ctx context.Context, event_uuid uuid.UU
 	}
 
 	saga_data := saga.Saga_data
-	if regUC.CheckEventDataIsReady(ctx, saga.Saga_uuid, event_uuid) {
+	if regUC.CheckEventDataIsReady(ctx, event_uuid, saga.Saga_uuid) {
 		for _, field := range event.Event_required_data {
 			result[field] = saga_data[field]
 		}
@@ -880,7 +873,7 @@ func (regUC registrationUC) CreateSagaTree(ctx context.Context, list_root_saga_t
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.CreateSagaTree")
 	defer span.Finish()
 
-	list_root_saga = nil
+	list_root_saga = make([]*models.Saga, 0)
 
 	// create root layer of saga tree
 	for _, saga_type := range list_root_saga_types {
@@ -926,6 +919,7 @@ func (regUC registrationUC) CreateSagaTree(ctx context.Context, list_root_saga_t
 				}
 				return nil, ErrorNoDependsData
 			}
+			//if saga_depends.Children != nil {
 			for _, child_type := range saga_depends.Children {
 				if !ValidateSagaType(child_type) {
 					saga_tree = regUC.FillNewSagaTreeLayer(ctxWithTrace, saga_tree, layer_number, current_saga_tree_layer)
@@ -993,10 +987,11 @@ func (regUC registrationUC) CreateSagaTree(ctx context.Context, list_root_saga_t
 					}
 				}
 			}
+			//}
 			saga_tree = regUC.FillNewSagaTreeLayer(ctxWithTrace, saga_tree, layer_number, current_saga_tree_layer)
 		}
 
-		if current_saga_tree_layer == nil {
+		if len(current_saga_tree_layer) == 0 {
 			break
 		}
 
@@ -1005,6 +1000,7 @@ func (regUC registrationUC) CreateSagaTree(ctx context.Context, list_root_saga_t
 
 		previous_saga_tree_layer = current_saga_tree_layer
 		current_saga_tree_layer = nil
+		current_saga_tree_layer = make(map[string]*models.Saga)
 
 	}
 
@@ -1059,7 +1055,7 @@ func (regUC registrationUC) StartOperation(ctx context.Context, operation_type u
 	var list_of_root_saga []*models.Saga = nil
 
 	switch operation_type {
-	case OperationCreateUser | OperationAddAccount:
+	case OperationCreateUser, OperationAddAccount:
 		{
 			list_of_root_saga_types, is_exist := OperationsRootsSagas[operation_type]
 			if !is_exist {
@@ -1158,6 +1154,101 @@ func (regUC registrationUC) GetOperationStatus(ctx context.Context, saga_uuid uu
 	}
 
 	return status, err
+}
+
+func (regUC registrationUC) GetSagaChildrenWithoutChildren(ctx context.Context, saga_uuid uuid.UUID) (children []*models.Saga, err error) {
+	children = nil
+	err = nil
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.GetSagaChildrenWithoutChildren")
+	defer span.Finish()
+
+	saga, err := regUC.registrationRepo.GetSaga(ctxWithTrace, saga_uuid)
+	if err != nil {
+		err = ErrorSagaWasNotFound
+	} else {
+
+		saga_children, local_err := regUC.registrationRepo.GetSagaConnectionsCurrentSaga(ctxWithTrace, saga_uuid)
+		if local_err != nil {
+			return children, local_err
+		} else {
+			if len(saga_children.List_of_connetcions) == 0 {
+				children = append(children, saga)
+			} else {
+				for _, child := range saga_children.List_of_connetcions {
+					child_children, local_err := regUC.registrationRepo.GetSagaConnectionsCurrentSaga(ctxWithTrace, child.Next_saga_uuid)
+					if local_err != nil {
+						return children, local_err
+					}
+					if len(child_children.List_of_connetcions) == 0 {
+						child_saga, err := regUC.registrationRepo.GetSaga(ctxWithTrace, child.Next_saga_uuid)
+						if err != nil {
+							return children, err
+						}
+						children = append(children, child_saga)
+					} else {
+						sub_childs, err := regUC.GetSagaChildrenWithoutChildren(ctxWithTrace, child.Next_saga_uuid)
+						if err != nil {
+							return children, err
+						}
+						children = append(children, sub_childs...)
+					}
+				}
+			}
+		}
+	}
+
+	return children, err
+}
+
+func (regUC registrationUC) GetSagaResultData(ctx context.Context, saga_uuid uuid.UUID) (data map[string]interface{}, err error) {
+
+	data = make(map[string]interface{})
+	err = nil
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.GetSagaResultData")
+	defer span.Finish()
+
+	_, err = regUC.registrationRepo.GetSaga(ctxWithTrace, saga_uuid)
+	if err != nil {
+		err = ErrorSagaWasNotFound
+	} else {
+		list_of_saga_without_children, err := regUC.GetSagaChildrenWithoutChildren(ctxWithTrace, saga_uuid)
+		if err != nil {
+			return data, err
+		}
+
+		var events []*models.Event
+		for _, saga_without_child := range list_of_saga_without_children {
+			events_uuid, err := regUC.registrationRepo.GetListOfSagaEvents(ctxWithTrace, saga_without_child.Saga_uuid)
+			if err != nil {
+				return data, err
+			}
+			for _, event_uuid := range events_uuid.EventList {
+				event, err := regUC.registrationRepo.GetEvent(ctxWithTrace, event_uuid)
+				if err != nil {
+					return data, err
+				}
+				events = append(events, event)
+			}
+		}
+
+		for _, event := range events {
+			var event_result_data map[string]interface{}
+			err := json.Unmarshal([]byte(event.Event_result), &event_result_data)
+			if err != nil {
+				return data, err
+			}
+
+			for field_name, field_data := range event_result_data {
+				data[field_name] = field_data
+			}
+
+		}
+
+	}
+
+	return data, err
 }
 
 func NewRegistrationUseCase(cfg *config.Config, registration_repo registration.Repository, log logger.Logger) registration.UseCase {

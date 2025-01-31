@@ -1,0 +1,22 @@
+meta {
+  name: OpenAccount
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:8080/api/v1/registration/open_account
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "user_id": "9623fb5a-05a5-4053-9bd8-307ee490e74c",
+    "culc_number": "40705810990123456789",
+    "corr_number": "30125810502500000025",
+    "bic": "245025025",
+    "cio": "509910012",
+    "reserve_reason": "test reserve"
+  }
+}

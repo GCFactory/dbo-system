@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/service/registration/config"
+	accounts_api "github.com/GCFactory/dbo-system/service/registration/gen_proto/proto/api/account"
 	users_api "github.com/GCFactory/dbo-system/service/registration/gen_proto/proto/api/users"
 	"github.com/GCFactory/dbo-system/service/registration/internal/registration"
 	"github.com/GCFactory/dbo-system/service/registration/internal/registration/grpc"
@@ -168,7 +169,6 @@ func (s *Server) RunKafkaConsumer(ctx context.Context, quitChan chan<- int) {
 
 func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 	// TODO: complete
-	s.logger.Info("GET MSG")
 
 	switch message.Topic {
 	case grpc.ServerTopicUsersProducerRes:
@@ -178,6 +178,8 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 			if err != nil {
 				s.logger.Errorf("Error unmarshalling event error: %v", err)
 			}
+
+			operation_name := event_success.OperationName
 
 			saga_uuid, err := uuid.Parse(event_success.SagaUuid)
 			if err != nil {
@@ -189,14 +191,32 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 			}
 
 			data := make(map[string]interface{})
-			result := event_success.GetInfo()
 
-			data["user_uuid"] = result
+			switch operation_name {
+			case grpc.OperationCreateUser:
+				{
+					result := event_success.GetInfo()
+
+					data["user_uuid"] = result
+
+					break
+				}
+			case grpc.OperationAddAccountToUser, grpc.OperationGetUserData:
+				{
+					break
+				}
+			default:
+				{
+					s.logger.Errorf("Message was gotten from <%v> topic with unknown operation <%v>!", message.Topic, operation_name)
+				}
+			}
 
 			err = s.grpcH.Process(context.Background(), saga_uuid, nil, event_uuid, nil, data, true)
 			if err != nil {
 				s.logger.Errorf("Error processing event: %v", err)
 			}
+
+			break
 
 		}
 	case grpc.ServerTopicUsersProducerErr:
@@ -224,6 +244,82 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 			if err != nil {
 				s.logger.Errorf("Error processing event: %v", err)
 			}
+
+			break
+		}
+	case grpc.ServerTopicAccountsProducerRes:
+		{
+
+			event_success := &accounts_api.EventStatus{}
+			err := proto.Unmarshal(message.Value, event_success)
+			if err != nil {
+				s.logger.Errorf("Error unmarshalling event error: %v", err)
+			}
+
+			operation_name := event_success.OperationName
+
+			saga_uuid, err := uuid.Parse(event_success.SagaUuid)
+			if err != nil {
+				s.logger.Errorf("Error parsing saga uuid: %v", err)
+			}
+			event_uuid, err := uuid.Parse(event_success.EventUuid)
+			if err != nil {
+				s.logger.Errorf("Error parsing event uuid: %v", err)
+			}
+
+			data := make(map[string]interface{})
+
+			switch operation_name {
+			case grpc.OperationReserveAcc:
+				{
+					data["acc_id"] = event_success.GetInfo()
+
+					break
+				}
+			case grpc.OperationOpenAcc, grpc.OperationCreateAcc:
+				{
+					break
+				}
+			default:
+				{
+					s.logger.Errorf("Message was gotten from <%v> topic with unknown operation <%v>!", message.Topic, operation_name)
+				}
+			}
+
+			err = s.grpcH.Process(context.Background(), saga_uuid, nil, event_uuid, nil, data, true)
+			if err != nil {
+				s.logger.Errorf("Error processing event: %v", err)
+			}
+
+			break
+		}
+	case grpc.ServerTopicAccountsProducerErr:
+		{
+			event_error := &accounts_api.EventError{}
+			err := proto.Unmarshal(message.Value, event_error)
+			if err != nil {
+				s.logger.Errorf("Error unmarshalling event error: %v", err)
+			}
+
+			saga_uuid, err := uuid.Parse(event_error.SagaUuid)
+			if err != nil {
+				s.logger.Errorf("Error parsing saga uuid: %v", err)
+			}
+			event_uuid, err := uuid.Parse(event_error.EventUuid)
+			if err != nil {
+				s.logger.Errorf("Error parsing event uuid: %v", err)
+			}
+
+			data := make(map[string]interface{})
+			data["info"] = event_error.Info
+			data["operation_name"] = event_error.OperationName
+			data["status"] = event_error.Status
+			err = s.grpcH.Process(context.Background(), saga_uuid, nil, event_uuid, nil, data, false)
+			if err != nil {
+				s.logger.Errorf("Error processing event: %v", err)
+			}
+
+			break
 		}
 	default:
 		{

@@ -3,7 +3,7 @@ package usecase
 const (
 	EventTypeCreateUser       string = "add_user"
 	EventTypeGetUserData      string = "get_user_data"
-	EventTypeReserveAccount   string = "reserve_account"
+	EventTypeReserveAccount   string = "reserve_acc"
 	EventTypeCreateAccount    string = "create_account"
 	EventTypeOpenAccount      string = "open_account"
 	EventTypeAddAccountToUser string = "add_user_account"

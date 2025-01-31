@@ -64,7 +64,7 @@ const (
 	OperationGetUserData      string = "get_user_data"
 	OperationCreateUser       string = "add_user"
 	OperationAddAccountToUser string = "add_user_accoount"
-	OperationReserveAcc       string = "reserv_acc"
+	OperationReserveAcc       string = "reserve_acc"
 	OperationCreateAcc        string = "create_acc"
 	OperationOpenAcc          string = "open_acc"
 )
@@ -153,8 +153,8 @@ func ValidateOperationsData(operationName string, data map[string]interface{}) (
 
 	operation_fields, ok := RequiredOperationsFields[operationName]
 	if ok {
-		for field, _ := range data {
-			if !slices.Contains(operation_fields, field) {
+		for _, field := range operation_fields {
+			if _, ok := data[field]; ok == false {
 				res = false
 				break
 			}
