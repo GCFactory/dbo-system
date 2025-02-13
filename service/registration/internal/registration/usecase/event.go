@@ -4,8 +4,8 @@ const (
 	EventTypeCreateUser       string = "add_user"
 	EventTypeGetUserData      string = "get_user_data"
 	EventTypeReserveAccount   string = "reserve_acc"
-	EventTypeCreateAccount    string = "create_account"
-	EventTypeOpenAccount      string = "open_account"
+	EventTypeCreateAccount    string = "create_acc"
+	EventTypeOpenAccount      string = "open_acc"
 	EventTypeAddAccountToUser string = "add_user_account"
 )
 

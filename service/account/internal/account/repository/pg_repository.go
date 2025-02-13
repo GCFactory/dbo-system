@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	registration "github.com/GCFactory/dbo-system/service/account/internal/account"
 	"github.com/GCFactory/dbo-system/service/account/internal/models"
 	"github.com/google/uuid"
@@ -24,6 +25,8 @@ func (repo accountRepo) CreateAccount(ctx context.Context, account *models.Accou
 
 	defer tx.Rollback()
 
+	fmt.Println("Postgres connected, Status: ", repo.db.Stats())
+
 	if _, err = repo.db.ExecContext(local_ctx,
 		CreateAccount,
 		account.Acc_uuid,
@@ -34,6 +37,7 @@ func (repo accountRepo) CreateAccount(ctx context.Context, account *models.Accou
 		account.Acc_cio,
 		account.Acc_money_value,
 	); err != nil {
+		println("CreateAccount", err.Error())
 		return ErrorCreateAccount
 	}
 
@@ -42,6 +46,7 @@ func (repo accountRepo) CreateAccount(ctx context.Context, account *models.Accou
 		reason.Acc_uuid,
 		reason.Reason,
 	); err != nil {
+		println("InsertReserveReason", err.Error())
 		return ErrorAddReserveReason
 	}
 

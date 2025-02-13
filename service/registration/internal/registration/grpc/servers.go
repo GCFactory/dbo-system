@@ -63,7 +63,7 @@ func ValidateServerTopic(serverType uint8, topic string) (res bool) {
 const (
 	OperationGetUserData      string = "get_user_data"
 	OperationCreateUser       string = "add_user"
-	OperationAddAccountToUser string = "add_user_accoount"
+	OperationAddAccountToUser string = "add_user_account"
 	OperationReserveAcc       string = "reserve_acc"
 	OperationCreateAcc        string = "create_acc"
 	OperationOpenAcc          string = "open_acc"
