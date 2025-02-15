@@ -35,7 +35,10 @@ func (h *GRPCRegistrationHandlers) StartOperation(ctx context.Context, operation
 
 	var list_of_events []*models.Event
 	switch operation_type {
-	case usecase.OperationCreateUser, usecase.OperationAddAccount, usecase.OperationAddAccountCache:
+	case usecase.OperationCreateUser,
+		usecase.OperationAddAccount,
+		usecase.OperationAddAccountCache,
+		usecase.OperationWidthAccountCache:
 		{
 			list_of_events, err = h.registrationUC.StartOperation(ctxWithTrace, operation_type, operation_data)
 			if err != nil {
@@ -383,7 +386,8 @@ func (h *GRPCRegistrationHandlers) SendRequest(ctx context.Context, server uint8
 					}
 					break
 				}
-			case OperationAddAccountCache:
+			case OperationAddAccountCache,
+				OperationWidthAccountCache:
 				{
 
 					if !ValidateOperationsData(operation_name, data) {

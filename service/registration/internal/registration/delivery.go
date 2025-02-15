@@ -7,4 +7,5 @@ type Handlers interface {
 	GetOperationStatus() echo.HandlerFunc
 	OpenAccount() echo.HandlerFunc
 	AddAccountCache() echo.HandlerFunc
+	WidthAccountCache() echo.HandlerFunc
 }

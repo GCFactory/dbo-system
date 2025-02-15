@@ -61,14 +61,15 @@ func ValidateServerTopic(serverType uint8, topic string) (res bool) {
 }
 
 const (
-	OperationGetUserData      string = "get_user_data"
-	OperationCreateUser       string = "add_user"
-	OperationAddAccountToUser string = "add_user_account"
-	OperationReserveAcc       string = "reserve_acc"
-	OperationCreateAcc        string = "create_acc"
-	OperationOpenAcc          string = "open_acc"
-	OperationGetAccountData   string = "get_acc_data"
-	OperationAddAccountCache  string = "adding_acc"
+	OperationGetUserData       string = "get_user_data"
+	OperationCreateUser        string = "add_user"
+	OperationAddAccountToUser  string = "add_user_account"
+	OperationReserveAcc        string = "reserve_acc"
+	OperationCreateAcc         string = "create_acc"
+	OperationOpenAcc           string = "open_acc"
+	OperationGetAccountData    string = "get_acc_data"
+	OperationAddAccountCache   string = "adding_acc"
+	OperationWidthAccountCache string = "width_acc"
 )
 
 var PossibleServersOperations = map[uint8][]string{
@@ -83,6 +84,7 @@ var PossibleServersOperations = map[uint8][]string{
 		OperationOpenAcc,
 		OperationGetAccountData,
 		OperationAddAccountCache,
+		OperationWidthAccountCache,
 	},
 }
 
@@ -154,6 +156,10 @@ var RequiredOperationsFields = map[string][]string{
 		"acc_id",
 	},
 	OperationAddAccountCache: {
+		"acc_id",
+		"cache_diff",
+	},
+	OperationWidthAccountCache: {
 		"acc_id",
 		"cache_diff",
 	},

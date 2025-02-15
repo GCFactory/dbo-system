@@ -1093,7 +1093,10 @@ func (regUC registrationUC) StartOperation(ctx context.Context, operation_type u
 	var list_of_root_saga []*models.Saga = nil
 
 	switch operation_type {
-	case OperationCreateUser, OperationAddAccount, OperationAddAccountCache:
+	case OperationCreateUser,
+		OperationAddAccount,
+		OperationAddAccountCache,
+		OperationWidthAccountCache:
 		{
 			list_of_root_saga_types, is_exist := OperationsRootsSagas[operation_type]
 			if !is_exist {
