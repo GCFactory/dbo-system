@@ -8,4 +8,5 @@ type Handlers interface {
 	OpenAccount() echo.HandlerFunc
 	AddAccountCache() echo.HandlerFunc
 	WidthAccountCache() echo.HandlerFunc
+	CloseAccount() echo.HandlerFunc
 }

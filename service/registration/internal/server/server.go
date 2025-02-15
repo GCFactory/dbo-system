@@ -289,19 +289,24 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 
 					break
 				}
-			case grpc.OperationOpenAcc, grpc.OperationCreateAcc:
-				{
-					break
-				}
 			case grpc.OperationGetAccountData:
 				{
 					acc_data := event_success.GetAccData()
 					if acc_data != nil {
 
 						data["acc_status"] = acc_data.GetAccStatus()
+						data["acc_cache"] = acc_data.GetAccMoneyAmount()
 
 					}
 
+					break
+				}
+			case grpc.OperationOpenAcc,
+				grpc.OperationCreateAcc,
+				grpc.OperationCloseAccount,
+				grpc.OperationAddAccountCache,
+				grpc.OperationWidthAccountCache:
+				{
 					break
 				}
 			default:

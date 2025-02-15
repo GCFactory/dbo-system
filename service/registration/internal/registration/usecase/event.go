@@ -10,6 +10,7 @@ const (
 	EventTypeAddAccountCache   string = "adding_acc"
 	EventTypeWidthAccountCache string = "width_acc"
 	EventTypeGetAccountData    string = "get_acc_data"
+	EventTypeCloseAccount      string = "close_acc"
 )
 
 var PossibleEventsList = [...]string{
@@ -22,6 +23,7 @@ var PossibleEventsList = [...]string{
 	EventTypeAddAccountCache,
 	EventTypeWidthAccountCache,
 	EventTypeGetAccountData,
+	EventTypeCloseAccount,
 }
 
 func ValidateEventType(eventType string) bool {
@@ -112,6 +114,9 @@ var EventListOfData = map[string][]string{
 		"cache_diff",
 	},
 	EventTypeGetAccountData: []string{
+		"acc_id",
+	},
+	EventTypeCloseAccount: {
 		"acc_id",
 	},
 }

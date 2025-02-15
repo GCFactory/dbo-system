@@ -217,6 +217,38 @@ func (h RegistrationHandlers) WidthAccountCache() echo.HandlerFunc {
 
 		return c.JSON(http.StatusAccepted, response)
 	}
+
+}
+
+func (h RegistrationHandlers) CloseAccount() echo.HandlerFunc {
+	return func(c echo.Context) error {
+
+		span, ctxWithTrace := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "RegistrationHandlers.WidthAccountCache")
+		defer span.Finish()
+
+		operation_info := &models.CloseAccount{}
+		if err := h.safeReadRequest(c, operation_info); err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, err.Error(), nil))
+		}
+
+		data := make(map[string]interface{})
+
+		data["user_id"] = operation_info.User_ID
+		data["acc_id"] = operation_info.Account_ID
+
+		operation_uuid, err := h.registrationGRPC.StartOperation(ctxWithTrace, usecase.OperationCloseAccount, data)
+		if err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
+		}
+
+		response := make(map[string]interface{})
+		response["info"] = operation_uuid.String()
+
+		return c.JSON(http.StatusAccepted, response)
+	}
+
 }
 
 func NewRegistrationHandlers(cfg *config.Config, logger logger.Logger, usecase registration.UseCase, grpc registration.RegistrationGRPCHandlers) registration.Handlers {

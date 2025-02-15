@@ -3,11 +3,13 @@ package usecase
 const (
 	AdditionalCheckUserHasAccount      string = "additional_check_user_has_account"
 	AdditionalCheckAccountStatusIsOpen string = "additional_check_account_status_is_open"
+	AdditionalCheckAccountEmptyCache   string = "additional_check_account_empty_cache"
 )
 
 var PossibleChecks = []string{
 	AdditionalCheckUserHasAccount,
 	AdditionalCheckAccountStatusIsOpen,
+	AdditionalCheckAccountEmptyCache,
 }
 
 func ValidateAdditionalCheckName(check_name string) (result bool) {
@@ -36,6 +38,10 @@ var ListOfRequiredCheckData = map[string][]string{
 	},
 	AdditionalCheckAccountStatusIsOpen: []string{
 		"acc_status",
+	},
+	AdditionalCheckAccountEmptyCache: {
+		"acc_status",
+		"acc_cache",
 	},
 }
 
@@ -88,6 +94,15 @@ var ListOfAdditionalSagaEventsChecks = map[uint8]map[string][]string{
 			AdditionalCheckAccountStatusIsOpen,
 		},
 	},
+	SagaGroupCloseAccount: map[string][]string{
+		EventTypeGetAccountData: []string{
+			AdditionalCheckUserHasAccount,
+		},
+		EventTypeCloseAccount: []string{
+			AdditionalCheckAccountStatusIsOpen,
+			AdditionalCheckAccountEmptyCache,
+		},
+	},
 }
 
 func AdditionalValidation(saga_group uint8, event_type string, data map[string]interface{}) (err error) {
@@ -118,6 +133,13 @@ func AdditionalValidation(saga_group uint8, event_type string, data map[string]i
 								if !CheckUserHasAccount(data) {
 									return ErrorCheckUserHasAccount
 								}
+							}
+						case AdditionalCheckAccountEmptyCache:
+							{
+								if !CheckAccountEmptyCache(data) {
+									return ErrorCheckAccountEmptyCache
+								}
+								break
 							}
 						default:
 							{
@@ -181,6 +203,28 @@ func CheckUserHasAccount(data map[string]interface{}) (result bool) {
 				result = true
 				break
 			}
+
+		}
+
+	}
+
+	return result
+
+}
+
+func CheckAccountEmptyCache(data map[string]interface{}) (result bool) {
+
+	result = false
+
+	if ValidateCheckData(AdditionalCheckAccountStatusIsOpen, data) {
+
+		account_status := int(data["acc_status"].(float64))
+		account_cache := data["acc_cache"].(float64)
+
+		if account_status == 30 &&
+			account_cache == float64(0) {
+
+			result = true
 
 		}
 

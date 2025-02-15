@@ -6,6 +6,7 @@ const (
 	OperationAddAccount        uint8 = 2
 	OperationAddAccountCache   uint8 = 3
 	OperationWidthAccountCache uint8 = 4
+	OperationCloseAccount      uint8 = 5
 	OperationError             uint8 = 255
 )
 
@@ -15,6 +16,7 @@ var PossibleOperations = []uint8{
 	OperationAddAccount,
 	OperationAddAccountCache,
 	OperationWidthAccountCache,
+	OperationCloseAccount,
 	OperationError,
 }
 
@@ -38,6 +40,9 @@ var OperationsRootsSagas = map[uint8][]string{
 		SagaTypeCheckUser,
 	},
 	OperationWidthAccountCache: {
+		SagaTypeCheckUser,
+	},
+	OperationCloseAccount: {
 		SagaTypeCheckUser,
 	},
 }

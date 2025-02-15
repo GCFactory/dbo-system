@@ -1096,7 +1096,8 @@ func (regUC registrationUC) StartOperation(ctx context.Context, operation_type u
 	case OperationCreateUser,
 		OperationAddAccount,
 		OperationAddAccountCache,
-		OperationWidthAccountCache:
+		OperationWidthAccountCache,
+		OperationCloseAccount:
 		{
 			list_of_root_saga_types, is_exist := OperationsRootsSagas[operation_type]
 			if !is_exist {

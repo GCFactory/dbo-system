@@ -25,4 +25,5 @@ var (
 	ErrorUnknownAdditionalValidationFunction = errors.New("Unknown additional validation function")
 	ErrorCheckAccountIsOpen                  = errors.New("Error check account is open")
 	ErrorCheckUserHasAccount                 = errors.New("Error check existing user account")
+	ErrorCheckAccountEmptyCache              = errors.New("Account's cache is not empty")
 )
