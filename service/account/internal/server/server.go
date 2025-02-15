@@ -6,7 +6,7 @@ import (
 	platfrom_config "github.com/GCFactory/dbo-system/platform/config"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/service/account/config"
-	acc_proto_api "github.com/GCFactory/dbo-system/service/account/gen_proto/proto/api"
+	acc_proto_api "github.com/GCFactory/dbo-system/service/account/gen_proto/proto/api/account"
 	"github.com/GCFactory/dbo-system/service/account/internal/account"
 	"github.com/GCFactory/dbo-system/service/account/internal/account/grpc_handlers"
 	"github.com/GCFactory/dbo-system/service/account/internal/account/repository"

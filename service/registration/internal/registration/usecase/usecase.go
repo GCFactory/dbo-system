@@ -358,12 +358,45 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 		case EventStatusCreated:
 			{
 				if regUC.CheckEventDataIsReady(ctxWithTrace, event_uuid, event.Saga_uuid) {
-					event.Event_status = EventStatusInProgress
-					err = regUC.registrationRepo.UpdateEvent(ctxWithTrace, event)
+					event_saga, err := regUC.registrationRepo.GetSaga(ctxWithTrace, event.Saga_uuid)
 					if err != nil {
-						return result, err
+						return nil, err
 					}
-					result = append(result, event)
+					if validation_err := AdditionalValidation(event_saga.Saga_type, event.Event_name, event_saga.Saga_data); validation_err != nil {
+
+						event.Event_status = EventStatusError
+
+						error_info := make(map[string]interface{})
+						error_info["local validation error"] = validation_err.Error()
+
+						error_info_str, err := json.Marshal(&error_info)
+						if err != nil {
+
+							return nil, err
+
+						}
+
+						event.Event_result = string(error_info_str)
+
+						err = regUC.registrationRepo.UpdateEvent(ctxWithTrace, event)
+						if err != nil {
+							return nil, err
+						}
+
+						new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, event.Saga_uuid, uuid.Nil, false, nil)
+						if err != nil {
+							return nil, err
+						}
+						result = append(result, new_events...)
+
+					} else {
+						event.Event_status = EventStatusInProgress
+						err = regUC.registrationRepo.UpdateEvent(ctxWithTrace, event)
+						if err != nil {
+							return result, err
+						}
+						result = append(result, event)
+					}
 				} else {
 					event.Event_status = EventStatusError
 					event.Event_result = "{ \"Local error\": \"Event hasn't got all data from saga!\"}"
@@ -907,10 +940,15 @@ func (regUC registrationUC) CreateSagaTree(ctx context.Context, list_root_saga_t
 		previous_saga_tree_layer[saga.Saga_name] = saga
 	}
 
+	ListOfSagaDependGroup, ok := ListOfSagaDepend[saga_group]
+	if !ok {
+		return nil, ErrorNoSagaGroupDepend
+	}
+
 	for {
 		for saga_type, _ := range previous_saga_tree_layer {
 
-			saga_depends, is_exist := ListOfSagaDepend[saga_type]
+			saga_depends, is_exist := ListOfSagaDependGroup[saga_type]
 			if !is_exist {
 				saga_tree = regUC.FillNewSagaTreeLayer(ctxWithTrace, saga_tree, layer_number, current_saga_tree_layer)
 				err = regUC.ClearSagaTree(ctxWithTrace, saga_tree)
@@ -942,7 +980,7 @@ func (regUC registrationUC) CreateSagaTree(ctx context.Context, list_root_saga_t
 					}
 					current_saga_tree_layer[child_type] = saga_child
 
-					child_depends, is_exist := ListOfSagaDepend[child_type]
+					child_depends, is_exist := ListOfSagaDependGroup[child_type]
 					if !is_exist {
 						saga_tree = regUC.FillNewSagaTreeLayer(ctxWithTrace, saga_tree, layer_number, current_saga_tree_layer)
 						err = regUC.ClearSagaTree(ctxWithTrace, saga_tree)
@@ -1055,7 +1093,7 @@ func (regUC registrationUC) StartOperation(ctx context.Context, operation_type u
 	var list_of_root_saga []*models.Saga = nil
 
 	switch operation_type {
-	case OperationCreateUser, OperationAddAccount:
+	case OperationCreateUser, OperationAddAccount, OperationAddAccountCache:
 		{
 			list_of_root_saga_types, is_exist := OperationsRootsSagas[operation_type]
 			if !is_exist {
@@ -1213,24 +1251,56 @@ func (regUC registrationUC) GetSagaResultData(ctx context.Context, saga_uuid uui
 	if err != nil {
 		err = ErrorSagaWasNotFound
 	} else {
-		list_of_saga_without_children, err := regUC.GetSagaChildrenWithoutChildren(ctxWithTrace, saga_uuid)
+		//list_of_saga_without_children, err := regUC.GetSagaChildrenWithoutChildren(ctxWithTrace, saga_uuid)
+		//if err != nil {
+		//	return data, err
+		//}
+		//
+		//var events []*models.Event
+		//for _, saga_without_child := range list_of_saga_without_children {
+		//	events_uuid, err := regUC.registrationRepo.GetListOfSagaEvents(ctxWithTrace, saga_without_child.Saga_uuid)
+		//	if err != nil {
+		//		return data, err
+		//	}
+		//	for _, event_uuid := range events_uuid.EventList {
+		//		event, err := regUC.registrationRepo.GetEvent(ctxWithTrace, event_uuid)
+		//		if err != nil {
+		//			return data, err
+		//		}
+		//		events = append(events, event)
+		//	}
+		//}
+		//
+		//for _, event := range events {
+		//	var event_result_data map[string]interface{}
+		//	err := json.Unmarshal([]byte(event.Event_result), &event_result_data)
+		//	if err != nil {
+		//		return data, err
+		//	}
+		//
+		//	for field_name, field_data := range event_result_data {
+		//		data[field_name] = field_data
+		//	}
+		//
+		//}
+		events_uuid, err := regUC.registrationRepo.GetListOfSagaEvents(ctxWithTrace, saga_uuid)
 		if err != nil {
-			return data, err
+			return nil, err
 		}
 
 		var events []*models.Event
-		for _, saga_without_child := range list_of_saga_without_children {
-			events_uuid, err := regUC.registrationRepo.GetListOfSagaEvents(ctxWithTrace, saga_without_child.Saga_uuid)
+
+		for _, event_uuid := range events_uuid.EventList {
+
+			event, err := regUC.registrationRepo.GetEvent(ctxWithTrace, event_uuid)
 			if err != nil {
-				return data, err
+
+				return nil, err
+
 			}
-			for _, event_uuid := range events_uuid.EventList {
-				event, err := regUC.registrationRepo.GetEvent(ctxWithTrace, event_uuid)
-				if err != nil {
-					return data, err
-				}
-				events = append(events, event)
-			}
+
+			events = append(events, event)
+
 		}
 
 		for _, event := range events {
@@ -1242,6 +1312,29 @@ func (regUC registrationUC) GetSagaResultData(ctx context.Context, saga_uuid uui
 
 			for field_name, field_data := range event_result_data {
 				data[field_name] = field_data
+			}
+
+		}
+
+		saga_children_connection, err := regUC.registrationRepo.GetSagaConnectionsCurrentSaga(ctxWithTrace, saga_uuid)
+		if err != nil {
+
+			return nil, err
+
+		}
+
+		for _, saga_child_connection := range saga_children_connection.List_of_connetcions {
+
+			sub_data, err := regUC.GetSagaResultData(ctxWithTrace, saga_child_connection.Next_saga_uuid)
+			if err != nil {
+
+				return nil, err
+
+			}
+			for field_name, field_data := range sub_data {
+
+				data[field_name] = field_data
+
 			}
 
 		}

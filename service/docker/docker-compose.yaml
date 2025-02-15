@@ -170,35 +170,35 @@ services:
     networks:
       - web_api
 
-  service_registration:
-    build:
-      context: ./../registration
-      dockerfile: ./docker/Dockerfile
-    image: registration_image
-    deploy:
-      mode: replicated
-      replicas: 1
-    ports:
-      - "8110-8119:8080"
-    links:
-      - jaeger
-      - kafka
-      - postgresql_registration
-      - service_accounts
-#      - service_users
-    depends_on:
-      - jaeger
-      - kafka
-      - postgresql_registration
-      - service_accounts
-#      - service_users
-    cap_add:
-      - SYS_PTRACE
-    restart: always
-    volumes:
-      - ./services/registration/registration_config:/usr/src/app/config
-    networks:
-      - web_api
+#  service_registration:
+#    build:
+#      context: ./../registration
+#      dockerfile: ./docker/Dockerfile
+#    image: registration_image
+#    deploy:
+#      mode: replicated
+#      replicas: 1
+#    ports:
+#      - "8110-8119:8080"
+#    links:
+#      - jaeger
+#      - kafka
+#      - postgresql_registration
+#      - service_accounts
+##      - service_users
+#    depends_on:
+#      - jaeger
+#      - kafka
+#      - postgresql_registration
+#      - service_accounts
+##      - service_users
+#    cap_add:
+#      - SYS_PTRACE
+#    restart: always
+#    volumes:
+#      - ./services/registration/registration_config:/usr/src/app/config
+#    networks:
+#      - web_api
 
 networks:
   web_api:

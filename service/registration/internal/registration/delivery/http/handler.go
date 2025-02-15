@@ -157,6 +157,37 @@ func (h RegistrationHandlers) OpenAccount() echo.HandlerFunc {
 	}
 }
 
+func (h RegistrationHandlers) AddAccountCache() echo.HandlerFunc {
+	return func(c echo.Context) error {
+
+		span, ctxWithTrace := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "RegistrationHandlers.AddAccountCache")
+		defer span.Finish()
+
+		operation_info := &models.AddAccountCache{}
+		if err := h.safeReadRequest(c, operation_info); err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, err.Error(), nil))
+		}
+
+		data := make(map[string]interface{})
+
+		data["user_id"] = operation_info.User_ID
+		data["acc_id"] = operation_info.Account_ID
+		data["cache_diff"] = operation_info.Cache_diff
+
+		operation_uuid, err := h.registrationGRPC.StartOperation(ctxWithTrace, usecase.OperationAddAccountCache, data)
+		if err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
+		}
+
+		response := make(map[string]interface{})
+		response["info"] = operation_uuid.String()
+
+		return c.JSON(http.StatusAccepted, response)
+	}
+}
+
 func NewRegistrationHandlers(cfg *config.Config, logger logger.Logger, usecase registration.UseCase, grpc registration.RegistrationGRPCHandlers) registration.Handlers {
 	return &RegistrationHandlers{cfg: cfg, logger: logger, registrationGRPC: grpc, registrationUC: usecase}
 }

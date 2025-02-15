@@ -1,7 +1,7 @@
 package account
 
 import (
-	acc_proto_api "github.com/GCFactory/dbo-system/service/account/gen_proto/proto/api"
+	acc_proto_api "github.com/GCFactory/dbo-system/service/account/gen_proto/proto/api/account"
 	acc_proto_platform "github.com/GCFactory/dbo-system/service/account/gen_proto/proto/platform"
 	"github.com/GCFactory/dbo-system/service/account/pkg/kafka"
 	"golang.org/x/net/context"

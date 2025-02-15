@@ -67,6 +67,8 @@ const (
 	OperationReserveAcc       string = "reserve_acc"
 	OperationCreateAcc        string = "create_acc"
 	OperationOpenAcc          string = "open_acc"
+	OperationGetAccountData   string = "get_acc_data"
+	OperationAddAccountCache  string = "adding_acc"
 )
 
 var PossibleServersOperations = map[uint8][]string{
@@ -79,6 +81,8 @@ var PossibleServersOperations = map[uint8][]string{
 		OperationReserveAcc,
 		OperationCreateAcc,
 		OperationOpenAcc,
+		OperationGetAccountData,
+		OperationAddAccountCache,
 	},
 }
 
@@ -145,6 +149,13 @@ var RequiredOperationsFields = map[string][]string{
 	OperationAddAccountToUser: {
 		"user_id",
 		"acc_id",
+	},
+	OperationGetAccountData: {
+		"acc_id",
+	},
+	OperationAddAccountCache: {
+		"acc_id",
+		"cache_diff",
 	},
 }
 

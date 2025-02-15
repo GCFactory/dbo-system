@@ -19,6 +19,8 @@ const (
 	SagaTypeReserveAccount          string = "reserve_account"
 	SagaTypeCreateAccount           string = "create_account"
 	SagaTypeOpenAccountAndAddToUser string = "open_account_and_add_to_user"
+	SagaTypeGetAccountData          string = "get_account_data"
+	SagaTypeAddAccountCache         string = "add_account_cache"
 )
 
 var PossibleSagaTypes = []string{
@@ -27,6 +29,8 @@ var PossibleSagaTypes = []string{
 	SagaTypeReserveAccount,
 	SagaTypeCreateAccount,
 	SagaTypeOpenAccountAndAddToUser,
+	SagaTypeAddAccountCache,
+	SagaTypeGetAccountData,
 }
 
 func ValidateSagaType(saga_type string) bool {
@@ -42,13 +46,15 @@ func ValidateSagaType(saga_type string) bool {
 }
 
 const (
-	SagaGroupCreateUser    uint8 = 1
-	SagaGroupCreateAccount uint8 = 2
+	SagaGroupCreateUser      uint8 = 1
+	SagaGroupCreateAccount   uint8 = 2
+	SagaGroupAddAccountCache uint8 = 3
 )
 
 var PossibleSagaGroups = []uint8{
 	SagaGroupCreateUser,
 	SagaGroupCreateAccount,
+	SagaGroupAddAccountCache,
 }
 
 func ValidateSagaGroup(saga_group uint8) bool {
@@ -78,40 +84,99 @@ var PossibleEventsListForSagaType = map[string][]string{
 		EventTypeOpenAccount,
 		EventTypeAddAccountToUser,
 	},
+	SagaTypeAddAccountCache: {
+		EventTypeAddAccountCache,
+	},
+	SagaTypeGetAccountData: {
+		EventTypeGetAccountData,
+	},
 }
 
-var ListOfSagaDepend = map[string]models.SagaDepend{
-	SagaTypeCreateUser: {
-		Parents:  nil,
-		Children: nil,
-	},
-	SagaTypeCheckUser: models.SagaDepend{
-		Parents: nil,
-		Children: []string{
-			SagaTypeReserveAccount,
+func CheckExistingEventTypeIntoSagaType(saga_type string, event_type string) (result bool) {
+
+	result = false
+
+	if ValidateSagaType(saga_type) &&
+		ValidateEventType(event_type) {
+
+		saga_events, ok := PossibleEventsListForSagaType[saga_type]
+		if ok {
+
+			for _, existing_event_type := range saga_events {
+
+				if existing_event_type == event_type {
+					result = true
+					break
+				}
+
+			}
+
+		}
+
+	}
+
+	return result
+
+}
+
+var ListOfSagaDepend = map[uint8]map[string]models.SagaDepend{
+	SagaGroupCreateUser: map[string]models.SagaDepend{
+		SagaTypeCreateUser: {
+			Parents:  nil,
+			Children: nil,
 		},
 	},
-	SagaTypeReserveAccount: models.SagaDepend{
-		Parents: []string{
-			SagaTypeCheckUser,
+	SagaGroupCreateAccount: map[string]models.SagaDepend{
+		SagaTypeCheckUser: models.SagaDepend{
+			Parents: nil,
+			Children: []string{
+				SagaTypeReserveAccount,
+			},
 		},
-		Children: []string{
-			SagaTypeCreateAccount,
+		SagaTypeReserveAccount: models.SagaDepend{
+			Parents: []string{
+				SagaTypeCheckUser,
+			},
+			Children: []string{
+				SagaTypeCreateAccount,
+			},
+		},
+		SagaTypeCreateAccount: models.SagaDepend{
+			Parents: []string{
+				SagaTypeReserveAccount,
+			},
+			Children: []string{
+				SagaTypeOpenAccountAndAddToUser,
+			},
+		},
+		SagaTypeOpenAccountAndAddToUser: models.SagaDepend{
+			Parents: []string{
+				SagaTypeCreateAccount,
+			},
+			Children: nil,
 		},
 	},
-	SagaTypeCreateAccount: models.SagaDepend{
-		Parents: []string{
-			SagaTypeReserveAccount,
+	SagaGroupAddAccountCache: map[string]models.SagaDepend{
+		SagaTypeCheckUser: models.SagaDepend{
+			Parents: nil,
+			Children: []string{
+				SagaTypeGetAccountData,
+			},
 		},
-		Children: []string{
-			SagaTypeOpenAccountAndAddToUser,
+		SagaTypeGetAccountData: models.SagaDepend{
+			Parents: []string{
+				SagaTypeCheckUser,
+			},
+			Children: []string{
+				SagaTypeAddAccountCache,
+			},
 		},
-	},
-	SagaTypeOpenAccountAndAddToUser: models.SagaDepend{
-		Parents: []string{
-			SagaTypeCreateAccount,
+		SagaTypeAddAccountCache: models.SagaDepend{
+			Parents: []string{
+				SagaTypeGetAccountData,
+			},
+			Children: nil,
 		},
-		Children: nil,
 	},
 }
 

@@ -1,16 +1,18 @@
 package usecase
 
 const (
-	OperationUnknown    uint8 = 0
-	OperationCreateUser uint8 = 1
-	OperationAddAccount uint8 = 2
-	OperationError      uint8 = 255
+	OperationUnknown         uint8 = 0
+	OperationCreateUser      uint8 = 1
+	OperationAddAccount      uint8 = 2
+	OperationAddAccountCache uint8 = 3
+	OperationError           uint8 = 255
 )
 
 var PossibleOperations = []uint8{
 	OperationUnknown,
 	OperationCreateUser,
 	OperationAddAccount,
+	OperationAddAccountCache,
 	OperationError,
 }
 
@@ -28,6 +30,9 @@ var OperationsRootsSagas = map[uint8][]string{
 		SagaTypeCreateUser,
 	},
 	OperationAddAccount: []string{
+		SagaTypeCheckUser,
+	},
+	OperationAddAccountCache: []string{
 		SagaTypeCheckUser,
 	},
 }

@@ -201,7 +201,20 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 
 					break
 				}
-			case grpc.OperationAddAccountToUser, grpc.OperationGetUserData:
+			case grpc.OperationGetUserData:
+				{
+
+					result := event_success.GetFullData()
+					data["inn"] = result.GetUserInn()
+
+					accounts := result.GetAccounts()
+					if accounts != nil {
+						data["accounts"] = accounts.Accounts
+					}
+
+					break
+				}
+			case grpc.OperationAddAccountToUser:
 				{
 					break
 				}
@@ -278,6 +291,17 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 				}
 			case grpc.OperationOpenAcc, grpc.OperationCreateAcc:
 				{
+					break
+				}
+			case grpc.OperationGetAccountData:
+				{
+					acc_data := event_success.GetAccData()
+					if acc_data != nil {
+
+						data["acc_status"] = acc_data.GetAccStatus()
+
+					}
+
 					break
 				}
 			default:

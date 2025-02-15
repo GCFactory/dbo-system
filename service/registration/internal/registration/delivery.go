@@ -6,4 +6,5 @@ type Handlers interface {
 	CreateUser() echo.HandlerFunc
 	GetOperationStatus() echo.HandlerFunc
 	OpenAccount() echo.HandlerFunc
+	AddAccountCache() echo.HandlerFunc
 }

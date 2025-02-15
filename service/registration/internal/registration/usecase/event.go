@@ -1,12 +1,15 @@
 package usecase
 
 const (
-	EventTypeCreateUser       string = "add_user"
-	EventTypeGetUserData      string = "get_user_data"
-	EventTypeReserveAccount   string = "reserve_acc"
-	EventTypeCreateAccount    string = "create_acc"
-	EventTypeOpenAccount      string = "open_acc"
-	EventTypeAddAccountToUser string = "add_user_account"
+	EventTypeCreateUser        string = "add_user"
+	EventTypeGetUserData       string = "get_user_data"
+	EventTypeReserveAccount    string = "reserve_acc"
+	EventTypeCreateAccount     string = "create_acc"
+	EventTypeOpenAccount       string = "open_acc"
+	EventTypeAddAccountToUser  string = "add_user_account"
+	EventTypeAddAccountCache   string = "adding_acc"
+	EventTypeWidthAccountCache string = "width_acc"
+	EventTypeGetAccountData    string = "get_acc_data"
 )
 
 var PossibleEventsList = [...]string{
@@ -16,6 +19,9 @@ var PossibleEventsList = [...]string{
 	EventTypeCreateAccount,
 	EventTypeOpenAccount,
 	EventTypeAddAccountToUser,
+	EventTypeAddAccountCache,
+	EventTypeWidthAccountCache,
+	EventTypeGetAccountData,
 }
 
 func ValidateEventType(eventType string) bool {
@@ -95,6 +101,17 @@ var EventListOfData = map[string][]string{
 	},
 	EventTypeAddAccountToUser: []string{
 		"user_id",
+		"acc_id",
+	},
+	EventTypeAddAccountCache: []string{
+		"acc_id",
+		"cache_diff",
+	},
+	EventTypeWidthAccountCache: []string{
+		"acc_id",
+		"cache_diff",
+	},
+	EventTypeGetAccountData: []string{
 		"acc_id",
 	},
 }

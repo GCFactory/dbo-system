@@ -31,3 +31,9 @@ type OpenAccountInfo struct {
 	CIO            string `json:"cio" validate:"required,number,min=9,max=11"`
 	Reserve_reason string `json:"reserve_reason"`
 }
+
+type AddAccountCache struct {
+	User_ID    string  `json:"user_id" validate:"required,uuid4"`
+	Account_ID string  `json:"account_id" validate:"required,uuid4"`
+	Cache_diff float32 `json:"cache_diff" validate:"required,number,min=0"`
+}

@@ -35,7 +35,7 @@ func (h *GRPCRegistrationHandlers) StartOperation(ctx context.Context, operation
 
 	var list_of_events []*models.Event
 	switch operation_type {
-	case usecase.OperationCreateUser, usecase.OperationAddAccount:
+	case usecase.OperationCreateUser, usecase.OperationAddAccount, usecase.OperationAddAccountCache:
 		{
 			list_of_events, err = h.registrationUC.StartOperation(ctxWithTrace, operation_type, operation_data)
 			if err != nil {
@@ -100,12 +100,16 @@ func (h *GRPCRegistrationHandlers) Process(ctx context.Context, saga_uuid uuid.U
 			return local_err
 		}
 		for _, new_event := range list_of_events {
+			data_for_event, err := h.registrationUC.GetEventData(ctxWithTrace, new_event.Event_uuid)
+			if err != nil {
+				return err
+			}
 			err = h.Process(ctxWithTrace,
 				new_event.Saga_uuid,
 				nil,
 				new_event.Event_uuid,
 				new_event,
-				data,
+				data_for_event,
 				true)
 			if err != nil {
 				h.regLog.Error(err)
@@ -329,6 +333,75 @@ func (h *GRPCRegistrationHandlers) SendRequest(ctx context.Context, server uint8
 						Data: &accounts_api.EventData_AdditionalInfo{
 							AdditionalInfo: &accounts_api.OperationDetails{
 								AccUuid: data["acc_id"].(string),
+							},
+						},
+					}
+
+					msg, err := proto.Marshal(account_data)
+					if err != nil {
+						h.regLog.Error(err)
+						return err
+					}
+					err = h.kProducer.ProduceRecord(ServerTopicAccountsConsumer, sarama.ByteEncoder(msg))
+					if err != nil {
+						h.regLog.Error(err)
+						return err
+					}
+					break
+				}
+			case OperationGetAccountData:
+				{
+
+					if !ValidateOperationsData(operation_name, data) {
+						return ErrorInvalidOperationsData
+					}
+
+					if !ValidateServerTopic(server, ServerTopicAccountsConsumer) {
+						return ErrorInvalidServersTopic
+					}
+
+					account_data := &accounts_api.EventData{
+						SagaUuid:      saga_uuid.String(),
+						EventUuid:     event_uuid.String(),
+						OperationName: operation_name,
+						Data: &accounts_api.EventData_AdditionalInfo{
+							AdditionalInfo: &accounts_api.OperationDetails{
+								AccUuid: data["acc_id"].(string),
+							},
+						},
+					}
+
+					msg, err := proto.Marshal(account_data)
+					if err != nil {
+						h.regLog.Error(err)
+						return err
+					}
+					err = h.kProducer.ProduceRecord(ServerTopicAccountsConsumer, sarama.ByteEncoder(msg))
+					if err != nil {
+						h.regLog.Error(err)
+						return err
+					}
+					break
+				}
+			case OperationAddAccountCache:
+				{
+
+					if !ValidateOperationsData(operation_name, data) {
+						return ErrorInvalidOperationsData
+					}
+
+					if !ValidateServerTopic(server, ServerTopicAccountsConsumer) {
+						return ErrorInvalidServersTopic
+					}
+
+					account_data := &accounts_api.EventData{
+						SagaUuid:      saga_uuid.String(),
+						EventUuid:     event_uuid.String(),
+						OperationName: operation_name,
+						Data: &accounts_api.EventData_AdditionalInfo{
+							AdditionalInfo: &accounts_api.OperationDetails{
+								AccUuid:        data["acc_id"].(string),
+								AdditionalData: float32(data["cache_diff"].(float64)),
 							},
 						},
 					}

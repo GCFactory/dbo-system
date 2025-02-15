@@ -10,4 +10,5 @@ func MapRegistrationRoutes(RegistrationGroup *echo.Group, h registration.Handler
 	RegistrationGroup.POST("/create_user", h.CreateUser())
 	RegistrationGroup.GET("/get_operation_status", h.GetOperationStatus())
 	RegistrationGroup.POST("/open_account", h.OpenAccount())
+	RegistrationGroup.POST("/add_account_cache", h.AddAccountCache())
 }
