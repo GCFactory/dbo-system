@@ -1,0 +1,17 @@
+meta {
+  name: Get user data
+  type: http
+  seq: 9
+}
+
+post {
+  url: http://localhost:8080/api/v1/registration/get_user_data
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "user_id": "e42d72ee-527d-419a-8404-70fb4c7a8475"
+  }
+}

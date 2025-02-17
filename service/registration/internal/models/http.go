@@ -48,3 +48,12 @@ type CloseAccount struct {
 	User_ID    string `json:"user_id" validate:"required,uuid4"`
 	Account_ID string `json:"account_id" validate:"required,uuid4"`
 }
+
+type GetUserData struct {
+	User_ID string `json:"user_id" validate:"required,uuid4"`
+}
+
+type GetAccountData struct {
+	User_ID    string `json:"user_id" validate:"required,uuid4"`
+	Account_ID string `json:"account_id" validate:"required,uuid4"`
+}

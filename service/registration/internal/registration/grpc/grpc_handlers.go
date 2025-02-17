@@ -39,7 +39,9 @@ func (h *GRPCRegistrationHandlers) StartOperation(ctx context.Context, operation
 		usecase.OperationAddAccount,
 		usecase.OperationAddAccountCache,
 		usecase.OperationWidthAccountCache,
-		usecase.OperationCloseAccount:
+		usecase.OperationCloseAccount,
+		usecase.OperationGetUserData,
+		usecase.OperationGetAccountData:
 		{
 			list_of_events, err = h.registrationUC.StartOperation(ctxWithTrace, operation_type, operation_data)
 			if err != nil {

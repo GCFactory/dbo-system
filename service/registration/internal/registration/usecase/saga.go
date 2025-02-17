@@ -49,6 +49,37 @@ func ValidateSagaType(saga_type string) bool {
 
 }
 
+var PossibleEventsListForSagaType = map[string][]string{
+	SagaTypeCreateUser: {
+		EventTypeCreateUser,
+	},
+	SagaTypeCheckUser: {
+		EventTypeGetUserData,
+	},
+	SagaTypeReserveAccount: {
+		EventTypeReserveAccount,
+	},
+	SagaTypeCreateAccount: {
+		EventTypeCreateAccount,
+	},
+	SagaTypeOpenAccountAndAddToUser: {
+		EventTypeOpenAccount,
+		EventTypeAddAccountToUser,
+	},
+	SagaTypeAddAccountCache: {
+		EventTypeAddAccountCache,
+	},
+	SagaTypeGetAccountData: {
+		EventTypeGetAccountData,
+	},
+	SagaTypeWidthAccountCache: {
+		EventTypeWidthAccountCache,
+	},
+	SagaTypeCloseAccount: {
+		EventTypeCloseAccount,
+	},
+}
+
 func CheckExistingEventTypeIntoSagaType(saga_type string, event_type string) (result bool) {
 
 	result = false
@@ -82,6 +113,8 @@ const (
 	SagaGroupAddAccountCache   uint8 = 3
 	SagaGroupWidthAccountCache uint8 = 4
 	SagaGroupCloseAccount      uint8 = 5
+	SagaGroupGetUserData       uint8 = 6
+	SagaGroupGetAccountData    uint8 = 7
 )
 
 var PossibleSagaGroups = []uint8{
@@ -90,6 +123,8 @@ var PossibleSagaGroups = []uint8{
 	SagaGroupAddAccountCache,
 	SagaGroupWidthAccountCache,
 	SagaGroupCloseAccount,
+	SagaGroupGetUserData,
+	SagaGroupGetAccountData,
 }
 
 func ValidateSagaGroup(saga_group uint8) bool {
@@ -100,37 +135,6 @@ func ValidateSagaGroup(saga_group uint8) bool {
 	}
 
 	return false
-}
-
-var PossibleEventsListForSagaType = map[string][]string{
-	SagaTypeCreateUser: {
-		EventTypeCreateUser,
-	},
-	SagaTypeCheckUser: {
-		EventTypeGetUserData,
-	},
-	SagaTypeReserveAccount: {
-		EventTypeReserveAccount,
-	},
-	SagaTypeCreateAccount: {
-		EventTypeCreateAccount,
-	},
-	SagaTypeOpenAccountAndAddToUser: {
-		EventTypeOpenAccount,
-		EventTypeAddAccountToUser,
-	},
-	SagaTypeAddAccountCache: {
-		EventTypeAddAccountCache,
-	},
-	SagaTypeGetAccountData: {
-		EventTypeGetAccountData,
-	},
-	SagaTypeWidthAccountCache: {
-		EventTypeWidthAccountCache,
-	},
-	SagaTypeCloseAccount: {
-		EventTypeCloseAccount,
-	},
 }
 
 var ListOfSagaDepend = map[uint8]map[string]models.SagaDepend{
@@ -232,6 +236,26 @@ var ListOfSagaDepend = map[uint8]map[string]models.SagaDepend{
 		SagaTypeCloseAccount: models.SagaDepend{
 			Parents: []string{
 				SagaTypeGetAccountData,
+			},
+			Children: nil,
+		},
+	},
+	SagaGroupGetUserData: map[string]models.SagaDepend{
+		SagaTypeCheckUser: models.SagaDepend{
+			Parents:  nil,
+			Children: nil,
+		},
+	},
+	SagaGroupGetAccountData: map[string]models.SagaDepend{
+		SagaTypeCheckUser: models.SagaDepend{
+			Parents: nil,
+			Children: []string{
+				SagaTypeGetAccountData,
+			},
+		},
+		SagaTypeGetAccountData: models.SagaDepend{
+			Parents: []string{
+				SagaTypeCheckUser,
 			},
 			Children: nil,
 		},

@@ -9,4 +9,6 @@ type Handlers interface {
 	AddAccountCache() echo.HandlerFunc
 	WidthAccountCache() echo.HandlerFunc
 	CloseAccount() echo.HandlerFunc
+	GetUserData() echo.HandlerFunc
+	GetAccountData() echo.HandlerFunc
 }

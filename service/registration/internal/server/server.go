@@ -212,6 +212,27 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 						data["accounts"] = accounts.Accounts
 					}
 
+					passport := result.GetPassport()
+					if passport != nil {
+						data["passport_series"] = passport.GetSeries()
+						data["passport_number"] = passport.GetNumber()
+
+						fcs := passport.GetFcs()
+						if fcs != nil {
+							data["passport_first_name"] = fcs.GetName()
+							data["passport_first_surname"] = fcs.GetSurname()
+							data["passport_first_patronimic"] = fcs.GetPatronymic()
+						}
+
+						data["passport_birth_date"] = passport.GetBirthDate().AsTime().Format("2006-01-02 15:04:05 -07:00:00")
+						data["passport_birth_location"] = passport.GetBirthLocation()
+						data["passport_pick_up_point"] = passport.GetPickUpPoint()
+						data["passport_authority"] = passport.GetAuthority()
+						data["passport_authority_date"] = passport.GetAuthorityDate().AsTime().Format("2006-01-02 15:04:05 -07:00:00")
+						data["passport_registration_address"] = passport.GetRegistrationAdress()
+
+					}
+
 					break
 				}
 			case grpc.OperationAddAccountToUser:
@@ -296,6 +317,17 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 
 						data["acc_status"] = acc_data.GetAccStatus()
 						data["acc_cache"] = acc_data.GetAccMoneyAmount()
+						data["acc_cache_value"] = acc_data.GetAccMoneyValue()
+
+						account_details := acc_data.GetAccDetails()
+
+						if account_details != nil {
+							data["acc_culc_number"] = account_details.GetCulcNumber()
+							data["acc_corr_number"] = account_details.GetCorrNumber()
+							data["acc_bic"] = account_details.GetBic()
+							data["acc_cio"] = account_details.GetCio()
+							data["acc_reserve_reason"] = account_details.GetReserveReason()
+						}
 
 					}
 
