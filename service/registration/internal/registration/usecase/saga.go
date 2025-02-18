@@ -287,3 +287,76 @@ func ValidateSagaConnectionStatus(saga_connection_status uint8) bool {
 
 	return false
 }
+
+var SagaGroupResultDataUpdate = map[uint8]map[string][]string{
+	SagaGroupCreateUser: map[string][]string{
+		SagaTypeCreateUser: []string{
+			"user_uuid",
+		},
+	},
+	SagaGroupCreateAccount: map[string][]string{
+		SagaTypeCheckUser: []string{
+			"accounts",
+		},
+		SagaTypeReserveAccount: []string{
+			"acc_id",
+		},
+	},
+	SagaGroupAddAccountCache: map[string][]string{
+		SagaTypeCheckUser: []string{
+			"accounts",
+		},
+		SagaTypeGetAccountData: []string{
+			"acc_status",
+		},
+	},
+	SagaGroupWidthAccountCache: map[string][]string{
+		SagaTypeCheckUser: []string{
+			"accounts",
+		},
+		SagaTypeGetAccountData: []string{
+			"acc_status",
+		},
+	},
+	SagaGroupCloseAccount: map[string][]string{
+		SagaTypeCheckUser: []string{
+			"accounts",
+		},
+		SagaTypeGetAccountData: []string{
+			"acc_status",
+			"acc_cache",
+		},
+	},
+	SagaGroupGetUserData: map[string][]string{
+		SagaTypeCheckUser: []string{
+			"inn",
+			"accounts",
+			"passport_series",
+			"passport_number",
+			"passport_first_name",
+			"passport_first_surname",
+			"passport_first_patronimic",
+			"passport_birth_date",
+			"passport_birth_location",
+			"passport_pick_up_point",
+			"passport_authority",
+			"passport_authority_date",
+			"passport_registration_address",
+		},
+	},
+	SagaGroupGetAccountData: map[string][]string{
+		SagaTypeCheckUser: []string{
+			"accounts",
+		},
+		SagaTypeGetAccountData: []string{
+			"acc_status",
+			"acc_cache",
+			"acc_cache_value",
+			"acc_culc_number",
+			"acc_corr_number",
+			"acc_bic",
+			"acc_cio",
+			"acc_reserve_reason",
+		},
+	},
+}

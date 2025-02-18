@@ -436,9 +436,27 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 						if local_err != nil {
 							return result, local_err
 						}
-						for field_name, field_value := range data {
-							saga.Saga_data[field_name] = field_value
+
+						saga_group := saga.Saga_type
+						saga_type := saga.Saga_name
+
+						update_fileds, ok := SagaGroupResultDataUpdate[saga_group]
+						if ok {
+
+							saga_update_fields, is_exist := update_fileds[saga_type]
+							if is_exist {
+
+								for field_name, field_value := range data {
+
+									if slices.Contains(saga_update_fields, field_name) {
+										saga.Saga_data[field_name] = field_value
+									}
+
+								}
+							}
+
 						}
+
 						local_err = regUC.registrationRepo.UpdateSaga(ctxWithTrace, saga)
 						if local_err != nil {
 							return result, local_err

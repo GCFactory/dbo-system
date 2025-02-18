@@ -103,6 +103,11 @@ var ListOfAdditionalSagaEventsChecks = map[uint8]map[string][]string{
 			AdditionalCheckAccountEmptyCache,
 		},
 	},
+	SagaGroupGetAccountData: map[string][]string{
+		EventTypeGetAccountData: []string{
+			AdditionalCheckUserHasAccount,
+		},
+	},
 }
 
 func AdditionalValidation(saga_group uint8, event_type string, data map[string]interface{}) (err error) {
