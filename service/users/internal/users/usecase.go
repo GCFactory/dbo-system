@@ -11,5 +11,6 @@ type UseCase interface {
 	GetUserData(ctx context.Context, user_uuid uuid.UUID) (*models.User_full_data, error)
 	UpdateUsersPassport(ctx context.Context, user_uuid uuid.UUID, passport *models.Passport) error
 	AddUserAccount(ctx context.Context, user_uuid uuid.UUID, account uuid.UUID) error
+	RemoveUserAccount(ctx context.Context, user_id uuid.UUID, account uuid.UUID) error
 	GetUserAccounts(ctx context.Context, user_uuid uuid.UUID) (*models.ListOfAccounts, error)
 }

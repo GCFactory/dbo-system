@@ -370,6 +370,76 @@ func (usersGRPC UsersGrpcHandlers) AddUserAccount(ctx context.Context, saga_uuid
 	return nil
 }
 
+func (usersGRPC UsersGrpcHandlers) RemoveUserAccount(ctx context.Context, saga_uuid string, event_uuid string, operation_details *api.OperationDetails, kProducer *kafka.ProducerProvider) error {
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "usersGRPC.RemoveUserAccount")
+	defer span.Finish()
+
+	var answer_data []byte
+	flag_error := false
+	var err error
+	answer_topic := TopicResult
+
+	answer := &api.EventSuccess{
+		SagaUuid:      saga_uuid,
+		EventUuid:     event_uuid,
+		OperationName: RemoveUserAccount,
+	}
+
+	error_answer := &api.EventError{
+		SagaUuid:      saga_uuid,
+		EventUuid:     event_uuid,
+		OperationName: RemoveUserAccount,
+	}
+
+	user_uuid, err := uuid.Parse(operation_details.GetUserUuid())
+	if err != nil {
+		error_answer.Info = err.Error()
+		error_answer.Status = GetErrorCode(ErrorInvalidInputData)
+
+		flag_error = true
+	}
+
+	account_uuid, err := uuid.Parse(operation_details.GetSomeData())
+	if err != nil {
+		error_answer.Info = err.Error()
+		error_answer.Status = GetErrorCode(ErrorInvalidInputData)
+
+		flag_error = true
+	}
+
+	if err = usersGRPC.usersUC.RemoveUserAccount(ctxWithTrace, user_uuid, account_uuid); err != nil {
+		usersGRPC.accLog.Error(err)
+		flag_error = true
+		answer_topic = TopicError
+
+		error_answer.Info = err.Error()
+		error_answer.Status = GetErrorCode(err)
+	} else {
+		answer.Result = &api.EventSuccess_Info{"Success"}
+	}
+
+	if flag_error {
+		answer_data, err = proto.Marshal(error_answer)
+	} else {
+		answer_data, err = proto.Marshal(answer)
+	}
+
+	if err != nil {
+		usersGRPC.accLog.Error(err)
+		return err
+	}
+
+	err = kProducer.ProduceRecord(answer_topic, sarama.ByteEncoder(answer_data))
+	if err != nil {
+		usersGRPC.accLog.Error(err)
+		return err
+	}
+	usersGRPC.accLog.Info("Success to send answer!")
+
+	return nil
+}
+
 func (usersGRPC UsersGrpcHandlers) GetUsersAccounts(ctx context.Context, saga_uuid string, event_uuid string, operation_details *api.OperationDetails, kProducer *kafka.ProducerProvider) error {
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "usersGRPC.GetUsersAccounts")
 	defer span.Finish()

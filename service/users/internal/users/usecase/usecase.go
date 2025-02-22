@@ -101,6 +101,48 @@ func (uc userUsecase) AddUserAccount(ctx context.Context, user_uuid uuid.UUID, a
 	return nil
 }
 
+func (uc userUsecase) RemoveUserAccount(ctx context.Context, user_uuid uuid.UUID, account uuid.UUID) error {
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "userUsecase.RemoveUserAccount")
+	defer span.Finish()
+
+	user, _ := uc.usersRepo.GetUserData(ctxWithTrace, user_uuid)
+	if user == nil {
+		return ErrorUserNotFound
+	}
+
+	list_of_accounts := user.User.User_accounts.Data
+
+	is_found := false
+	account_number := -1
+	for acc_number, account_uuid := range list_of_accounts {
+		if account_uuid == account {
+			account_number = acc_number
+			is_found = true
+			break
+		}
+	}
+
+	if is_found {
+		list_of_accounts = append(list_of_accounts[:account_number], list_of_accounts[account_number+1:]...)
+		user.User.User_accounts.Data = list_of_accounts
+
+		bytes, err := json.Marshal(user.User.User_accounts)
+		if err != nil {
+			return ErrorMarshal
+		}
+
+		err = uc.usersRepo.UpdateUserAccount(ctxWithTrace, user_uuid, string(bytes))
+		if err != nil {
+			return err
+		}
+	} else {
+		return ErrorAccountWasNotFound
+	}
+	
+	return nil
+}
+
 func (uc userUsecase) GetUserAccounts(ctx context.Context, user_uuid uuid.UUID) (*models.ListOfAccounts, error) {
 
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "userUsecase.GetUserAccounts")
