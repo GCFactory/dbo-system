@@ -54,7 +54,7 @@ func (regUC registrationUC) CreateEvent(ctx context.Context, event_type string, 
 		}
 	}
 
-	event_data, ok := EventListOfData[event_type]
+	event_data, ok := RequiredEventListOfData[event_type]
 	if !ok {
 		return nil, ErrorEventDataNotExist
 	}
@@ -1271,42 +1271,10 @@ func (regUC registrationUC) GetSagaResultData(ctx context.Context, saga_uuid uui
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.GetSagaResultData")
 	defer span.Finish()
 
-	_, err = regUC.registrationRepo.GetSaga(ctxWithTrace, saga_uuid)
+	saga, err := regUC.registrationRepo.GetSaga(ctxWithTrace, saga_uuid)
 	if err != nil {
 		err = ErrorSagaWasNotFound
 	} else {
-		//list_of_saga_without_children, err := regUC.GetSagaChildrenWithoutChildren(ctxWithTrace, saga_uuid)
-		//if err != nil {
-		//	return data, err
-		//}
-		//
-		//var events []*models.Event
-		//for _, saga_without_child := range list_of_saga_without_children {
-		//	events_uuid, err := regUC.registrationRepo.GetListOfSagaEvents(ctxWithTrace, saga_without_child.Saga_uuid)
-		//	if err != nil {
-		//		return data, err
-		//	}
-		//	for _, event_uuid := range events_uuid.EventList {
-		//		event, err := regUC.registrationRepo.GetEvent(ctxWithTrace, event_uuid)
-		//		if err != nil {
-		//			return data, err
-		//		}
-		//		events = append(events, event)
-		//	}
-		//}
-		//
-		//for _, event := range events {
-		//	var event_result_data map[string]interface{}
-		//	err := json.Unmarshal([]byte(event.Event_result), &event_result_data)
-		//	if err != nil {
-		//		return data, err
-		//	}
-		//
-		//	for field_name, field_data := range event_result_data {
-		//		data[field_name] = field_data
-		//	}
-		//
-		//}
 		events_uuid, err := regUC.registrationRepo.GetListOfSagaEvents(ctxWithTrace, saga_uuid)
 		if err != nil {
 			return nil, err
@@ -1327,15 +1295,74 @@ func (regUC registrationUC) GetSagaResultData(ctx context.Context, saga_uuid uui
 
 		}
 
-		for _, event := range events {
-			var event_result_data map[string]interface{}
-			err := json.Unmarshal([]byte(event.Event_result), &event_result_data)
-			if err != nil {
-				return data, err
+		if saga.Saga_status == SagaStatusError ||
+			saga.Saga_status == SagaStatusFallBackError {
+
+			for _, event := range events {
+				if event.Event_status == EventStatusError ||
+					event.Event_status == EventStatusFallBackError {
+					var event_result_data map[string]interface{}
+					err := json.Unmarshal([]byte(event.Event_result), &event_result_data)
+					if err != nil {
+						return data, err
+					}
+
+					errors, ok := data["errors"].(map[string]interface{})
+					if !ok {
+						data["errors"] = make(map[string]interface{})
+						errors = data["errors"].(map[string]interface{})
+					}
+
+					// Очистка всех данных кроме данных об ошибках
+					data = nil
+					data = make(map[string]interface{})
+
+					saga_errors, exist := errors[saga.Saga_name].(map[string]interface{})
+					if !exist {
+						errors[saga.Saga_name] = make(map[string]interface{})
+						saga_errors = errors[saga.Saga_name].(map[string]interface{})
+					}
+
+					event_name := event.Event_name
+					error_data := make(map[string]interface{})
+
+					for field_name, field_data := range event_result_data {
+						error_data[field_name] = field_data
+					}
+
+					saga_errors[event_name] = error_data
+					errors[saga.Saga_name] = saga_errors
+					data["errors"] = errors
+				}
+
 			}
 
-			for field_name, field_data := range event_result_data {
-				data[field_name] = field_data
+		} else {
+
+			saga_group_result_data, ok := SagaGroupDataIsResult[saga.Saga_type]
+			if ok {
+				saga_result_data, is_exist := saga_group_result_data[saga.Saga_name]
+				if is_exist {
+					for _, event := range events {
+						event_result_data, exists := saga_result_data[event.Event_name]
+						if exists {
+
+							var result_data map[string]interface{}
+							err := json.Unmarshal([]byte(event.Event_result), &result_data)
+							if err != nil {
+								return data, err
+							}
+
+							for field_name, field_data := range result_data {
+								if slices.Contains(event_result_data, field_name) {
+									data[field_name] = field_data
+								}
+							}
+
+						}
+
+					}
+				}
 			}
 
 		}

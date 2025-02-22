@@ -70,7 +70,7 @@ func ValidateEventStatus(status uint8) bool {
 	return false
 }
 
-var EventListOfData = map[string][]string{
+var RequiredEventListOfData = map[string][]string{
 	EventTypeCreateUser: []string{
 		"user_inn",
 		"passport_number",
@@ -121,14 +121,7 @@ var EventListOfData = map[string][]string{
 	},
 }
 
-const (
-// Here will be reverts events
-)
-
-var RevertEvent = map[string]string{}
-
-//type EventRealisation interface {
-//	CreateEvent(ctx context.Context) (event *models.Event, err error)
-//	StartEvent(ctx context.Context, event *models.Event) error
-//	RevertEvent(ctx context.Context, event *models.Event) error
-//}
+// TODO: complete
+var RevertEvent = map[string]string{
+	//EventTypeCreateAccount:
+}
