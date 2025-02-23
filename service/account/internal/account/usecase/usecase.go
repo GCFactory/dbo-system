@@ -654,6 +654,24 @@ func (UC *accountUC) ValidateKPP(ctx context.Context, acc_kpp string, acc_bic st
 	return nil
 }
 
+func (UC *accountUC) RemoveAccount(ctx context.Context, acc_uuid uuid.UUID) error {
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accountUC.RemoveAccount")
+	defer span.Finish()
+
+	_, err := UC.accountRepo.GetAccountData(ctxWithTrace, acc_uuid)
+	if err != nil {
+		return err
+	}
+
+	err = UC.accountRepo.RemoveAccount(ctxWithTrace, acc_uuid)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func NewAccountUseCase(cfg *config.Config, account_repo account.Repository, log logger.Logger) account.UseCase {
 	return &accountUC{cfg: cfg, accountRepo: account_repo, logger: log}
 }

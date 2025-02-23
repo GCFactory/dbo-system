@@ -13,4 +13,5 @@ const (
 	GetAccountAmount    = `SELECT acc_money_amount FROM ONLY accounts WHERE acc_uuid = $1`
 	GetReserveReason    = `SELECT * FROM accounts_reserved WHERE acc_uuid = $1`
 	DeleteReserveReason = `DELETE FROM accounts_reserved WHERE acc_uuid = $1`
+	RemoveAccount       = `DELETE FROM accounts WHERE acc_uuid = $1`
 )

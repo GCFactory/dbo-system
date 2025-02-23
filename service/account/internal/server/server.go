@@ -245,6 +245,17 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 				err = ErrorUnknownTypeData
 			}
 		}
+	case grpc_handlers.RemoveAcc:
+		{
+			// Unpack data and handle func
+			if extracted_data := data.GetAdditionalInfo(); extracted_data != nil {
+				if err = s.grpcHandlers.RemoveAccount(context.Background(), data.GetSagaUuid(), data.GetEventUuid(), extracted_data, s.kafkaProducer); err != nil {
+					return err
+				}
+			} else {
+				err = ErrorUnknownTypeData
+			}
+		}
 	default:
 		{
 			answer := &acc_proto_api.EventError{

@@ -9,4 +9,5 @@ const (
 	GetAccountData = "get_acc_data"
 	AddingAcc      = "adding_acc"
 	WidthAcc       = "width_acc"
+	RemoveAcc      = "remove_acc"
 )

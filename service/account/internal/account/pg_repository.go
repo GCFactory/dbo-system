@@ -17,4 +17,5 @@ type Repository interface {
 	GetAccountAmount(ctx context.Context, acc_uuid uuid.UUID) (float64, error)
 	DeleteReserveReason(ctx context.Context, acc_uuid uuid.UUID) error
 	GetReserveReason(ctx context.Context, acc_uuid uuid.UUID) (*models.ReserverReason, error)
+	RemoveAccount(ctx context.Context, acc_uuid uuid.UUID) error
 }

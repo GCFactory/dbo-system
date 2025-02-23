@@ -208,6 +208,20 @@ func (repo accountRepo) GetReserveReason(ctx context.Context, acc_uuid uuid.UUID
 	return &result, nil
 }
 
+func (repo accountRepo) RemoveAccount(ctx context.Context, acc_uuid uuid.UUID) error {
+	span, local_ctx := opentracing.StartSpanFromContext(ctx, "accountRepo.RemoveAccount")
+	defer span.Finish()
+
+	if _, err := repo.db.ExecContext(local_ctx,
+		RemoveAccount,
+		&acc_uuid,
+	); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func NewAccountRepository(db *sqlx.DB) registration.Repository {
 	return &accountRepo{db: db}
 }

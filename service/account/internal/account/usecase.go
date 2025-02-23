@@ -31,4 +31,5 @@ type UseCase interface {
 	GetAccInfo(ctx context.Context, acc_uuid uuid.UUID) (*models.FullAccountData, error)
 	AddingAcc(ctx context.Context, acc_uuid uuid.UUID, add_value float64) error
 	WidthAcc(ctx context.Context, acc_uuid uuid.UUID, width_value float64) error
+	RemoveAccount(ctx context.Context, acc_uuid uuid.UUID) error
 }

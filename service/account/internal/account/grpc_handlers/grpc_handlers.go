@@ -314,6 +314,71 @@ func (accGRPCH AccountGRPCHandlers) OperationWithAccAmount(ctx context.Context, 
 	return nil
 }
 
+func (accGRPCH AccountGRPCHandlers) RemoveAccount(ctx context.Context, saga_uuid string, event_uuid string, acc_data *acc_proto_api.OperationDetails, kProducer *kafka.ProducerProvider) error {
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accGRPCH.RemoveAccount")
+	defer span.Finish()
+
+	flag_error := false
+	var err error
+	answer_topic := TopicError
+
+	answer := &acc_proto_api.EventStatus{
+		SagaUuid:      saga_uuid,
+		EventUuid:     event_uuid,
+		OperationName: RemoveAcc,
+	}
+
+	answer_error := &acc_proto_api.EventError{
+		SagaUuid:      saga_uuid,
+		EventUuid:     event_uuid,
+		OperationName: RemoveAcc,
+	}
+
+	account_uuid_str := acc_data.GetAccUuid()
+	var account_uuid uuid.UUID
+	account_uuid, err = uuid.Parse(account_uuid_str)
+	if err != nil {
+		answer_error.Info = err.Error()
+		answer_error.Status = GetErrorCode(ErrorInvalidInputData)
+
+		flag_error = true
+	}
+
+	if !flag_error {
+		err = accGRPCH.accUC.RemoveAccount(ctxWithTrace, account_uuid)
+
+		if err == nil {
+			answer_topic = TopicResult
+			answer.Result = &acc_proto_api.EventStatus_Info{"Success"}
+		} else {
+			flag_error = true
+			accGRPCH.accLog.Error(err)
+			answer_error.Status = GetErrorCode(err)
+			answer_error.Info = err.Error()
+		}
+	}
+
+	var answer_data []byte
+	if flag_error {
+		answer_data, err = proto.Marshal(answer_error)
+	} else {
+		answer_data, err = proto.Marshal(answer)
+	}
+	if err != nil {
+		accGRPCH.accLog.Error(err)
+		return err
+	}
+
+	err = kProducer.ProduceRecord(answer_topic, sarama.ByteEncoder(answer_data))
+	if err != nil {
+		accGRPCH.accLog.Error(err)
+		return err
+	}
+	accGRPCH.accLog.Info("Success to send answer!")
+	return nil
+}
+
 func NewAccountGRPCHandlers(cfg *config.Config, kProducer *kafka.ProducerProvider, accUC account.UseCase, accLog logger.Logger) account.GRPCHandlers {
 	return &AccountGRPCHandlers{cfg: cfg, kProducer: kProducer, accUC: accUC, accLog: accLog}
 }
