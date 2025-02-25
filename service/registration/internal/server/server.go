@@ -44,18 +44,22 @@ type Server struct {
 	grpcH         registration.RegistrationGRPCHandlers
 	useCase       registration.UseCase
 	// Channel to control goroutines
-	kafkaConsumerChan chan int
+	kafkaConsumerChan  chan int
+	sagaSyncChan       chan bool
+	sagaProcessingSaga map[uuid.UUID]uuid.UUID
 }
 
 func NewServer(cfg *config.Config, kConsumer *kafka.ConsumerGroup, kProducer *kafka.ProducerProvider, db *sqlx.DB, logger logger.Logger) *Server {
 	server := Server{
-		echo:              echo.New(),
-		cfg:               cfg,
-		db:                db,
-		logger:            logger,
-		kafkaConsumer:     kConsumer,
-		kafkaConsumerChan: make(chan int, 3),
-		kafkaProducer:     kProducer,
+		echo:               echo.New(),
+		cfg:                cfg,
+		db:                 db,
+		logger:             logger,
+		kafkaConsumer:      kConsumer,
+		kafkaConsumerChan:  make(chan int, 3),
+		kafkaProducer:      kProducer,
+		sagaSyncChan:       make(chan bool, 1),
+		sagaProcessingSaga: make(map[uuid.UUID]uuid.UUID),
 	}
 	RepoRegistration := repository.NewRegistrationRepository(
 		server.db,
@@ -75,6 +79,7 @@ func NewServer(cfg *config.Config, kConsumer *kafka.ConsumerGroup, kProducer *ka
 	server.useCase = UCHandlers
 	server.echo.HidePort = true
 	server.echo.HideBanner = true
+	server.sagaSyncChan <- true
 	return &server
 }
 
@@ -170,6 +175,13 @@ func (s *Server) RunKafkaConsumer(ctx context.Context, quitChan chan<- int) {
 func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 	// TODO: complete
 
+	s.logger.Debug("INCOMING:", message.Topic)
+
+	var saga_uuid uuid.UUID = uuid.Nil
+	var event_uuid uuid.UUID = uuid.Nil
+	var success bool = false
+	var data map[string]interface{} = make(map[string]interface{})
+
 	switch message.Topic {
 	case grpc.ServerTopicUsersProducerRes:
 		{
@@ -181,16 +193,14 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 
 			operation_name := event_success.OperationName
 
-			saga_uuid, err := uuid.Parse(event_success.SagaUuid)
+			saga_uuid, err = uuid.Parse(event_success.SagaUuid)
 			if err != nil {
 				s.logger.Errorf("Error parsing saga uuid: %v", err)
 			}
-			event_uuid, err := uuid.Parse(event_success.EventUuid)
+			event_uuid, err = uuid.Parse(event_success.EventUuid)
 			if err != nil {
 				s.logger.Errorf("Error parsing event uuid: %v", err)
 			}
-
-			data := make(map[string]interface{})
 
 			switch operation_name {
 			case grpc.OperationCreateUser:
@@ -236,7 +246,13 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 					break
 				}
 			case grpc.OperationAddAccountToUser:
+				// TODO: убрать ниже! Это тест отката
+				//case grpc.OperationAddAccountToUser,
+				//grpc.OperationRemoveUserAccount:
 				{
+					data = nil
+					data = make(map[string]interface{})
+					data["error"] = "some_error"
 					break
 				}
 			default:
@@ -245,11 +261,12 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 				}
 			}
 
-			err = s.grpcH.Process(context.Background(), saga_uuid, nil, event_uuid, nil, data, true)
-			if err != nil {
-				s.logger.Errorf("Error processing event: %v", err)
-			}
+			success = true
 
+			// TODO: убрать ниже, для тестов
+			if operation_name == grpc.OperationAddAccountToUser {
+				success = false
+			}
 			break
 
 		}
@@ -261,23 +278,20 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 				s.logger.Errorf("Error unmarshalling event error: %v", err)
 			}
 
-			saga_uuid, err := uuid.Parse(event_error.SagaUuid)
+			saga_uuid, err = uuid.Parse(event_error.SagaUuid)
 			if err != nil {
 				s.logger.Errorf("Error parsing saga uuid: %v", err)
 			}
-			event_uuid, err := uuid.Parse(event_error.EventUuid)
+			event_uuid, err = uuid.Parse(event_error.EventUuid)
 			if err != nil {
 				s.logger.Errorf("Error parsing event uuid: %v", err)
 			}
 
-			data := make(map[string]interface{})
 			data["info"] = event_error.Info
 			data["operation_name"] = event_error.OperationName
 			data["status"] = event_error.Status
-			err = s.grpcH.Process(context.Background(), saga_uuid, nil, event_uuid, nil, data, false)
-			if err != nil {
-				s.logger.Errorf("Error processing event: %v", err)
-			}
+
+			success = false
 
 			break
 		}
@@ -292,16 +306,14 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 
 			operation_name := event_success.OperationName
 
-			saga_uuid, err := uuid.Parse(event_success.SagaUuid)
+			saga_uuid, err = uuid.Parse(event_success.SagaUuid)
 			if err != nil {
 				s.logger.Errorf("Error parsing saga uuid: %v", err)
 			}
-			event_uuid, err := uuid.Parse(event_success.EventUuid)
+			event_uuid, err = uuid.Parse(event_success.EventUuid)
 			if err != nil {
 				s.logger.Errorf("Error parsing event uuid: %v", err)
 			}
-
-			data := make(map[string]interface{})
 
 			switch operation_name {
 			case grpc.OperationReserveAcc:
@@ -337,7 +349,8 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 				grpc.OperationCreateAcc,
 				grpc.OperationCloseAccount,
 				grpc.OperationAddAccountCache,
-				grpc.OperationWidthAccountCache:
+				grpc.OperationWidthAccountCache,
+				grpc.OperationRemoveAccount:
 				{
 					break
 				}
@@ -347,10 +360,7 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 				}
 			}
 
-			err = s.grpcH.Process(context.Background(), saga_uuid, nil, event_uuid, nil, data, true)
-			if err != nil {
-				s.logger.Errorf("Error processing event: %v", err)
-			}
+			success = true
 
 			break
 		}
@@ -362,23 +372,20 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 				s.logger.Errorf("Error unmarshalling event error: %v", err)
 			}
 
-			saga_uuid, err := uuid.Parse(event_error.SagaUuid)
+			saga_uuid, err = uuid.Parse(event_error.SagaUuid)
 			if err != nil {
 				s.logger.Errorf("Error parsing saga uuid: %v", err)
 			}
-			event_uuid, err := uuid.Parse(event_error.EventUuid)
+			event_uuid, err = uuid.Parse(event_error.EventUuid)
 			if err != nil {
 				s.logger.Errorf("Error parsing event uuid: %v", err)
 			}
 
-			data := make(map[string]interface{})
 			data["info"] = event_error.Info
 			data["operation_name"] = event_error.OperationName
 			data["status"] = event_error.Status
-			err = s.grpcH.Process(context.Background(), saga_uuid, nil, event_uuid, nil, data, false)
-			if err != nil {
-				s.logger.Errorf("Error processing event: %v", err)
-			}
+
+			success = false
 
 			break
 		}
@@ -388,6 +395,57 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 		}
 	}
 
+	<-s.sagaSyncChan
+
+	if s.checkSagaProcessing(saga_uuid) {
+		s.sagaSyncChan <- true
+		return errors.New("Saga already in process")
+	} else {
+		s.addSagaToProcess(saga_uuid, event_uuid)
+	}
+
+	s.sagaSyncChan <- true
+
+	err := s.grpcH.Process(context.Background(), saga_uuid, nil, event_uuid, nil, data, success)
+	if err != nil {
+		s.logger.Errorf("Error processing event: %v", err)
+	}
+
+	<-s.sagaSyncChan
+
+	s.removeSagaFromProcess(saga_uuid)
+
+	s.sagaSyncChan <- true
+
 	return nil
+
+}
+
+// TODO: ниже подумать над синхронизацией обработки sag-и, из-за того, что приходят одновременно ответы на события и начинают обрабатываться дальше
+func (s *Server) addSagaToProcess(saga_uuid uuid.UUID, event_uuid uuid.UUID) {
+
+	if !s.checkSagaProcessing(saga_uuid) {
+
+		s.sagaProcessingSaga[saga_uuid] = event_uuid
+
+	}
+
+}
+
+func (s *Server) checkSagaProcessing(saga_uuid uuid.UUID) bool {
+
+	_, exist := s.sagaProcessingSaga[saga_uuid]
+
+	return exist
+
+}
+
+func (s *Server) removeSagaFromProcess(saga_uuid uuid.UUID) {
+
+	if s.checkSagaProcessing(saga_uuid) {
+
+		delete(s.sagaProcessingSaga, saga_uuid)
+
+	}
 
 }

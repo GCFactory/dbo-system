@@ -63,4 +63,5 @@ const (
 	GetListOfSagaEvents = `SELECT event_uuid as list_of_events
 						FROM event
 						WHERE saga_uuid = $1`
+	GetRevertEvent = `SELECT * FROM event WHERE event_rollback_uuid = $1`
 )

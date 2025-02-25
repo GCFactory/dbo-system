@@ -237,7 +237,8 @@ func (h *GRPCRegistrationHandlers) SendRequest(ctx context.Context, server uint8
 					break
 
 				}
-			case OperationAddAccountToUser:
+			case OperationAddAccountToUser,
+				OperationRemoveUserAccount:
 				{
 
 					if !ValidateOperationsData(operation_name, data) {
@@ -251,7 +252,7 @@ func (h *GRPCRegistrationHandlers) SendRequest(ctx context.Context, server uint8
 					user_data := &users_api.EventData{
 						SagaUuid:      saga_uuid.String(),
 						EventUuid:     event_uuid.String(),
-						OperationName: OperationAddAccountToUser,
+						OperationName: operation_name,
 						Data: &users_api.EventData_AdditionalInfo{
 							AdditionalInfo: &users_api.OperationDetails{
 								UserUuid: data["user_id"].(string),
@@ -322,7 +323,10 @@ func (h *GRPCRegistrationHandlers) SendRequest(ctx context.Context, server uint8
 					break
 
 				}
-			case OperationOpenAcc, OperationCreateAcc, OperationCloseAccount:
+			case OperationOpenAcc,
+				OperationCreateAcc,
+				OperationCloseAccount,
+				OperationRemoveAccount:
 				{
 					if !ValidateOperationsData(operation_name, data) {
 						return ErrorInvalidOperationsData

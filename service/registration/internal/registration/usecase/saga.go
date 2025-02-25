@@ -58,6 +58,41 @@ var PossibleEventsListForSagaType = map[string][]string{
 	},
 	SagaTypeReserveAccount: {
 		EventTypeReserveAccount,
+		EventTypeRemoveAccount,
+	},
+	SagaTypeCreateAccount: {
+		EventTypeCreateAccount,
+		EventTypeRemoveAccount,
+	},
+	SagaTypeOpenAccountAndAddToUser: {
+		EventTypeOpenAccount,
+		EventTypeAddAccountToUser,
+		EventTypeRemoveAccount,
+		EventTypeRemoveUserAccount,
+	},
+	SagaTypeAddAccountCache: {
+		EventTypeAddAccountCache,
+	},
+	SagaTypeGetAccountData: {
+		EventTypeGetAccountData,
+	},
+	SagaTypeWidthAccountCache: {
+		EventTypeWidthAccountCache,
+	},
+	SagaTypeCloseAccount: {
+		EventTypeCloseAccount,
+	},
+}
+
+var StartEventsListForSagaType = map[string][]string{
+	SagaTypeCreateUser: {
+		EventTypeCreateUser,
+	},
+	SagaTypeCheckUser: {
+		EventTypeGetUserData,
+	},
+	SagaTypeReserveAccount: {
+		EventTypeReserveAccount,
 	},
 	SagaTypeCreateAccount: {
 		EventTypeCreateAccount,

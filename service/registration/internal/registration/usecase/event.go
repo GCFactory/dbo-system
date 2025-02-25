@@ -11,6 +11,8 @@ const (
 	EventTypeWidthAccountCache string = "width_acc"
 	EventTypeGetAccountData    string = "get_acc_data"
 	EventTypeCloseAccount      string = "close_acc"
+	EventTypeRemoveAccount     string = "remove_acc"
+	EventTypeRemoveUserAccount string = "remove_user_account"
 )
 
 var PossibleEventsList = [...]string{
@@ -24,6 +26,8 @@ var PossibleEventsList = [...]string{
 	EventTypeWidthAccountCache,
 	EventTypeGetAccountData,
 	EventTypeCloseAccount,
+	EventTypeRemoveAccount,
+	EventTypeRemoveUserAccount,
 }
 
 func ValidateEventType(eventType string) bool {
@@ -116,12 +120,29 @@ var RequiredEventListOfData = map[string][]string{
 	EventTypeGetAccountData: []string{
 		"acc_id",
 	},
-	EventTypeCloseAccount: {
+	EventTypeCloseAccount: []string{
+		"acc_id",
+	},
+	EventTypeRemoveUserAccount: []string{
+		"user_id",
+		"acc_id",
+	},
+	EventTypeRemoveAccount: []string{
 		"acc_id",
 	},
 }
 
-// TODO: complete
-var RevertEvent = map[string]string{
-	//EventTypeCreateAccount:
+var RevertEvent = map[uint8]map[string]map[string]string{
+	SagaGroupCreateAccount: map[string]map[string]string{
+		SagaTypeOpenAccountAndAddToUser: map[string]string{
+			EventTypeOpenAccount:      EventTypeRemoveAccount,
+			EventTypeAddAccountToUser: EventTypeRemoveUserAccount,
+		},
+		SagaTypeCreateAccount: map[string]string{
+			EventTypeCreateAccount: EventTypeRemoveAccount,
+		},
+		SagaTypeReserveAccount: map[string]string{
+			EventTypeReserveAccount: EventTypeRemoveAccount,
+		},
+	},
 }

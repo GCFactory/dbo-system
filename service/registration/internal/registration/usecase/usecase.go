@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/opentracing/opentracing-go"
 	"slices"
+	"sync"
 )
 
 type registrationUC struct {
@@ -18,6 +19,8 @@ type registrationUC struct {
 	registrationRepo registration.Repository
 	logger           logger.Logger
 }
+
+var mutex sync.Mutex
 
 func (regUC registrationUC) CreateEvent(ctx context.Context, event_type string, saga_uuid uuid.UUID, is_fall_back bool, revet_event_uuid uuid.UUID) (event *models.Event, err error) {
 
@@ -113,19 +116,30 @@ func (regUC registrationUC) RevertEvent(ctx context.Context, event_uuid uuid.UUI
 		return nil, ErrorWrongEventStatusForRollBack
 	}
 
-	event_type, ok := RevertEvent[event.Event_name]
-	if ok {
+	saga, err := regUC.registrationRepo.GetSaga(ctxWithTrace, event.Saga_uuid)
+	if err != nil {
+		return nil, err
+	}
 
-		revert_event, err := regUC.CreateEvent(ctxWithTrace, event_type, event.Saga_uuid, true, event_uuid)
-		if err != nil {
-			return nil, err
+	saga_group_rollback, ok := RevertEvent[saga.Saga_type]
+	if ok {
+		saga_roll_back, ok := saga_group_rollback[saga.Saga_name]
+		if ok {
+			event_type_roll_back, exists := saga_roll_back[event.Event_name]
+			if exists {
+
+				revert_event, err := regUC.CreateEvent(ctxWithTrace, event_type_roll_back, event.Saga_uuid, true, event_uuid)
+				if err != nil {
+					return nil, err
+				}
+				event.Event_status = EventStatusFallBackInProcess
+				err = regUC.registrationRepo.UpdateEvent(ctxWithTrace, event)
+				if err != nil {
+					return nil, err
+				}
+				return revert_event, nil
+			}
 		}
-		event.Event_status = EventStatusFallBackInProcess
-		err = regUC.registrationRepo.UpdateEvent(ctxWithTrace, event)
-		if err != nil {
-			return nil, err
-		}
-		return revert_event, nil
 	}
 
 	return nil, nil
@@ -188,7 +202,7 @@ func (regUC registrationUC) CreateSaga(ctx context.Context, saga_type string, sa
 		return nil, err
 	}
 
-	events, ok := PossibleEventsListForSagaType[saga_type]
+	events, ok := StartEventsListForSagaType[saga_type]
 	if !ok {
 		err = regUC.DeleteSaga(ctxWithTrace, saga.Saga_uuid)
 		if err != nil {
@@ -469,7 +483,7 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 						return result, err
 					}
 					if event.Event_is_roll_back {
-						new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, uuid.Nil, event.Event_rollback_uuid, false, nil)
+						new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, event.Saga_uuid, event.Event_rollback_uuid, false, nil)
 						if err != nil {
 							return result, err
 						}
@@ -480,6 +494,7 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 		case EventStatusCompleted:
 			{
 				if !success {
+					regUC.logger.Debug("ROLLBACK")
 					new_event, err := regUC.RevertEvent(ctxWithTrace, event.Event_uuid)
 					if err != nil {
 						return result, err
@@ -487,7 +502,17 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 					if new_event == nil {
 						return result, ErrorNoReventEvent
 					}
-					result = append(result, new_event)
+					regUC.logger.Debug("ROLLBACK END")
+					new_events, err := regUC.ProcessingSagaAndEvents(
+						ctxWithTrace,
+						uuid.Nil,
+						new_event.Event_uuid,
+						true,
+						nil)
+					if err != nil {
+						return nil, err
+					}
+					result = append(result, new_events...)
 				} else {
 					err = regUC.SetOrUpdateSagaData(ctxWithTrace, event.Saga_uuid, data)
 					if err != nil {
@@ -528,6 +553,7 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 				return result, ErrorInvalidEventStatus
 			}
 		}
+
 	}
 
 	if saga_uuid != uuid.Nil {
@@ -685,7 +711,8 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 				} else {
 					all_child_reverts := true
 					for _, connection := range list_of_connections.List_of_connetcions {
-						if connection.Acc_connection_status != SagaConnectionStatusFallBack {
+						if connection.Acc_connection_status != SagaConnectionStatusFallBack &&
+							connection.Acc_connection_status != SagaConnectionStatusFailed {
 							all_child_reverts = false
 							if connection.Acc_connection_status == SagaConnectionStatusSuccess {
 								new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, connection.Next_saga_uuid, uuid.Nil, false, nil)
@@ -708,125 +735,124 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 			}
 		case SagaStatusFallBackInProcess:
 			{
-				all_is_completed := true
-				is_error := false
-				for _, event := range events {
-					if event.Event_is_roll_back && event.Event_status != EventStatusCompleted ||
-						!event.Event_is_roll_back && event.Event_status != EventStatusFallBackCompleted {
-						all_is_completed = false
-						if event.Event_status == EventStatusError {
-							is_error = true
-							break
-						} else if !event.Event_is_roll_back && event.Event_status == EventStatusCompleted {
-							reverted_event, err := regUC.RevertEvent(ctxWithTrace, event.Event_uuid)
-							if err != nil {
-								return result, err
-							}
-							result = append(result, reverted_event)
-						}
-					}
-				}
-
-				if is_error {
-					saga.Saga_status = SagaStatusFallBackError
-					err = regUC.registrationRepo.UpdateSaga(ctxWithTrace, saga)
-					if err != nil {
-						return result, err
-					}
-					new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, saga_uuid, uuid.Nil, true, nil)
-					if err != nil {
-						return result, err
-					}
-					result = append(result, new_events...)
-				}
-
-				if all_is_completed {
-					saga.Saga_status = SagaStatusFallBackSuccess
-					err = regUC.registrationRepo.UpdateSaga(ctxWithTrace, saga)
-					if err != nil {
-						return result, err
-					}
-
-					new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, saga_uuid, uuid.Nil, true, nil)
-					if err != nil {
-						return result, err
-					}
-					result = append(result, new_events...)
-				}
+				//all_is_completed := true
+				//is_error := false
+				//for _, event := range events {
+				//	if event.Event_is_roll_back && event.Event_status != EventStatusCompleted ||
+				//		!event.Event_is_roll_back && event.Event_status != EventStatusFallBackCompleted {
+				//		all_is_completed = false
+				//		if event.Event_status == EventStatusError {
+				//			is_error = true
+				//			break
+				//		} else if !event.Event_is_roll_back && event.Event_status == EventStatusCompleted {
+				//			reverted_event, err := regUC.RevertEvent(ctxWithTrace, event.Event_uuid)
+				//			if err != nil {
+				//				return result, err
+				//			}
+				//			result = append(result, reverted_event)
+				//		}
+				//	}
+				//}
+				//
+				//if is_error {
+				//	saga.Saga_status = SagaStatusFallBackError
+				//	err = regUC.registrationRepo.UpdateSaga(ctxWithTrace, saga)
+				//	if err != nil {
+				//		return result, err
+				//	}
+				//	new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, saga_uuid, uuid.Nil, true, nil)
+				//	if err != nil {
+				//		return result, err
+				//	}
+				//	result = append(result, new_events...)
+				//}
+				//
+				//if all_is_completed {
+				//	saga.Saga_status = SagaStatusFallBackSuccess
+				//	err = regUC.registrationRepo.UpdateSaga(ctxWithTrace, saga)
+				//	if err != nil {
+				//		return result, err
+				//	}
+				//
+				//	new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, saga_uuid, uuid.Nil, true, nil)
+				//	if err != nil {
+				//		return result, err
+				//	}
+				//	result = append(result, new_events...)
+				//}
 			}
 		case SagaStatusFallBackSuccess:
 			{
-				list_of_connections, err := regUC.registrationRepo.GetSagaConnectionsNextSaga(ctxWithTrace, saga_uuid)
-				if err != nil {
-					return result, err
-				}
-				for _, connection := range list_of_connections.List_of_connetcions {
-					connection.Acc_connection_status = SagaConnectionStatusFallBack
-					err = regUC.registrationRepo.UpdateSagaConnection(ctxWithTrace, connection)
-					if err != nil {
-						return result, err
-					}
-					new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, saga_uuid, uuid.Nil, false, nil)
-					if err != nil {
-						return result, err
-					}
-					result = append(result, new_events...)
-				}
+				//list_of_connections, err := regUC.registrationRepo.GetSagaConnectionsNextSaga(ctxWithTrace, saga_uuid)
+				//if err != nil {
+				//	return result, err
+				//}
+				//for _, connection := range list_of_connections.List_of_connetcions {
+				//	connection.Acc_connection_status = SagaConnectionStatusFallBack
+				//	err = regUC.registrationRepo.UpdateSagaConnection(ctxWithTrace, connection)
+				//	if err != nil {
+				//		return result, err
+				//	}
+				//	new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, saga_uuid, uuid.Nil, false, nil)
+				//	if err != nil {
+				//		return result, err
+				//	}
+				//	result = append(result, new_events...)
+				//}
 
 			}
 		case SagaStatusFallBackError:
 			{
-				all_is_completed := true
-				for _, event := range events {
-					if !event.Event_is_roll_back && event.Event_status != EventStatusFallBackCompleted && event.Event_status != EventStatusFallBackError ||
-						event.Event_is_roll_back && event.Event_status != EventStatusCompleted && event.Event_status != EventStatusError {
-						all_is_completed = false
-						if !event.Event_is_roll_back && event.Event_status == EventStatusCompleted {
-							reverted_event, err := regUC.RevertEvent(ctxWithTrace, event.Event_uuid)
-							if err != nil {
-								return result, err
-							}
-							result = append(result, reverted_event)
-						}
-					}
-				}
-
-				if all_is_completed {
-					list_of_connetions, err := regUC.registrationRepo.GetSagaConnectionsNextSaga(ctxWithTrace, saga_uuid)
-					if err != nil {
-						return result, err
-					}
-					for _, connetion := range list_of_connetions.List_of_connetcions {
-						connetion.Acc_connection_status = SagaConnectionStatusFallBack
-						err = regUC.registrationRepo.UpdateSagaConnection(ctxWithTrace, connetion)
-						if err != nil {
-							return result, err
-						}
-						new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, saga_uuid, uuid.Nil, false, nil)
-						if err != nil {
-							return result, err
-						}
-						result = append(result, new_events...)
-					}
-				}
+				//all_is_completed := true
+				//for _, event := range events {
+				//	if !event.Event_is_roll_back && event.Event_status != EventStatusFallBackCompleted && event.Event_status != EventStatusFallBackError ||
+				//		event.Event_is_roll_back && event.Event_status != EventStatusCompleted && event.Event_status != EventStatusError {
+				//		all_is_completed = false
+				//		if !event.Event_is_roll_back && event.Event_status == EventStatusCompleted {
+				//			reverted_event, err := regUC.RevertEvent(ctxWithTrace, event.Event_uuid)
+				//			if err != nil {
+				//				return result, err
+				//			}
+				//			result = append(result, reverted_event)
+				//		}
+				//	}
+				//}
+				//
+				//if all_is_completed {
+				//	list_of_connetions, err := regUC.registrationRepo.GetSagaConnectionsNextSaga(ctxWithTrace, saga_uuid)
+				//	if err != nil {
+				//		return result, err
+				//	}
+				//	for _, connetion := range list_of_connetions.List_of_connetcions {
+				//		connetion.Acc_connection_status = SagaConnectionStatusFallBack
+				//		err = regUC.registrationRepo.UpdateSagaConnection(ctxWithTrace, connetion)
+				//		if err != nil {
+				//			return result, err
+				//		}
+				//		new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, saga_uuid, uuid.Nil, false, nil)
+				//		if err != nil {
+				//			return result, err
+				//		}
+				//		result = append(result, new_events...)
+				//	}
+				//}
 			}
 		case SagaStatusError:
 			{
-				all_completed := true
+				regUC.logger.Debug("SagaStatusError")
+				//all_completed := true
 				for _, event := range events {
-					if event.Event_is_roll_back && event.Event_status != EventStatusCompleted && event.Event_status != EventStatusError ||
-						!event.Event_is_roll_back && event.Event_status != EventStatusFallBackError && event.Event_status != EventStatusFallBackCompleted {
-						all_completed = false
+					if event.Event_is_roll_back &&
+						(event.Event_status == EventStatusCreated ||
+							event.Event_status == EventStatusInProgress) ||
+						!event.Event_is_roll_back &&
+							(event.Event_status == EventStatusCreated ||
+								event.Event_status == EventStatusInProgress ||
+								event.Event_status == EventStatusCompleted ||
+								event.Event_status == EventStatusFallBackInProcess) {
+						//all_completed = false
 						if !event.Event_is_roll_back && event.Event_status == EventStatusCompleted {
-							reverted_event, err := regUC.RevertEvent(ctxWithTrace, event.Event_uuid)
-							if err != nil {
-								return result, err
-							}
-							if reverted_event == nil {
-								return result, ErrorNoReventEvent
-							}
-							result = append(result, reverted_event)
-							new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, uuid.Nil, reverted_event.Event_uuid, true, nil)
+							new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, uuid.Nil, event.Event_uuid, false, nil)
 							if err != nil {
 								return result, err
 							}
@@ -835,24 +861,24 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 					}
 				}
 
-				if all_completed {
-					list_of_connections, err := regUC.registrationRepo.GetSagaConnectionsNextSaga(ctxWithTrace, saga_uuid)
-					if err != nil {
-						return result, err
-					}
-					for _, connection := range list_of_connections.List_of_connetcions {
-						connection.Acc_connection_status = SagaConnectionStatusFailed
-						err = regUC.registrationRepo.UpdateSagaConnection(ctxWithTrace, connection)
-						if err != nil {
-							return result, err
-						}
-						new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, connection.Current_saga_uuid, uuid.Nil, false, nil)
-						if err != nil {
-							return result, err
-						}
-						result = append(result, new_events...)
-					}
-				}
+				//if all_completed {
+				//	list_of_connections, err := regUC.registrationRepo.GetSagaConnectionsNextSaga(ctxWithTrace, saga_uuid)
+				//	if err != nil {
+				//		return result, err
+				//	}
+				//	for _, connection := range list_of_connections.List_of_connetcions {
+				//		connection.Acc_connection_status = SagaConnectionStatusFailed
+				//		err = regUC.registrationRepo.UpdateSagaConnection(ctxWithTrace, connection)
+				//		if err != nil {
+				//			return result, err
+				//		}
+				//		new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, connection.Current_saga_uuid, uuid.Nil, false, nil)
+				//		if err != nil {
+				//			return result, err
+				//		}
+				//		result = append(result, new_events...)
+				//	}
+				//}
 
 			}
 		default:
@@ -1330,6 +1356,7 @@ func (regUC registrationUC) GetSagaResultData(ctx context.Context, saga_uuid uui
 						error_data[field_name] = field_data
 					}
 
+					error_data["is_roll_back"] = event.Event_is_roll_back
 					saga_errors[event_name] = error_data
 					errors[saga.Saga_name] = saga_errors
 					data["errors"] = errors

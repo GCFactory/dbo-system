@@ -22,4 +22,5 @@ type Repository interface {
 	DeleteEvent(ctx context.Context, event_uuid uuid.UUID) error
 	UpdateEvent(ctx context.Context, event *models.Event) error
 	GetListOfSagaEvents(ctx context.Context, saga_uuid uuid.UUID) (*models.SagaListEvents, error)
+	GetRevertEvent(ctx context.Context, event_uuid uuid.UUID) (*models.Event, error)
 }

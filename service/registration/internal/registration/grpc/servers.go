@@ -71,6 +71,8 @@ const (
 	OperationAddAccountCache   string = "adding_acc"
 	OperationWidthAccountCache string = "width_acc"
 	OperationCloseAccount      string = "close_acc"
+	OperationRemoveAccount     string = "remove_acc"
+	OperationRemoveUserAccount string = "remove_user_account"
 )
 
 var PossibleServersOperations = map[uint8][]string{
@@ -78,6 +80,7 @@ var PossibleServersOperations = map[uint8][]string{
 		OperationCreateUser,
 		OperationGetUserData,
 		OperationAddAccountToUser,
+		OperationRemoveUserAccount,
 	},
 	ServerTypeAccounts: {
 		OperationReserveAcc,
@@ -87,6 +90,7 @@ var PossibleServersOperations = map[uint8][]string{
 		OperationAddAccountCache,
 		OperationWidthAccountCache,
 		OperationCloseAccount,
+		OperationRemoveAccount,
 	},
 }
 
@@ -166,6 +170,13 @@ var RequiredOperationsFields = map[string][]string{
 		"cache_diff",
 	},
 	OperationCloseAccount: {
+		"acc_id",
+	},
+	OperationRemoveAccount: {
+		"acc_id",
+	},
+	OperationRemoveUserAccount: {
+		"user_id",
 		"acc_id",
 	},
 }

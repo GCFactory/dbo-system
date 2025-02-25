@@ -526,6 +526,49 @@ func (repo registrationRepo) GetListOfSagaEvents(ctx context.Context, saga_uuid 
 	return result, nil
 }
 
+func (repo registrationRepo) GetRevertEvent(ctx context.Context, event_uuid uuid.UUID) (*models.Event, error) {
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.GetRevertEvent")
+	defer span.Finish()
+
+	tx, err := repo.db.BeginTx(ctxWithTrace, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	event_data := &models.EventFromDB{}
+
+	if err := repo.db.QueryRowxContext(ctxWithTrace,
+		GetRevertEvent,
+		event_uuid).StructScan(event_data); err != nil {
+		return nil, ErrorGetEvent
+	}
+
+	var event_data_arr []string
+	err = json.Unmarshal([]byte(event_data.Event_required_data), &event_data_arr)
+	if err != nil {
+		return nil, ErrorGetEvent
+	}
+	result := &models.Event{
+		Event_uuid:          event_data.Event_uuid,
+		Event_name:          event_data.Event_name,
+		Event_is_roll_back:  event_data.Event_is_roll_back,
+		Event_status:        event_data.Event_status,
+		Event_result:        event_data.Event_result,
+		Saga_uuid:           event_data.Saga_uuid,
+		Event_rollback_uuid: event_data.Event_rollback_uuid,
+		Event_required_data: event_data_arr,
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 func NewRegistrationRepository(db *sqlx.DB) registration.Repository {
 	return &registrationRepo{db: db}
 }
