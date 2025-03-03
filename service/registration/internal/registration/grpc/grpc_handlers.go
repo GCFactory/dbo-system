@@ -106,20 +106,22 @@ func (h *GRPCRegistrationHandlers) Process(ctx context.Context, saga_uuid uuid.U
 			return local_err
 		}
 		for _, new_event := range list_of_events {
-			data_for_event, err := h.registrationUC.GetEventData(ctxWithTrace, new_event.Event_uuid)
-			if err != nil {
-				return err
-			}
-			err = h.Process(ctxWithTrace,
-				new_event.Saga_uuid,
-				nil,
-				new_event.Event_uuid,
-				new_event,
-				data_for_event,
-				true)
-			if err != nil {
-				h.regLog.Error(err)
-				return err
+			if new_event != nil {
+				data_for_event, err := h.registrationUC.GetEventData(ctxWithTrace, new_event.Event_uuid)
+				if err != nil {
+					return err
+				}
+				err = h.Process(ctxWithTrace,
+					new_event.Saga_uuid,
+					nil,
+					new_event.Event_uuid,
+					new_event,
+					data_for_event,
+					true)
+				if err != nil {
+					h.regLog.Error(err)
+					return err
+				}
 			}
 		}
 	}
@@ -136,6 +138,8 @@ func (h *GRPCRegistrationHandlers) SendRequest(ctx context.Context, server uint8
 	} else if !ValidateServersOperation(server, operation_name) {
 		return ErrorInvalidServersOperation
 	}
+
+	h.regLog.Debug("Send request: ", operation_name, "|", event_uuid)
 
 	switch server {
 	case ServerTypeUsers:

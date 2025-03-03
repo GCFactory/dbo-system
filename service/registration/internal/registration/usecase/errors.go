@@ -27,4 +27,5 @@ var (
 	ErrorCheckUserHasAccount                 = errors.New("Error check existing user account")
 	ErrorCheckAccountEmptyCache              = errors.New("Account's cache is not empty")
 	ErrorRevertErrorIsExists                 = errors.New("Revert event is exists")
+	ErrorNotAllChildReverted                 = errors.New("Not all children reverted!")
 )

@@ -9,7 +9,7 @@ const (
 	SagaStatusCompleted         uint = 30
 	SagaStatusFallBackInProcess uint = 40
 	SagaStatusFallBackSuccess   uint = 50
-	SagaStatusFallBackError     uint = 60
+	SagaStatusFallBackError     uint = 250
 	SagaStatusError             uint = 255
 )
 

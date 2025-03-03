@@ -46,7 +46,7 @@ type Server struct {
 	// Channel to control goroutines
 	kafkaConsumerChan  chan int
 	sagaSyncChan       chan bool
-	sagaProcessingSaga map[uuid.UUID]uuid.UUID
+	sagaProcessingSaga map[uuid.UUID][]*sarama.ConsumerMessage
 }
 
 func NewServer(cfg *config.Config, kConsumer *kafka.ConsumerGroup, kProducer *kafka.ProducerProvider, db *sqlx.DB, logger logger.Logger) *Server {
@@ -59,7 +59,7 @@ func NewServer(cfg *config.Config, kConsumer *kafka.ConsumerGroup, kProducer *ka
 		kafkaConsumerChan:  make(chan int, 3),
 		kafkaProducer:      kProducer,
 		sagaSyncChan:       make(chan bool, 1),
-		sagaProcessingSaga: make(map[uuid.UUID]uuid.UUID),
+		sagaProcessingSaga: make(map[uuid.UUID][]*sarama.ConsumerMessage),
 	}
 	RepoRegistration := repository.NewRegistrationRepository(
 		server.db,
@@ -172,10 +172,10 @@ func (s *Server) RunKafkaConsumer(ctx context.Context, quitChan chan<- int) {
 	}
 }
 
-func (s *Server) handleData(message *sarama.ConsumerMessage) error {
+func (s *Server) handleData(message *sarama.ConsumerMessage) (err error) {
 	// TODO: complete
 
-	s.logger.Debug("INCOMING:", message.Topic)
+	err = nil
 
 	var saga_uuid uuid.UUID = uuid.Nil
 	var event_uuid uuid.UUID = uuid.Nil
@@ -395,18 +395,21 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 		}
 	}
 
+	s.logger.Debug("INCOMING:", message.Topic, "|", event_uuid, "|", success)
+
 	<-s.sagaSyncChan
 
 	if s.checkSagaProcessing(saga_uuid) {
+		s.logger.Errorf("Error processing event: %v", errors.New("Saga already in process, event uuid:"), event_uuid.String())
+		s.addSagaToProcess(saga_uuid, message)
 		s.sagaSyncChan <- true
-		return errors.New("Saga already in process")
-	} else {
-		s.addSagaToProcess(saga_uuid, event_uuid)
+		return
 	}
 
 	s.sagaSyncChan <- true
 
-	err := s.grpcH.Process(context.Background(), saga_uuid, nil, event_uuid, nil, data, success)
+	s.logger.Debug("Processing event:", event_uuid)
+	err = s.grpcH.Process(context.Background(), saga_uuid, nil, event_uuid, nil, data, success)
 	if err != nil {
 		s.logger.Errorf("Error processing event: %v", err)
 	}
@@ -417,16 +420,19 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 
 	s.sagaSyncChan <- true
 
+	s.startSagaProcessAgain(saga_uuid)
+
+	s.logger.Debug("End processing:", event_uuid)
+
 	return nil
 
 }
 
-// TODO: ниже подумать над синхронизацией обработки sag-и, из-за того, что приходят одновременно ответы на события и начинают обрабатываться дальше
-func (s *Server) addSagaToProcess(saga_uuid uuid.UUID, event_uuid uuid.UUID) {
+func (s *Server) addSagaToProcess(saga_uuid uuid.UUID, message *sarama.ConsumerMessage) {
 
 	if !s.checkSagaProcessing(saga_uuid) {
 
-		s.sagaProcessingSaga[saga_uuid] = event_uuid
+		s.sagaProcessingSaga[saga_uuid] = append(s.sagaProcessingSaga[saga_uuid], message)
 
 	}
 
@@ -445,6 +451,19 @@ func (s *Server) removeSagaFromProcess(saga_uuid uuid.UUID) {
 	if s.checkSagaProcessing(saga_uuid) {
 
 		delete(s.sagaProcessingSaga, saga_uuid)
+
+	}
+
+}
+
+func (s *Server) startSagaProcessAgain(saga_uuid uuid.UUID) {
+
+	if s.checkSagaProcessing(saga_uuid) {
+
+		messages, ok := s.sagaProcessingSaga[saga_uuid]
+		if ok {
+			_ = s.handleData(messages[0])
+		}
 
 	}
 
