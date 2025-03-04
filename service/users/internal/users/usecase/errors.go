@@ -9,4 +9,5 @@ var (
 	ErrorAccountAlreadyExists = errors.New("Account already exists")
 	ErrorAccountWasNotFound   = errors.New("Account wasn't found")
 	ErrorMarshal              = errors.New("Error marshalling")
+	ErrorWrongPassword        = errors.New("Error wrong password")
 )

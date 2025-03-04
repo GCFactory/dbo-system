@@ -15,4 +15,5 @@ type UseCase interface {
 	GetUserAccounts(ctx context.Context, user_uuid uuid.UUID) (*models.ListOfAccounts, error)
 	UpdateUserPassword(ctx context.Context, user_uuid uuid.UUID, passw string) error
 	GetUserDataByLogin(ctx context.Context, login string) (*models.User, error)
+	CheckUserPassword(ctx context.Context, user_uuid uuid.UUID, passw string) error
 }

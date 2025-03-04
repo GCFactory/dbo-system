@@ -178,8 +178,11 @@ func (uc userUsecase) UpdateUserPassword(ctx context.Context, user_uuid uuid.UUI
 		return ErrorUserNotFound
 	}
 
+	sha := sha512.Sum512([]byte(passw))
+	sha_str := hex.EncodeToString(sha[:])
+
 	if user != nil {
-		err = uc.usersRepo.UpdateUserPassw(ctxWithTrace, user_uuid, passw)
+		err = uc.usersRepo.UpdateUserPassw(ctxWithTrace, user_uuid, sha_str)
 		if err != nil {
 			return err
 		}
@@ -199,6 +202,26 @@ func (uc userUsecase) GetUserDataByLogin(ctx context.Context, login string) (*mo
 	}
 
 	return user, nil
+}
+
+func (uc userUsecase) CheckUserPassword(ctx context.Context, user_uuid uuid.UUID, passw string) error {
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "userUsecase.CheckUserPassword")
+	defer span.Finish()
+
+	user, err := uc.usersRepo.GetUserData(ctxWithTrace, user_uuid)
+	if err != nil {
+		return ErrorUserNotFound
+	}
+
+	sha := sha512.Sum512([]byte(passw))
+	sha_str := hex.EncodeToString(sha[:])
+
+	if sha_str != user.User.User_passw {
+		return ErrorWrongPassword
+	}
+
+	return nil
 }
 
 func NewUsersUseCase(cfg *config.Config, users_repo users.Repository, log logger.Logger) users.UseCase {

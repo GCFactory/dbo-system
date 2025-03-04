@@ -273,6 +273,17 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 				err = grpc_handlers.ErrorUnkonwnOperationType
 			}
 		}
+	case grpc_handlers.CheckUserPassword:
+		{
+			// Unpack data and handle func
+			if extracted_data := data.GetAdditionalInfo(); extracted_data != nil {
+				if err = s.grpcHandlers.CheckUserPassword(context.Background(), data.GetSagaUuid(), data.GetEventUuid(), extracted_data, s.kafkaProducer); err != nil {
+					return err
+				}
+			} else {
+				err = grpc_handlers.ErrorUnkonwnOperationType
+			}
+		}
 	default:
 		{
 			answer := &api.EventError{

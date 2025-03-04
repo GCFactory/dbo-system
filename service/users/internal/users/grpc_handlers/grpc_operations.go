@@ -9,4 +9,5 @@ const (
 	GetUsersAccounts    string = "get_users_accounts"
 	UpdateUserPassword  string = "update_user_password"
 	GetUserDataByLogin  string = "get_user_data_by_login"
+	CheckUserPassword   string = "check_user_password"
 )
