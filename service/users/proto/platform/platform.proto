@@ -63,3 +63,8 @@ message FullAccountData{
   uint64 acc_money_value = 3;     //  Денежная величина
   float acc_money_amount = 4;     //  Кол-во денег на счету
 }
+
+message UserLoginPassword{
+  string login = 1;     //  Логин
+  string password = 2;  // Пароль
+}

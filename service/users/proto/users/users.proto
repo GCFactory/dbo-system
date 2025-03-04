@@ -18,6 +18,7 @@ message OperationDetails {
 message UserInfo{
   platform.Passport passport = 1;             //  Passport
   string user_inn = 2;
+  platform.UserLoginPassword user_data = 3;   // Логин и пароль пользователя
 }
 
 //  Данные event-а
@@ -37,8 +38,10 @@ message ListOfAccounts{
 
 message FullData {
   platform.Passport passport = 1;
-  string user_inn = 2;
-  ListOfAccounts accounts = 3;
+  string user_id = 2;
+  string user_inn = 3;
+  string user_login = 4;
+  ListOfAccounts accounts = 5;
 }
 
 //  Результат event-а

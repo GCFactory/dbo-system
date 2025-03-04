@@ -12,7 +12,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/labstack/echo/v4"
 
-	"github.com/GCFactory/dbo-system/service/users/gen_proto/proto/api"
+	api "github.com/GCFactory/dbo-system/service/users/gen_proto/proto/user_api"
 	"github.com/GCFactory/dbo-system/service/users/internal/users/grpc_handlers"
 	"github.com/GCFactory/dbo-system/service/users/pkg/kafka"
 	"github.com/IBM/sarama"
@@ -245,6 +245,28 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 			// Unpack data and handle func
 			if extracted_data := data.GetAdditionalInfo(); extracted_data != nil {
 				if err = s.grpcHandlers.GetUsersAccounts(context.Background(), data.GetSagaUuid(), data.GetEventUuid(), extracted_data, s.kafkaProducer); err != nil {
+					return err
+				}
+			} else {
+				err = grpc_handlers.ErrorUnkonwnOperationType
+			}
+		}
+	case grpc_handlers.UpdateUserPassword:
+		{
+			// Unpack data and handle func
+			if extracted_data := data.GetAdditionalInfo(); extracted_data != nil {
+				if err = s.grpcHandlers.UpdateUserPassword(context.Background(), data.GetSagaUuid(), data.GetEventUuid(), extracted_data, s.kafkaProducer); err != nil {
+					return err
+				}
+			} else {
+				err = grpc_handlers.ErrorUnkonwnOperationType
+			}
+		}
+	case grpc_handlers.GetUserDataByLogin:
+		{
+			// Unpack data and handle func
+			if extracted_data := data.GetAdditionalInfo(); extracted_data != nil {
+				if err = s.grpcHandlers.GetUserDataByLogin(context.Background(), data.GetSagaUuid(), data.GetEventUuid(), extracted_data, s.kafkaProducer); err != nil {
 					return err
 				}
 			} else {

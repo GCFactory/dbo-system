@@ -18,6 +18,7 @@ var (
 		repository.ErrorGetPassport:      50,
 		repository.ErrorAddUser:          60,
 		repository.ErrorAddPassport:      70,
+		repository.ErrorUpdatePassword:   80,
 
 		usecase.ErrorAccountAlreadyExists: 200,
 		usecase.ErrorUserExists:           210,

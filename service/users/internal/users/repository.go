@@ -14,4 +14,6 @@ type Repository interface {
 	UpdatePassport(ctx context.Context, passport *models.Passport) error
 	UpdateUserAccount(ctx context.Context, user_uuid uuid.UUID, accounts string) error
 	GetUsersAccounts(ctx context.Context, user_uuid uuid.UUID) (string, error)
+	UpdateUserPassw(ctx context.Context, user_uuid uuid.UUID, new_passw string) error
+	GetUserByLogin(ctx context.Context, login string) (*models.User, error)
 }

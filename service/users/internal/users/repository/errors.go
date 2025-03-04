@@ -10,4 +10,5 @@ var (
 	ErrorUpdatePassport   = errors.New("Error updating passport")
 	ErrorUpdateAccounts   = errors.New("Error updating accounts")
 	ErrorGetUsersAccounts = errors.New("Error getting users accounts")
+	ErrorUpdatePassword   = errors.New("Error update password")
 )

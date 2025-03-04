@@ -1,10 +1,12 @@
 package grpc_handlers
 
 const (
-	AddUser             = "add_user"
-	GetUserData         = "get_user_data"
-	UpdateUsersPassport = "update_users_passport"
-	AddUserAccounts     = "add_user_account"
-	RemoveUserAccount   = "remove_user_account"
-	GetUsersAccounts    = "get_users_accounts"
+	AddUser             string = "add_user"
+	GetUserData         string = "get_user_data"
+	UpdateUsersPassport string = "update_users_passport"
+	AddUserAccounts     string = "add_user_account"
+	RemoveUserAccount   string = "remove_user_account"
+	GetUsersAccounts    string = "get_users_accounts"
+	UpdateUserPassword  string = "update_user_password"
+	GetUserDataByLogin  string = "get_user_data_by_login"
 )

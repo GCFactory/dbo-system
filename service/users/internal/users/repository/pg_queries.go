@@ -23,9 +23,11 @@ const (
 			user_uuid,
 			passport_uuid, 
 			user_inn, 
-			user_accounts
+			user_accounts,
+    	 	user_login,
+    	 	user_password
 		)
-		values ($1, $2, $3, $4);`
+		values ($1, $2, $3, $4, $5, $6);`
 
 	GetPassportData = `select * 
 		from only passport 
@@ -57,4 +59,12 @@ const (
 	GetUsersAccounts = `select user_accounts
 		from only users
 		where user_uuid = $1;`
+
+	UpdateUserPassw = `UPDATE users
+						SET user_password = $2
+						WHERE user_uuid = $1;`
+
+	GetUserByLogin = `SELECT *
+						FROM users
+						WHERE user_login = $1;`
 )

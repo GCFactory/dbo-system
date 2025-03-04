@@ -13,4 +13,6 @@ type UseCase interface {
 	AddUserAccount(ctx context.Context, user_uuid uuid.UUID, account uuid.UUID) error
 	RemoveUserAccount(ctx context.Context, user_id uuid.UUID, account uuid.UUID) error
 	GetUserAccounts(ctx context.Context, user_uuid uuid.UUID) (*models.ListOfAccounts, error)
+	UpdateUserPassword(ctx context.Context, user_uuid uuid.UUID, passw string) error
+	GetUserDataByLogin(ctx context.Context, login string) (*models.User, error)
 }

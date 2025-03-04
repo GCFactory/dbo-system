@@ -54,6 +54,8 @@ func (repo UserRepository) AddUser(ctx context.Context, user_data *models.User_f
 		user.Passport_uuid,
 		user.User_inn,
 		accounts,
+		user.User_login,
+		user.User_passw,
 	); err != nil {
 		return ErrorAddUser
 	}
@@ -85,7 +87,7 @@ func (repo UserRepository) GetUserData(ctx context.Context, user_uuid uuid.UUID)
 	if err = repo.db.QueryRowxContext(local_ctx,
 		GetUserData,
 		&user_uuid,
-	).Scan(&user.User_uuid, &user.Passport_uuid, &user.User_inn, &tmp); err != nil {
+	).Scan(&user.User_uuid, &user.Passport_uuid, &user.User_inn, &tmp, &user.User_login, &user.User_passw); err != nil {
 		return nil, ErrorGetUser
 	}
 
@@ -205,6 +207,69 @@ func (repo UserRepository) GetUsersAccounts(ctx context.Context, user_uuid uuid.
 	}
 
 	return result.User_accounts, nil
+}
+
+func (repo UserRepository) UpdateUserPassw(ctx context.Context, user_uuid uuid.UUID, new_passw string) error {
+
+	span, local_ctx := opentracing.StartSpanFromContext(ctx, "UserRepository.UpdateUserPassw")
+	defer span.Finish()
+
+	tx, err := repo.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	res, err := repo.db.ExecContext(local_ctx,
+		UpdateUserPassw,
+		user_uuid,
+		new_passw,
+	)
+
+	if err != nil {
+		return ErrorUpdatePassword
+	} else if count, err := res.RowsAffected(); err != nil || count == 0 {
+		return ErrorUpdatePassword
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo UserRepository) GetUserByLogin(ctx context.Context, login string) (*models.User, error) {
+
+	span, local_ctx := opentracing.StartSpanFromContext(ctx, "UserRepository.GetUserByLogin")
+	defer span.Finish()
+
+	var result = &models.User{}
+
+	tx, err := repo.db.Begin()
+	if err != nil {
+		return result, err
+	}
+	defer tx.Rollback()
+
+	var tmp []byte
+
+	if err = repo.db.QueryRowxContext(local_ctx,
+		GetUserByLogin,
+		&login,
+	).Scan(&result.User_uuid, &result.Passport_uuid, &result.User_inn, &tmp, &result.User_login, &result.User_passw); err != nil {
+		return nil, ErrorGetUser
+	}
+
+	if err = json.Unmarshal(tmp, &result.User_accounts); err != nil {
+		return nil, ErrorGetUser
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 func NewUserRepository(db *sqlx.DB) users.Repository {

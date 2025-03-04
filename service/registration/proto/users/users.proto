@@ -37,8 +37,9 @@ message ListOfAccounts{
 
 message FullData {
   platform.Passport passport = 1;
-  string user_inn = 2;
-  ListOfAccounts accounts = 3;
+  string user_id = 2;
+  string user_inn = 3;
+  ListOfAccounts accounts = 4;
 }
 
 //  Результат event-а

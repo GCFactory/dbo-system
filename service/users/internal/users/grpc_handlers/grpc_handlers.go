@@ -4,8 +4,8 @@ import (
 	"context"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/service/users/config"
-	"github.com/GCFactory/dbo-system/service/users/gen_proto/proto/api"
 	"github.com/GCFactory/dbo-system/service/users/gen_proto/proto/platform"
+	api "github.com/GCFactory/dbo-system/service/users/gen_proto/proto/user_api"
 	"github.com/GCFactory/dbo-system/service/users/internal/models"
 	"github.com/GCFactory/dbo-system/service/users/internal/users"
 	"github.com/GCFactory/dbo-system/service/users/pkg/kafka"
@@ -48,6 +48,7 @@ func (usersGRPC UsersGrpcHandlers) AddUser(ctx context.Context, saga_uuid string
 
 	passport := users_data.GetPassport()
 	fcs := passport.GetFcs()
+	lg_passw := users_data.GetUserData()
 
 	passport_uuid := uuid.New()
 
@@ -57,6 +58,8 @@ func (usersGRPC UsersGrpcHandlers) AddUser(ctx context.Context, saga_uuid string
 			User_inn:      users_data.GetUserInn(),
 			User_accounts: models.ListOfAccounts{},
 			Passport_uuid: passport_uuid,
+			User_login:    lg_passw.Login,
+			User_passw:    lg_passw.Password,
 		},
 		Passport: &models.Passport{
 			Passport_uuid:       passport_uuid,
@@ -167,7 +170,9 @@ func (usersGRPC UsersGrpcHandlers) GetUserData(ctx context.Context, saga_uuid st
 
 		answer.Result = &api.EventSuccess_FullData{
 			FullData: &api.FullData{
-				UserInn: user.User_inn,
+				UserInn:   user.User_inn,
+				UserId:    user.User_uuid.String(),
+				UserLogin: user.User_login,
 				Accounts: &api.ListOfAccounts{
 					Accounts: accounts,
 				},
@@ -441,6 +446,7 @@ func (usersGRPC UsersGrpcHandlers) RemoveUserAccount(ctx context.Context, saga_u
 }
 
 func (usersGRPC UsersGrpcHandlers) GetUsersAccounts(ctx context.Context, saga_uuid string, event_uuid string, operation_details *api.OperationDetails, kProducer *kafka.ProducerProvider) error {
+
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "usersGRPC.GetUsersAccounts")
 	defer span.Finish()
 
@@ -512,8 +518,148 @@ func (usersGRPC UsersGrpcHandlers) GetUsersAccounts(ctx context.Context, saga_uu
 	usersGRPC.accLog.Info("Success to send answer!")
 
 	return nil
+}
+
+func (usersGRPC UsersGrpcHandlers) UpdateUserPassword(ctx context.Context, saga_uuid string, event_uuid string, operation_details *api.OperationDetails, kProducer *kafka.ProducerProvider) error {
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "usersGRPC.UpdateUserPassword")
+	defer span.Finish()
+
+	var answer_data []byte
+	flag_error := false
+	var err error
+	answer_topic := TopicResult
+
+	answer := &api.EventSuccess{
+		SagaUuid:      saga_uuid,
+		EventUuid:     event_uuid,
+		OperationName: UpdateUserPassword,
+	}
+
+	error_answer := &api.EventError{
+		SagaUuid:      saga_uuid,
+		EventUuid:     event_uuid,
+		OperationName: UpdateUserPassword,
+	}
+
+	user_uuid, err := uuid.Parse(operation_details.GetUserUuid())
+	if err != nil {
+		error_answer.Info = err.Error()
+		error_answer.Status = GetErrorCode(ErrorInvalidInputData)
+
+		flag_error = true
+	}
+
+	new_passw := operation_details.GetSomeData()
+
+	if err = usersGRPC.usersUC.UpdateUserPassword(ctxWithTrace, user_uuid, new_passw); err != nil {
+		usersGRPC.accLog.Error(err)
+		flag_error = true
+		answer_topic = TopicError
+
+		error_answer.Info = err.Error()
+		error_answer.Status = GetErrorCode(err)
+	} else {
+
+		answer.Result = &api.EventSuccess_Info{
+			"success",
+		}
+	}
+
+	if flag_error {
+		answer_data, err = proto.Marshal(error_answer)
+	} else {
+		answer_data, err = proto.Marshal(answer)
+	}
+
+	if err != nil {
+		usersGRPC.accLog.Error(err)
+		return err
+	}
+
+	err = kProducer.ProduceRecord(answer_topic, sarama.ByteEncoder(answer_data))
+	if err != nil {
+		usersGRPC.accLog.Error(err)
+		return err
+	}
+	usersGRPC.accLog.Info("Success to send answer!")
 
 	return nil
+
+}
+
+func (usersGRPC UsersGrpcHandlers) GetUserDataByLogin(ctx context.Context, saga_uuid string, event_uuid string, operation_details *api.OperationDetails, kProducer *kafka.ProducerProvider) error {
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "usersGRPC.GetUserDataByLogin")
+	defer span.Finish()
+
+	var answer_data []byte
+	flag_error := false
+	var err error
+	answer_topic := TopicResult
+
+	answer := &api.EventSuccess{
+		SagaUuid:      saga_uuid,
+		EventUuid:     event_uuid,
+		OperationName: GetUserDataByLogin,
+	}
+
+	error_answer := &api.EventError{
+		SagaUuid:      saga_uuid,
+		EventUuid:     event_uuid,
+		OperationName: GetUserDataByLogin,
+	}
+
+	user_login := operation_details.GetSomeData()
+
+	user_data, err := usersGRPC.usersUC.GetUserDataByLogin(ctxWithTrace, user_login)
+
+	if err != nil {
+		usersGRPC.accLog.Error(err)
+		flag_error = true
+		answer_topic = TopicError
+
+		error_answer.Info = err.Error()
+		error_answer.Status = GetErrorCode(err)
+	} else {
+		var accounts []string
+
+		for i := 0; i < len(user_data.User_accounts.Data); i++ {
+			accounts = append(accounts, user_data.User_accounts.Data[i].String())
+		}
+
+		answer.Result = &api.EventSuccess_FullData{
+			FullData: &api.FullData{
+				UserInn:   user_data.User_inn,
+				UserId:    user_data.User_uuid.String(),
+				UserLogin: user_data.User_login,
+				Accounts: &api.ListOfAccounts{
+					Accounts: accounts,
+				},
+			},
+		}
+	}
+
+	if flag_error {
+		answer_data, err = proto.Marshal(error_answer)
+	} else {
+		answer_data, err = proto.Marshal(answer)
+	}
+
+	if err != nil {
+		usersGRPC.accLog.Error(err)
+		return err
+	}
+
+	err = kProducer.ProduceRecord(answer_topic, sarama.ByteEncoder(answer_data))
+	if err != nil {
+		usersGRPC.accLog.Error(err)
+		return err
+	}
+	usersGRPC.accLog.Info("Success to send answer!")
+
+	return nil
+
 }
 
 func NewUsersGRPCHandlers(cfg *config.Config, kProducer *kafka.ProducerProvider, usersUC users.UseCase, accLog logger.Logger) users.GRPCHandlers {

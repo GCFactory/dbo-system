@@ -28,6 +28,8 @@ type User struct {
 	Passport_uuid uuid.UUID      `json:"passport_uuid" db:"passport_uuid" validate:"required,uuid4"`
 	User_inn      string         `json:"user_inn" db:"user_inn" validate:"required,number,len=20"`
 	User_accounts ListOfAccounts `json:"user_accounts" db:"user_accounts" validate:"required,json"`
+	User_login    string         `json:"user_login" db:"user_login" validate:"required"`
+	User_passw    string         `json:"user_password" db:"user_password" validate:"required"`
 }
 
 type User_full_data struct {
