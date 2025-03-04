@@ -14,9 +14,15 @@ type Passport struct {
 	Registration_address string `json:"registration_address" validate:"required,min=1"`
 }
 
+type UserData struct {
+	Login    string `json:"login" validate:"required"`
+	Password string `json:"password" validate:"required"`
+}
+
 type RegistrationUserInfo struct {
 	User_INN string   `json:"user_inn" validate:"required,len=20,number"`
 	Passport Passport `json:"passport" validate:"required"`
+	User     UserData `json:"user_data" validate:"required"`
 }
 
 type OperationID struct {
@@ -56,4 +62,9 @@ type GetUserData struct {
 type GetAccountData struct {
 	User_ID    string `json:"user_id" validate:"required,uuid4"`
 	Account_ID string `json:"account_id" validate:"required,uuid4"`
+}
+
+type UpdateUserPassword struct {
+	User_ID      string `json:"user_id" validate:"required,uuid4"`
+	New_password string `json:"new_password" validate:"required"`
 }

@@ -77,6 +77,8 @@ func (h RegistrationHandlers) CreateUser() echo.HandlerFunc {
 		data["authority"] = user_info.Passport.Authority
 		data["authority_date"] = user_info.Passport.Authority_date
 		data["registration_adress"] = user_info.Passport.Registration_address
+		data["login"] = user_info.User.Login
+		data["password"] = user_info.User.Password
 
 		operation_uuid, err := h.registrationGRPC.StartOperation(ctxWithTrace, usecase.OperationCreateUser, data)
 		if err != nil {
@@ -299,6 +301,38 @@ func (h RegistrationHandlers) GetAccountData() echo.HandlerFunc {
 		data["acc_id"] = operation_info.Account_ID
 
 		operation_uuid, err := h.registrationGRPC.StartOperation(ctxWithTrace, usecase.OperationGetAccountData, data)
+		if err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
+		}
+
+		response := make(map[string]interface{})
+		response["info"] = operation_uuid.String()
+
+		return c.JSON(http.StatusAccepted, response)
+	}
+
+}
+
+func (h RegistrationHandlers) UpdateUserPassword() echo.HandlerFunc {
+
+	return func(c echo.Context) error {
+
+		span, ctxWithTrace := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "RegistrationHandlers.UpdateUserPassword")
+		defer span.Finish()
+
+		operation_info := &models.UpdateUserPassword{}
+		if err := h.safeReadRequest(c, operation_info); err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, err.Error(), nil))
+		}
+
+		data := make(map[string]interface{})
+
+		data["user_id"] = operation_info.User_ID
+		data["new_password"] = operation_info.New_password
+
+		operation_uuid, err := h.registrationGRPC.StartOperation(ctxWithTrace, usecase.OperationGroupUpdateUserPassword, data)
 		if err != nil {
 			utils.LogResponseError(c, h.logger, err)
 			return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))

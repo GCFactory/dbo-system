@@ -173,7 +173,7 @@ func (s *Server) RunKafkaConsumer(ctx context.Context, quitChan chan<- int) {
 }
 
 func (s *Server) handleData(message *sarama.ConsumerMessage) (err error) {
-	
+
 	err = nil
 
 	var saga_uuid uuid.UUID = uuid.Nil
@@ -215,6 +215,8 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) (err error) {
 
 					result := event_success.GetFullData()
 					data["inn"] = result.GetUserInn()
+					data["user_id"] = result.GetUserId()
+					data["user_login"] = result.GetUserLogin()
 
 					accounts := result.GetAccounts()
 					if accounts != nil {

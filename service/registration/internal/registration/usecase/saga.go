@@ -23,6 +23,7 @@ const (
 	SagaTypeAddAccountCache         string = "add_account_cache"
 	SagaTypeWidthAccountCache       string = "width_account_cache"
 	SagaTypeCloseAccount            string = "close_account"
+	SagaTypeUpdateUserPassword      string = "update_user_password"
 )
 
 var PossibleSagaTypes = []string{
@@ -35,6 +36,7 @@ var PossibleSagaTypes = []string{
 	SagaTypeGetAccountData,
 	SagaTypeWidthAccountCache,
 	SagaTypeCloseAccount,
+	SagaTypeUpdateUserPassword,
 }
 
 func ValidateSagaType(saga_type string) bool {
@@ -83,6 +85,9 @@ var PossibleEventsListForSagaType = map[string][]string{
 	SagaTypeCloseAccount: {
 		EventTypeCloseAccount,
 	},
+	SagaTypeUpdateUserPassword: {
+		EventTypeUpdateUserPassword,
+	},
 }
 
 // Список операций, входящих в SAG-у
@@ -115,6 +120,9 @@ var StartEventsListForSagaType = map[string][]string{
 	SagaTypeCloseAccount: {
 		EventTypeCloseAccount,
 	},
+	SagaTypeUpdateUserPassword: {
+		EventTypeUpdateUserPassword,
+	},
 }
 
 func CheckExistingEventTypeIntoSagaType(saga_type string, event_type string) (result bool) {
@@ -145,13 +153,14 @@ func CheckExistingEventTypeIntoSagaType(saga_type string, event_type string) (re
 }
 
 const (
-	SagaGroupCreateUser        uint8 = 1
-	SagaGroupCreateAccount     uint8 = 2
-	SagaGroupAddAccountCache   uint8 = 3
-	SagaGroupWidthAccountCache uint8 = 4
-	SagaGroupCloseAccount      uint8 = 5
-	SagaGroupGetUserData       uint8 = 6
-	SagaGroupGetAccountData    uint8 = 7
+	SagaGroupCreateUser         uint8 = 1
+	SagaGroupCreateAccount      uint8 = 2
+	SagaGroupAddAccountCache    uint8 = 3
+	SagaGroupWidthAccountCache  uint8 = 4
+	SagaGroupCloseAccount       uint8 = 5
+	SagaGroupGetUserData        uint8 = 6
+	SagaGroupGetAccountData     uint8 = 7
+	SagaGroupUpdateUserPassword uint8 = 8
 )
 
 var PossibleSagaGroups = []uint8{
@@ -162,6 +171,7 @@ var PossibleSagaGroups = []uint8{
 	SagaGroupCloseAccount,
 	SagaGroupGetUserData,
 	SagaGroupGetAccountData,
+	SagaGroupUpdateUserPassword,
 }
 
 func ValidateSagaGroup(saga_group uint8) bool {
@@ -298,6 +308,12 @@ var ListOfSagaDepend = map[uint8]map[string]models.SagaDepend{
 			Children: nil,
 		},
 	},
+	SagaGroupUpdateUserPassword: map[string]models.SagaDepend{
+		SagaTypeUpdateUserPassword: {
+			Parents:  nil,
+			Children: nil,
+		},
+	},
 }
 
 const (
@@ -381,6 +397,8 @@ var SagaGroupResultDataUpdate = map[uint8]map[string][]string{
 			"passport_authority",
 			"passport_authority_date",
 			"passport_registration_address",
+			"user_id",
+			"user_login",
 		},
 	},
 	SagaGroupGetAccountData: map[string][]string{
@@ -400,6 +418,7 @@ var SagaGroupResultDataUpdate = map[uint8]map[string][]string{
 	},
 }
 
+// Возвращаемые данные при получении статуса операции
 var SagaGroupDataIsResult = map[uint8]map[string]map[string][]string{
 	SagaGroupCreateUser: map[string]map[string][]string{
 		SagaTypeCreateUser: map[string][]string{
@@ -434,6 +453,8 @@ var SagaGroupDataIsResult = map[uint8]map[string]map[string][]string{
 				"passport_authority",
 				"passport_authority_date",
 				"passport_registration_address",
+				"user_id",
+				"user_login",
 			},
 		},
 	},

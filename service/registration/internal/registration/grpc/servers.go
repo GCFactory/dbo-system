@@ -61,18 +61,19 @@ func ValidateServerTopic(serverType uint8, topic string) (res bool) {
 }
 
 const (
-	OperationGetUserData       string = "get_user_data"
-	OperationCreateUser        string = "add_user"
-	OperationAddAccountToUser  string = "add_user_account"
-	OperationReserveAcc        string = "reserve_acc"
-	OperationCreateAcc         string = "create_acc"
-	OperationOpenAcc           string = "open_acc"
-	OperationGetAccountData    string = "get_acc_data"
-	OperationAddAccountCache   string = "adding_acc"
-	OperationWidthAccountCache string = "width_acc"
-	OperationCloseAccount      string = "close_acc"
-	OperationRemoveAccount     string = "remove_acc"
-	OperationRemoveUserAccount string = "remove_user_account"
+	OperationGetUserData        string = "get_user_data"
+	OperationCreateUser         string = "add_user"
+	OperationAddAccountToUser   string = "add_user_account"
+	OperationReserveAcc         string = "reserve_acc"
+	OperationCreateAcc          string = "create_acc"
+	OperationOpenAcc            string = "open_acc"
+	OperationGetAccountData     string = "get_acc_data"
+	OperationAddAccountCache    string = "adding_acc"
+	OperationWidthAccountCache  string = "width_acc"
+	OperationCloseAccount       string = "close_acc"
+	OperationRemoveAccount      string = "remove_acc"
+	OperationRemoveUserAccount  string = "remove_user_account"
+	OperationUpdateUserPassword string = "update_user_password"
 )
 
 var PossibleServersOperations = map[uint8][]string{
@@ -81,6 +82,7 @@ var PossibleServersOperations = map[uint8][]string{
 		OperationGetUserData,
 		OperationAddAccountToUser,
 		OperationRemoveUserAccount,
+		OperationUpdateUserPassword,
 	},
 	ServerTypeAccounts: {
 		OperationReserveAcc,
@@ -123,6 +125,7 @@ func GetServerByOperation(operationName string) (server uint8) {
 	return server
 }
 
+// Список данных, необходимых для операции
 var RequiredOperationsFields = map[string][]string{
 	OperationCreateUser: {
 		"user_inn",
@@ -137,6 +140,8 @@ var RequiredOperationsFields = map[string][]string{
 		"authority",
 		"authority_date",
 		"registration_adress",
+		"login",
+		"password",
 	},
 	OperationGetUserData: {
 		"user_id",
@@ -178,6 +183,10 @@ var RequiredOperationsFields = map[string][]string{
 	OperationRemoveUserAccount: {
 		"user_id",
 		"acc_id",
+	},
+	OperationUpdateUserPassword: {
+		"user_id",
+		"new_password",
 	},
 }
 

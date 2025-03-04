@@ -1,18 +1,19 @@
 package usecase
 
 const (
-	EventTypeCreateUser        string = "add_user"
-	EventTypeGetUserData       string = "get_user_data"
-	EventTypeReserveAccount    string = "reserve_acc"
-	EventTypeCreateAccount     string = "create_acc"
-	EventTypeOpenAccount       string = "open_acc"
-	EventTypeAddAccountToUser  string = "add_user_account"
-	EventTypeAddAccountCache   string = "adding_acc"
-	EventTypeWidthAccountCache string = "width_acc"
-	EventTypeGetAccountData    string = "get_acc_data"
-	EventTypeCloseAccount      string = "close_acc"
-	EventTypeRemoveAccount     string = "remove_acc"
-	EventTypeRemoveUserAccount string = "remove_user_account"
+	EventTypeCreateUser         string = "add_user"
+	EventTypeGetUserData        string = "get_user_data"
+	EventTypeReserveAccount     string = "reserve_acc"
+	EventTypeCreateAccount      string = "create_acc"
+	EventTypeOpenAccount        string = "open_acc"
+	EventTypeAddAccountToUser   string = "add_user_account"
+	EventTypeAddAccountCache    string = "adding_acc"
+	EventTypeWidthAccountCache  string = "width_acc"
+	EventTypeGetAccountData     string = "get_acc_data"
+	EventTypeCloseAccount       string = "close_acc"
+	EventTypeRemoveAccount      string = "remove_acc"
+	EventTypeRemoveUserAccount  string = "remove_user_account"
+	EventTypeUpdateUserPassword string = "update_user_password"
 )
 
 var PossibleEventsList = [...]string{
@@ -28,6 +29,7 @@ var PossibleEventsList = [...]string{
 	EventTypeCloseAccount,
 	EventTypeRemoveAccount,
 	EventTypeRemoveUserAccount,
+	EventTypeUpdateUserPassword,
 }
 
 func ValidateEventType(eventType string) bool {
@@ -88,6 +90,8 @@ var RequiredEventListOfData = map[string][]string{
 		"authority",
 		"authority_date",
 		"registration_adress",
+		"login",
+		"password",
 	},
 	EventTypeGetUserData: []string{
 		"user_id",
@@ -129,6 +133,10 @@ var RequiredEventListOfData = map[string][]string{
 	},
 	EventTypeRemoveAccount: []string{
 		"acc_id",
+	},
+	EventTypeUpdateUserPassword: {
+		"user_id",
+		"new_password",
 	},
 }
 

@@ -6,10 +6,10 @@ CREATE TABLE users
 (
     user_uuid           UUID                PRIMARY KEY     DEFAULT uuid_generate_v4(),
     passport_uuid 	    UUID                REFERENCES passport(passport_uuid) ON DELETE CASCADE NOT NULL,
-    user_inn 	        char(20)            NOT NULL,
+    user_inn 	        varchar(20)            NOT NULL,
     user_accounts       json                NOT NULL,
     user_login          varchar(64)            NOT NULL,
-    user_password       char(128)           NOT NULL
+    user_password       varchar(128)           NOT NULL
 );
 
 

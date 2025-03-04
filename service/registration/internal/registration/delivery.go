@@ -11,4 +11,5 @@ type Handlers interface {
 	CloseAccount() echo.HandlerFunc
 	GetUserData() echo.HandlerFunc
 	GetAccountData() echo.HandlerFunc
+	UpdateUserPassword() echo.HandlerFunc
 }

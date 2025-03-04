@@ -15,4 +15,5 @@ func MapRegistrationRoutes(RegistrationGroup *echo.Group, h registration.Handler
 	RegistrationGroup.POST("/close_acc", h.CloseAccount())
 	RegistrationGroup.POST("/get_user_data", h.GetUserData())
 	RegistrationGroup.POST("/get_account_data", h.GetAccountData())
+	RegistrationGroup.POST("/update_password", h.UpdateUserPassword())
 }
