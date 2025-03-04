@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"context"
+	"crypto/sha512"
+	"encoding/hex"
 	"encoding/json"
 	"github.com/GCFactory/dbo-system/platform/config"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
@@ -21,6 +23,9 @@ func (uc userUsecase) AddUser(ctx context.Context, user *models.User_full_data) 
 
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "userUsecase.AddUser")
 	defer span.Finish()
+
+	sha := sha512.Sum512([]byte(user.User.User_passw))
+	user.User.User_passw = hex.EncodeToString(sha[:])
 
 	bd_user, _ := uc.usersRepo.GetUserData(ctxWithTrace, user.User.User_uuid)
 	if bd_user != nil {
