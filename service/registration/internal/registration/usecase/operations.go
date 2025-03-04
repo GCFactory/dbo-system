@@ -33,6 +33,7 @@ func ValidateOperation(operation uint8) bool {
 	return false
 }
 
+// Список корневых SAG
 var OperationsRootsSagas = map[uint8][]string{
 	OperationCreateUser: []string{
 		SagaTypeCreateUser,

@@ -838,7 +838,7 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 					if err != nil {
 						return result, err
 					}
-					new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, saga_uuid, uuid.Nil, false, nil)
+					new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, connection.Current_saga_uuid, uuid.Nil, false, nil)
 					if err != nil {
 						return result, err
 					}

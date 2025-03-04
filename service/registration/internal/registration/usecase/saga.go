@@ -49,6 +49,7 @@ func ValidateSagaType(saga_type string) bool {
 
 }
 
+// Список возможных операций в SAG-е
 var PossibleEventsListForSagaType = map[string][]string{
 	SagaTypeCreateUser: {
 		EventTypeCreateUser,
@@ -84,6 +85,7 @@ var PossibleEventsListForSagaType = map[string][]string{
 	},
 }
 
+// Список операций, входящих в SAG-у
 var StartEventsListForSagaType = map[string][]string{
 	SagaTypeCreateUser: {
 		EventTypeCreateUser,
@@ -172,6 +174,7 @@ func ValidateSagaGroup(saga_group uint8) bool {
 	return false
 }
 
+// Список зависимостей SAG в транзакции
 var ListOfSagaDepend = map[uint8]map[string]models.SagaDepend{
 	SagaGroupCreateUser: map[string]models.SagaDepend{
 		SagaTypeCreateUser: {
@@ -323,6 +326,7 @@ func ValidateSagaConnectionStatus(saga_connection_status uint8) bool {
 	return false
 }
 
+// Список данных, которые извлекаются, как результат операции
 var SagaGroupResultDataUpdate = map[uint8]map[string][]string{
 	SagaGroupCreateUser: map[string][]string{
 		SagaTypeCreateUser: []string{

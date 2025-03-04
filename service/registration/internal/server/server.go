@@ -173,8 +173,7 @@ func (s *Server) RunKafkaConsumer(ctx context.Context, quitChan chan<- int) {
 }
 
 func (s *Server) handleData(message *sarama.ConsumerMessage) (err error) {
-	// TODO: complete
-
+	
 	err = nil
 
 	var saga_uuid uuid.UUID = uuid.Nil
@@ -245,14 +244,9 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) (err error) {
 
 					break
 				}
-			case grpc.OperationAddAccountToUser:
-				// TODO: убрать ниже! Это тест отката
-				//case grpc.OperationAddAccountToUser,
-				//grpc.OperationRemoveUserAccount:
+			case grpc.OperationAddAccountToUser,
+				grpc.OperationRemoveUserAccount:
 				{
-					data = nil
-					data = make(map[string]interface{})
-					data["error"] = "some_error"
 					break
 				}
 			default:
@@ -263,10 +257,6 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) (err error) {
 
 			success = true
 
-			// TODO: убрать ниже, для тестов
-			if operation_name == grpc.OperationAddAccountToUser {
-				success = false
-			}
 			break
 
 		}

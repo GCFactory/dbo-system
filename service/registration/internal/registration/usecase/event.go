@@ -132,14 +132,11 @@ var RequiredEventListOfData = map[string][]string{
 	},
 }
 
+// Обратные события
 var RevertEvent = map[uint8]map[string]map[string]string{
 	SagaGroupCreateAccount: map[string]map[string]string{
 		SagaTypeOpenAccountAndAddToUser: map[string]string{
-			EventTypeOpenAccount:      EventTypeRemoveAccount,
 			EventTypeAddAccountToUser: EventTypeRemoveUserAccount,
-		},
-		SagaTypeCreateAccount: map[string]string{
-			EventTypeCreateAccount: EventTypeRemoveAccount,
 		},
 		SagaTypeReserveAccount: map[string]string{
 			EventTypeReserveAccount: EventTypeRemoveAccount,

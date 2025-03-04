@@ -77,6 +77,7 @@ func ValidateCheckData(check_name string, data map[string]interface{}) (result b
 
 }
 
+// Список дополнительных проверок
 var ListOfAdditionalSagaEventsChecks = map[uint8]map[string][]string{
 	SagaGroupAddAccountCache: map[string][]string{
 		EventTypeGetAccountData: []string{
