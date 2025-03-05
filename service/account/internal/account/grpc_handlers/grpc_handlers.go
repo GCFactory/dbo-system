@@ -29,6 +29,7 @@ func (accGRPCH AccountGRPCHandlers) ReserveAccount(ctx context.Context, saga_uui
 
 	acc_model := &models.FullAccountData{
 		Acc_uuid:        uuid.New(),
+		Acc_name:        acc_data.GetAccountName(),
 		Acc_corr_number: acc_data.GetCorrNumber(),
 		Acc_culc_number: acc_data.GetCulcNumber(),
 		Acc_cio:         acc_data.GetCio(),
@@ -213,6 +214,7 @@ func (accGRPCH AccountGRPCHandlers) GetAccountData(ctx context.Context, saga_uui
 						Bic:           result.Acc_bic,
 						Cio:           result.Acc_cio,
 						ReserveReason: result.Reason,
+						AccountName:   result.Acc_name,
 					},
 					AccStatus:      uint64(result.Acc_status),
 					AccMoneyValue:  uint64(result.Acc_money_value),

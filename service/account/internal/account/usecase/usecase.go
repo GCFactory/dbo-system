@@ -34,6 +34,7 @@ func (UC *accountUC) ReservAcc(ctx context.Context, acc_data *models.FullAccount
 	acc = &models.Account{
 		Acc_uuid:         acc_data.Acc_uuid,
 		Acc_status:       AccStatusReserved,
+		Acc_name:         acc_data.Acc_name,
 		Acc_culc_number:  acc_data.Acc_culc_number,
 		Acc_corr_number:  acc_data.Acc_corr_number,
 		Acc_bic:          acc_data.Acc_bic,
@@ -199,6 +200,7 @@ func (UC *accountUC) GetAccInfo(ctx context.Context, acc_uuid uuid.UUID) (*model
 
 	result := models.FullAccountData{
 		Acc_uuid:         acc_uuid,
+		Acc_name:         acc.Acc_name,
 		Acc_money_amount: acc.Acc_money_amount,
 		Acc_money_value:  acc.Acc_money_value,
 		Acc_cio:          acc.Acc_cio,

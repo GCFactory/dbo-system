@@ -6,6 +6,7 @@ CREATE TABLE accounts
 (
     acc_uuid            UUID PRIMARY KEY                                    DEFAULT uuid_generate_v4(),
     acc_status          numeric(3)                  NOT NULL                DEFAULT 0,
+    acc_name            varchar(64)                 NOT NULL,
     acc_culc_number     CHAR(20)                    NOT NULL,
     acc_corr_number     CHAR(20)                    NOT NULL,
     acc_bic             CHAR(9)                     NOT NULL,

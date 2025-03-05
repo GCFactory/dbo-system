@@ -31,6 +31,7 @@ func (repo accountRepo) CreateAccount(ctx context.Context, account *models.Accou
 		CreateAccount,
 		account.Acc_uuid,
 		account.Acc_status,
+		account.Acc_name,
 		account.Acc_culc_number,
 		account.Acc_corr_number,
 		account.Acc_bic,
