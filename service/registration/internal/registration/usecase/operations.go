@@ -10,6 +10,7 @@ const (
 	OperationGetUserData             uint8 = 6
 	OperationGetAccountData          uint8 = 7
 	OperationGroupUpdateUserPassword uint8 = 8
+	OperationGetUserDataByLogin      uint8 = 9
 	OperationError                   uint8 = 255
 )
 
@@ -23,6 +24,7 @@ var PossibleOperations = []uint8{
 	OperationGetUserData,
 	OperationGetAccountData,
 	OperationGroupUpdateUserPassword,
+	OperationGetUserDataByLogin,
 	OperationError,
 }
 
@@ -60,5 +62,8 @@ var OperationsRootsSagas = map[uint8][]string{
 	},
 	OperationGroupUpdateUserPassword: {
 		SagaTypeUpdateUserPassword,
+	},
+	OperationGetUserDataByLogin: {
+		SagaTypeGetUserDataByLogin,
 	},
 }

@@ -12,4 +12,5 @@ type Handlers interface {
 	GetUserData() echo.HandlerFunc
 	GetAccountData() echo.HandlerFunc
 	UpdateUserPassword() echo.HandlerFunc
+	GetUserDataByLogin() echo.HandlerFunc
 }

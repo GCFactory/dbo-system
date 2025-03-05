@@ -68,3 +68,7 @@ type UpdateUserPassword struct {
 	User_ID      string `json:"user_id" validate:"required,uuid4"`
 	New_password string `json:"new_password" validate:"required"`
 }
+
+type GetUserDataByLogin struct {
+	User_login string `json:"user_login" validate:"required"`
+}

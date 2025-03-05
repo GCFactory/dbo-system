@@ -24,6 +24,7 @@ const (
 	SagaTypeWidthAccountCache       string = "width_account_cache"
 	SagaTypeCloseAccount            string = "close_account"
 	SagaTypeUpdateUserPassword      string = "update_user_password"
+	SagaTypeGetUserDataByLogin      string = "get_user_data_by_login"
 )
 
 var PossibleSagaTypes = []string{
@@ -37,6 +38,7 @@ var PossibleSagaTypes = []string{
 	SagaTypeWidthAccountCache,
 	SagaTypeCloseAccount,
 	SagaTypeUpdateUserPassword,
+	SagaTypeGetUserDataByLogin,
 }
 
 func ValidateSagaType(saga_type string) bool {
@@ -88,6 +90,9 @@ var PossibleEventsListForSagaType = map[string][]string{
 	SagaTypeUpdateUserPassword: {
 		EventTypeUpdateUserPassword,
 	},
+	SagaTypeGetUserDataByLogin: {
+		EventTYpeGetUserDataByLogin,
+	},
 }
 
 // Список операций, входящих в SAG-у
@@ -122,6 +127,9 @@ var StartEventsListForSagaType = map[string][]string{
 	},
 	SagaTypeUpdateUserPassword: {
 		EventTypeUpdateUserPassword,
+	},
+	SagaTypeGetUserDataByLogin: {
+		EventTYpeGetUserDataByLogin,
 	},
 }
 
@@ -161,6 +169,7 @@ const (
 	SagaGroupGetUserData        uint8 = 6
 	SagaGroupGetAccountData     uint8 = 7
 	SagaGroupUpdateUserPassword uint8 = 8
+	SagaGroupGetUserDataByLogin uint8 = 9
 )
 
 var PossibleSagaGroups = []uint8{
@@ -172,6 +181,7 @@ var PossibleSagaGroups = []uint8{
 	SagaGroupGetUserData,
 	SagaGroupGetAccountData,
 	SagaGroupUpdateUserPassword,
+	SagaGroupGetUserDataByLogin,
 }
 
 func ValidateSagaGroup(saga_group uint8) bool {
@@ -314,6 +324,12 @@ var ListOfSagaDepend = map[uint8]map[string]models.SagaDepend{
 			Children: nil,
 		},
 	},
+	SagaGroupGetUserDataByLogin: map[string]models.SagaDepend{
+		SagaTypeGetUserDataByLogin: models.SagaDepend{
+			Parents:  nil,
+			Children: nil,
+		},
+	},
 }
 
 const (
@@ -416,6 +432,14 @@ var SagaGroupResultDataUpdate = map[uint8]map[string][]string{
 			"acc_reserve_reason",
 		},
 	},
+	SagaGroupGetUserDataByLogin: map[string][]string{
+		SagaTypeGetUserDataByLogin: {
+			"user_inn",
+			"user_id",
+			"user_login",
+			"accounts",
+		},
+	},
 }
 
 // Возвращаемые данные при получении статуса операции
@@ -469,6 +493,16 @@ var SagaGroupDataIsResult = map[uint8]map[string]map[string][]string{
 				"acc_bic",
 				"acc_cio",
 				"acc_reserve_reason",
+			},
+		},
+	},
+	SagaGroupGetUserDataByLogin: map[string]map[string][]string{
+		SagaTypeGetUserDataByLogin: map[string][]string{
+			EventTYpeGetUserDataByLogin: {
+				"user_inn",
+				"user_id",
+				"user_login",
+				"accounts",
 			},
 		},
 	},

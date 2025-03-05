@@ -14,6 +14,7 @@ const (
 	EventTypeRemoveAccount      string = "remove_acc"
 	EventTypeRemoveUserAccount  string = "remove_user_account"
 	EventTypeUpdateUserPassword string = "update_user_password"
+	EventTYpeGetUserDataByLogin string = "get_user_data_by_login"
 )
 
 var PossibleEventsList = [...]string{
@@ -30,6 +31,7 @@ var PossibleEventsList = [...]string{
 	EventTypeRemoveAccount,
 	EventTypeRemoveUserAccount,
 	EventTypeUpdateUserPassword,
+	EventTYpeGetUserDataByLogin,
 }
 
 func ValidateEventType(eventType string) bool {
@@ -76,6 +78,7 @@ func ValidateEventStatus(status uint8) bool {
 	return false
 }
 
+// Список требуемых данных для события
 var RequiredEventListOfData = map[string][]string{
 	EventTypeCreateUser: []string{
 		"user_inn",
@@ -137,6 +140,9 @@ var RequiredEventListOfData = map[string][]string{
 	EventTypeUpdateUserPassword: {
 		"user_id",
 		"new_password",
+	},
+	EventTYpeGetUserDataByLogin: {
+		"user_login",
 	},
 }
 

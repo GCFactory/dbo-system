@@ -42,7 +42,8 @@ func (h *GRPCRegistrationHandlers) StartOperation(ctx context.Context, operation
 		usecase.OperationCloseAccount,
 		usecase.OperationGetUserData,
 		usecase.OperationGetAccountData,
-		usecase.OperationGroupUpdateUserPassword:
+		usecase.OperationGroupUpdateUserPassword,
+		usecase.OperationGetUserDataByLogin:
 		{
 			list_of_events, err = h.registrationUC.StartOperation(ctxWithTrace, operation_type, operation_data)
 			if err != nil {
@@ -172,7 +173,7 @@ func (h *GRPCRegistrationHandlers) SendRequest(ctx context.Context, server uint8
 					kafka_data := &users_api.EventData{
 						SagaUuid:      saga_uuid.String(),
 						EventUuid:     event_uuid.String(),
-						OperationName: OperationCreateUser,
+						OperationName: operation_name,
 						Data: &users_api.EventData_UserInfo{
 							UserInfo: &users_api.UserInfo{
 								UserInn: data["user_inn"].(string),
@@ -225,7 +226,7 @@ func (h *GRPCRegistrationHandlers) SendRequest(ctx context.Context, server uint8
 					user_data := &users_api.EventData{
 						SagaUuid:      saga_uuid.String(),
 						EventUuid:     event_uuid.String(),
-						OperationName: OperationGetUserData,
+						OperationName: operation_name,
 						Data: &users_api.EventData_AdditionalInfo{
 							AdditionalInfo: &users_api.OperationDetails{
 								UserUuid: data["user_id"].(string),
@@ -245,6 +246,42 @@ func (h *GRPCRegistrationHandlers) SendRequest(ctx context.Context, server uint8
 					}
 					break
 
+				}
+			case OperationGetUserDataByLogin:
+				{
+
+					if !ValidateOperationsData(operation_name, data) {
+						return ErrorInvalidOperationsData
+					}
+
+					if !ValidateServerTopic(server, ServerTopicUsersConsumer) {
+						return ErrorInvalidServersTopic
+					}
+
+					user_data := &users_api.EventData{
+						SagaUuid:      saga_uuid.String(),
+						EventUuid:     event_uuid.String(),
+						OperationName: operation_name,
+						Data: &users_api.EventData_AdditionalInfo{
+							AdditionalInfo: &users_api.OperationDetails{
+								AdditionalData: &users_api.OperationDetails_SomeData{
+									SomeData: data["user_login"].(string),
+								},
+							},
+						},
+					}
+
+					msg, err := proto.Marshal(user_data)
+					if err != nil {
+						h.regLog.Error(err)
+						return err
+					}
+					err = h.kProducer.ProduceRecord(ServerTopicUsersConsumer, sarama.ByteEncoder(msg))
+					if err != nil {
+						h.regLog.Error(err)
+						return err
+					}
+					break
 				}
 			case OperationAddAccountToUser,
 				OperationRemoveUserAccount:
