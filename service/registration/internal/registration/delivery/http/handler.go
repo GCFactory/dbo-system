@@ -377,6 +377,38 @@ func (h RegistrationHandlers) GetUserDataByLogin() echo.HandlerFunc {
 
 }
 
+func (h RegistrationHandlers) CheckUserPassword() echo.HandlerFunc {
+
+	return func(c echo.Context) error {
+
+		span, ctxWithTrace := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "RegistrationHandlers.UpdateUserPassword")
+		defer span.Finish()
+
+		operation_info := &models.CheckUserPassword{}
+		if err := h.safeReadRequest(c, operation_info); err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, err.Error(), nil))
+		}
+
+		data := make(map[string]interface{})
+
+		data["user_id"] = operation_info.User_ID
+		data["password"] = operation_info.Password
+
+		operation_uuid, err := h.registrationGRPC.StartOperation(ctxWithTrace, usecase.OperationCheckUserPassword, data)
+		if err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
+		}
+
+		response := make(map[string]interface{})
+		response["info"] = operation_uuid.String()
+
+		return c.JSON(http.StatusAccepted, response)
+	}
+
+}
+
 func NewRegistrationHandlers(cfg *config.Config, logger logger.Logger, usecase registration.UseCase, grpc registration.RegistrationGRPCHandlers) registration.Handlers {
 	return &RegistrationHandlers{cfg: cfg, logger: logger, registrationGRPC: grpc, registrationUC: usecase}
 }

@@ -75,6 +75,7 @@ const (
 	OperationRemoveUserAccount  string = "remove_user_account"
 	OperationUpdateUserPassword string = "update_user_password"
 	OperationGetUserDataByLogin string = "get_user_data_by_login"
+	OperationCheckUSerPassword  string = "check_user_password"
 )
 
 var PossibleServersOperations = map[uint8][]string{
@@ -85,6 +86,7 @@ var PossibleServersOperations = map[uint8][]string{
 		OperationRemoveUserAccount,
 		OperationUpdateUserPassword,
 		OperationGetUserDataByLogin,
+		OperationCheckUSerPassword,
 	},
 	ServerTypeAccounts: {
 		OperationReserveAcc,
@@ -192,6 +194,10 @@ var RequiredOperationsFields = map[string][]string{
 	},
 	OperationGetUserDataByLogin: {
 		"user_login",
+	},
+	OperationCheckUSerPassword: {
+		"user_id",
+		"password",
 	},
 }
 

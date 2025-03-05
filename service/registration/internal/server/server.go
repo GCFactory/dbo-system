@@ -261,7 +261,8 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) (err error) {
 
 				}
 			case grpc.OperationAddAccountToUser,
-				grpc.OperationRemoveUserAccount:
+				grpc.OperationRemoveUserAccount,
+				grpc.OperationCheckUSerPassword:
 				{
 					break
 				}

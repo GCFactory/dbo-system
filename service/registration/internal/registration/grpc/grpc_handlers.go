@@ -43,7 +43,8 @@ func (h *GRPCRegistrationHandlers) StartOperation(ctx context.Context, operation
 		usecase.OperationGetUserData,
 		usecase.OperationGetAccountData,
 		usecase.OperationGroupUpdateUserPassword,
-		usecase.OperationGetUserDataByLogin:
+		usecase.OperationGetUserDataByLogin,
+		usecase.OperationCheckUserPassword:
 		{
 			list_of_events, err = h.registrationUC.StartOperation(ctxWithTrace, operation_type, operation_data)
 			if err != nil {
@@ -341,6 +342,43 @@ func (h *GRPCRegistrationHandlers) SendRequest(ctx context.Context, server uint8
 								UserUuid: data["user_id"].(string),
 								AdditionalData: &users_api.OperationDetails_SomeData{
 									SomeData: data["new_password"].(string),
+								},
+							},
+						},
+					}
+
+					msg, err := proto.Marshal(user_data)
+					if err != nil {
+						h.regLog.Error(err)
+						return err
+					}
+					err = h.kProducer.ProduceRecord(ServerTopicUsersConsumer, sarama.ByteEncoder(msg))
+					if err != nil {
+						h.regLog.Error(err)
+						return err
+					}
+					break
+				}
+			case OperationCheckUSerPassword:
+				{
+
+					if !ValidateOperationsData(operation_name, data) {
+						return ErrorInvalidOperationsData
+					}
+
+					if !ValidateServerTopic(server, ServerTopicUsersConsumer) {
+						return ErrorInvalidServersTopic
+					}
+
+					user_data := &users_api.EventData{
+						SagaUuid:      saga_uuid.String(),
+						EventUuid:     event_uuid.String(),
+						OperationName: operation_name,
+						Data: &users_api.EventData_AdditionalInfo{
+							AdditionalInfo: &users_api.OperationDetails{
+								UserUuid: data["user_id"].(string),
+								AdditionalData: &users_api.OperationDetails_SomeData{
+									SomeData: data["password"].(string),
 								},
 							},
 						},
