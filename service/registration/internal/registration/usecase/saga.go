@@ -438,6 +438,7 @@ var SagaGroupResultDataUpdate = map[uint8]map[string][]string{
 			"accounts",
 		},
 		SagaTypeGetAccountData: []string{
+			"acc_name",
 			"acc_status",
 			"acc_cache",
 			"acc_cache_value",
@@ -501,6 +502,7 @@ var SagaGroupDataIsResult = map[uint8]map[string]map[string][]string{
 	SagaGroupGetAccountData: map[string]map[string][]string{
 		SagaTypeGetAccountData: map[string][]string{
 			EventTypeGetAccountData: []string{
+				"acc_name",
 				"acc_status",
 				"acc_cache",
 				"acc_cache_value",

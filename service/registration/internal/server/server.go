@@ -341,6 +341,7 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) (err error) {
 						account_details := acc_data.GetAccDetails()
 
 						if account_details != nil {
+							data["acc_name"] = account_details.GetAccountName()
 							data["acc_culc_number"] = account_details.GetCulcNumber()
 							data["acc_corr_number"] = account_details.GetCorrNumber()
 							data["acc_bic"] = account_details.GetBic()

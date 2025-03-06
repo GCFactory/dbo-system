@@ -140,6 +140,7 @@ func (h RegistrationHandlers) OpenAccount() echo.HandlerFunc {
 		data := make(map[string]interface{})
 
 		data["user_id"] = operation_info.User_ID
+		data["acc_name"] = operation_info.Acc_name
 		data["culc_number"] = operation_info.Culc_number
 		data["corr_number"] = operation_info.Corr_number
 		data["bic"] = operation_info.BIC

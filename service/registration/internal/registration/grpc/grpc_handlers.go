@@ -422,6 +422,7 @@ func (h *GRPCRegistrationHandlers) SendRequest(ctx context.Context, server uint8
 						OperationName: operation_name,
 						Data: &accounts_api.EventData_AccountData{
 							AccountData: &platform.AccountDetails{
+								AccountName:   data["acc_name"].(string),
 								Bic:           data["bic"].(string),
 								Cio:           data["cio"].(string),
 								CorrNumber:    data["corr_number"].(string),

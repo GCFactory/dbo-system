@@ -102,6 +102,7 @@ var RequiredEventListOfData = map[string][]string{
 		"user_id",
 	},
 	EventTypeReserveAccount: []string{
+		"acc_name",
 		"culc_number",
 		"corr_number",
 		"bic",

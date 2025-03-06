@@ -31,6 +31,7 @@ type OperationID struct {
 
 type OpenAccountInfo struct {
 	User_ID        string `json:"user_id" validate:"required,uuid4"`
+	Acc_name       string `json:"acc_name" validate:"required"`
 	Culc_number    string `json:"culc_number" validate:"required,number,len=20"`
 	Corr_number    string `json:"corr_number" validate:"required,number,len=20"`
 	BIC            string `json:"bic" validate:"required,number,len=9"`

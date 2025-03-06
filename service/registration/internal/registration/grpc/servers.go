@@ -151,6 +151,7 @@ var RequiredOperationsFields = map[string][]string{
 		"user_id",
 	},
 	OperationReserveAcc: {
+		"acc_name",
 		"culc_number",
 		"corr_number",
 		"bic",
