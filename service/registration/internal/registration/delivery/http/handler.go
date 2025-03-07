@@ -115,7 +115,7 @@ func (h RegistrationHandlers) GetOperationStatus() echo.HandlerFunc {
 		response := make(map[string]interface{})
 		response["info"] = operation_status
 
-		operation_data, err := h.registrationUC.GetSagaResultData(ctxWithTrace, operation_id)
+		operation_data, err := h.registrationUC.GetOperationResultData(ctxWithTrace, operation_id)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
 		}

@@ -4,6 +4,8 @@ import "errors"
 
 var (
 	ErrorCreateSaga                = errors.New("registrationRepo.CreateSaga")
+	ErrorUpdateOperation           = errors.New("registrationRepo.UpdateOperation.ExecContext")
+	ErrorDeleteOperation           = errors.New("registrationRepo.DeleteOperation")
 	ErrorDeleteSaga                = errors.New("registrationRepo.DeleteSaga")
 	ErrorGetSaga                   = errors.New("registrationRepo.GetSaga")
 	ErrorUpdateSaga                = errors.New("registrationRepo.UpdateSaga.ExecContext")

@@ -1,5 +1,10 @@
 package usecase
 
+import (
+	"errors"
+	"slices"
+)
+
 const (
 	OperationUnknown                 uint8 = 0
 	OperationCreateUser              uint8 = 1
@@ -71,4 +76,36 @@ var OperationsRootsSagas = map[uint8][]string{
 	OperationCheckUserPassword: {
 		SagaTypeCheckUserPassword,
 	},
+}
+
+// Имена операций
+var OperationName = map[uint8]string{
+	OperationCreateUser:              "create_user",
+	OperationAddAccount:              "add_account",
+	OperationAddAccountCache:         "add_account_cache",
+	OperationWidthAccountCache:       "width_account_cache",
+	OperationCloseAccount:            "close_account",
+	OperationGetUserData:             "get_user_data",
+	OperationGetAccountData:          "get_account_data",
+	OperationGroupUpdateUserPassword: "update_user_password",
+	OperationGetUserDataByLogin:      "get_user_data_by_login",
+	OperationCheckUserPassword:       "check_user_password",
+}
+
+func OperationNameFromCode(operation_code uint8) (string, error) {
+
+	result := ""
+	var err error
+
+	if slices.Contains(PossibleOperations, operation_code) {
+		if name, ok := OperationName[operation_code]; ok {
+			result = name
+		}
+	}
+
+	if result == "" {
+		err = errors.New("No operation name")
+	}
+
+	return result, err
 }

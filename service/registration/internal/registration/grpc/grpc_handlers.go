@@ -46,7 +46,7 @@ func (h *GRPCRegistrationHandlers) StartOperation(ctx context.Context, operation
 		usecase.OperationGetUserDataByLogin,
 		usecase.OperationCheckUserPassword:
 		{
-			list_of_events, err = h.registrationUC.StartOperation(ctxWithTrace, operation_type, operation_data)
+			list_of_events, operation_uuid, err = h.registrationUC.StartOperation(ctxWithTrace, operation_type, operation_data)
 			if err != nil {
 				return operation_uuid, err
 			}
@@ -70,8 +70,6 @@ func (h *GRPCRegistrationHandlers) StartOperation(ctx context.Context, operation
 			return operation_uuid, err
 		}
 	}
-
-	operation_uuid = list_of_events[0].Saga_uuid
 
 	return operation_uuid, nil
 }

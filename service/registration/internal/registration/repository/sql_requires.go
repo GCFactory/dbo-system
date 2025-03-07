@@ -1,13 +1,28 @@
 package repository
 
 const (
+	CreateOperation = `INSERT INTO operation (
+                       operation_uuid,
+                       operation_name,
+                       create_time,
+                       last_time_update) 
+					VALUES($1, $2, $3, $4);`
+	GetOperation = `SELECT * 
+					FROM operation
+					WHERE operation_uuid = $1;`
+	UpdateOperation = `UPDATE operation
+						SET last_time_update = $2
+						WHERE operation_uuid = $1;`
+	DeleteOperation = `DELETE FROM operation
+						WHERE operation_uuid = $1;`
 	CreateSaga = `INSERT INTO saga (
                   saga_uuid, 
                   saga_status, 
                   saga_type, 
                   saga_name,
-                  saga_data)
-				VALUES ($1, $2, $3, $4, $5)`
+                  saga_data,
+                  operation_uuid)
+				VALUES ($1, $2, $3, $4, $5, $6)`
 	DeleteSaga = `DELETE FROM saga 
        			WHERE saga_uuid=$1`
 	GetSaga = `SELECT * FROM saga 
@@ -63,5 +78,8 @@ const (
 	GetListOfSagaEvents = `SELECT event_uuid as list_of_events
 						FROM event
 						WHERE saga_uuid = $1`
-	GetRevertEvent = `SELECT * FROM event WHERE event_rollback_uuid = $1`
+	GetRevertEvent          = `SELECT * FROM event WHERE event_rollback_uuid = $1`
+	GetListOfOperationSagas = `SELECT saga_uuid as list_of_saga
+							FROM saga
+							WHERE operation_uuid = $1;`
 )

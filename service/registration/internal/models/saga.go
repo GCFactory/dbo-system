@@ -2,22 +2,32 @@ package models
 
 import (
 	"github.com/google/uuid"
+	"time"
 )
 
+type Operation struct {
+	Operation_uuid   uuid.UUID `json:"operation_uuid" db:"operation_uuid" validate:"len=36 required uuid"`
+	Operation_name   string    `json:"operation_name" db:"operation_name" validate:"required"`
+	Create_time      time.Time `json:"create_time" db:"create_time" validate:"required,datetime"`
+	Last_time_update time.Time `json:"last_time_update" db:"last_time_update" validate:"required,datetime"`
+}
+
 type SagaFromDB struct {
-	Saga_uuid   uuid.UUID `json:"saga_uuid" db:"saga_uuid" validate:"len=36 required uuid"`
-	Saga_status uint      `json:"saga_status" db:"saga_status" validate:"min=0 max=255 required"`
-	Saga_type   uint8     `json:"saga_type" db:"saga_type" validate:"min=0 max=9 required"`
-	Saga_name   string    `json:"saga_name" db:"saga_name" validate:"max=50 required"`
-	Saga_data   string    `json:"saga_data" db:"saga_data" validate:"required_with"`
+	Saga_uuid      uuid.UUID `json:"saga_uuid" db:"saga_uuid" validate:"len=36 required uuid"`
+	Saga_status    uint      `json:"saga_status" db:"saga_status" validate:"min=0 max=255 required"`
+	Saga_type      uint8     `json:"saga_type" db:"saga_type" validate:"min=0 max=9 required"`
+	Saga_name      string    `json:"saga_name" db:"saga_name" validate:"max=50 required"`
+	Saga_data      string    `json:"saga_data" db:"saga_data" validate:"required_with"`
+	Operation_uuid uuid.UUID `json:"operation_uuid" db:"operation_uuid" validate:"len=36 required uuid"`
 }
 
 type Saga struct {
-	Saga_uuid   uuid.UUID              `json:"saga_uuid" db:"saga_uuid" validate:"len=36 required uuid"`
-	Saga_status uint                   `json:"saga_status" db:"saga_status" validate:"min=0 max=255 required"`
-	Saga_type   uint8                  `json:"saga_type" db:"saga_type" validate:"min=0 max=9 required"`
-	Saga_name   string                 `json:"saga_name" db:"saga_name" validate:"max=50 required"`
-	Saga_data   map[string]interface{} `json:"saga_data" db:"saga_data" validate:"required_with"`
+	Saga_uuid      uuid.UUID              `json:"saga_uuid" db:"saga_uuid" validate:"len=36 required uuid"`
+	Saga_status    uint                   `json:"saga_status" db:"saga_status" validate:"min=0 max=255 required"`
+	Saga_type      uint8                  `json:"saga_type" db:"saga_type" validate:"min=0 max=9 required"`
+	Saga_name      string                 `json:"saga_name" db:"saga_name" validate:"max=50 required"`
+	Saga_data      map[string]interface{} `json:"saga_data" db:"saga_data" validate:"required_with"`
+	Operation_uuid uuid.UUID              `json:"operation_uuid" db:"operation_uuid" validate:"len=36 required uuid"`
 }
 
 type Event struct {
@@ -53,6 +63,10 @@ type SagaConnection struct {
 
 type ListOfSagaConnections struct {
 	List_of_connetcions []*SagaConnection `json:"list_of_connections" validate:"json required"`
+}
+
+type ListOfSaga struct {
+	ListId []uuid.UUID `json:"list_of_saga" validate:"json required"`
 }
 
 type SagaDepend struct {

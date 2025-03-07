@@ -14,6 +14,124 @@ type registrationRepo struct {
 	db *sqlx.DB
 }
 
+func (repo registrationRepo) CreateOperation(ctx context.Context, operation *models.Operation) error {
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.CreateOperation")
+	defer span.Finish()
+
+	tx, err := repo.db.BeginTx(ctxWithTrace, nil)
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	_, err = repo.db.ExecContext(ctxWithTrace,
+		CreateOperation,
+		operation.Operation_uuid,
+		operation.Operation_name,
+		operation.Create_time,
+		operation.Last_time_update,
+	)
+	if err != nil {
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo registrationRepo) GetOperation(ctx context.Context, id uuid.UUID) (*models.Operation, error) {
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.GetOperation")
+	defer span.Finish()
+
+	tx, err := repo.db.BeginTx(ctxWithTrace, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	result := &models.Operation{}
+
+	if err := repo.db.QueryRowxContext(ctxWithTrace,
+		GetOperation,
+		id).StructScan(result); err != nil {
+		return nil, err
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (repo registrationRepo) UpdateOperation(ctx context.Context, operation *models.Operation) error {
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.UpdateOperation")
+	defer span.Finish()
+
+	tx, err := repo.db.BeginTx(ctxWithTrace, nil)
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	result, err := repo.db.ExecContext(ctxWithTrace,
+		UpdateOperation,
+		operation.Operation_uuid,
+		operation.Last_time_update,
+	)
+
+	if err != nil {
+		return err
+	} else if count, err := result.RowsAffected(); err != nil || count == 0 {
+		return ErrorUpdateOperation
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo registrationRepo) DeleteOperation(ctx context.Context, id uuid.UUID) error {
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.DeleteOperation")
+	defer span.Finish()
+
+	tx, err := repo.db.BeginTx(ctxWithTrace, nil)
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	result, err := repo.db.ExecContext(ctxWithTrace,
+		DeleteOperation,
+		id)
+
+	if err != nil {
+		return err
+	} else if count, err := result.RowsAffected(); err != nil || count == 0 {
+		return ErrorDeleteOperation
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
 func (repo registrationRepo) CreateSaga(ctx context.Context, saga *models.Saga) error {
 
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.CreateSaga")
@@ -38,6 +156,7 @@ func (repo registrationRepo) CreateSaga(ctx context.Context, saga *models.Saga) 
 		saga.Saga_type,
 		saga.Saga_name,
 		saga_data,
+		saga.Operation_uuid,
 	)
 	if err != nil {
 		return ErrorCreateSaga
@@ -105,11 +224,12 @@ func (repo registrationRepo) GetSaga(ctx context.Context, id uuid.UUID) (*models
 	}
 
 	result := &models.Saga{
-		Saga_uuid:   data.Saga_uuid,
-		Saga_name:   data.Saga_name,
-		Saga_type:   data.Saga_type,
-		Saga_status: data.Saga_status,
-		Saga_data:   saga_data,
+		Saga_uuid:      data.Saga_uuid,
+		Saga_name:      data.Saga_name,
+		Saga_type:      data.Saga_type,
+		Saga_status:    data.Saga_status,
+		Saga_data:      saga_data,
+		Operation_uuid: data.Operation_uuid,
 	}
 
 	if err = tx.Commit(); err != nil {
@@ -560,6 +680,47 @@ func (repo registrationRepo) GetRevertEvent(ctx context.Context, event_uuid uuid
 		Saga_uuid:           event_data.Saga_uuid,
 		Event_rollback_uuid: event_data.Event_rollback_uuid,
 		Event_required_data: event_data_arr,
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (repo registrationRepo) GetOperationSaga(ctx context.Context, operation_uuid uuid.UUID) (*models.ListOfSaga, error) {
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.GetOperationSaga")
+	defer span.Finish()
+
+	tx, err := repo.db.BeginTx(ctxWithTrace, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	rows, err := repo.db.QueryxContext(
+		ctxWithTrace,
+		GetListOfOperationSagas,
+		operation_uuid,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	result := &models.ListOfSaga{}
+
+	for rows.Next() {
+		var saga_uuid uuid.UUID
+
+		if err := rows.Scan(&saga_uuid); err != nil {
+			return nil, err
+		}
+
+		result.ListId = append(result.ListId, saga_uuid)
 	}
 
 	if err = tx.Commit(); err != nil {

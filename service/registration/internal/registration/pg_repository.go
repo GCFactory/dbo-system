@@ -8,6 +8,10 @@ import (
 )
 
 type Repository interface {
+	CreateOperation(ctx context.Context, operation *models.Operation) error
+	GetOperation(ctx context.Context, id uuid.UUID) (*models.Operation, error)
+	UpdateOperation(ctx context.Context, operation *models.Operation) error
+	DeleteOperation(ctx context.Context, id uuid.UUID) error
 	CreateSaga(ctx context.Context, saga *models.Saga) error
 	GetSaga(ctx context.Context, id uuid.UUID) (*models.Saga, error)
 	DeleteSaga(ctx context.Context, saga_uuid uuid.UUID) error
@@ -23,4 +27,5 @@ type Repository interface {
 	UpdateEvent(ctx context.Context, event *models.Event) error
 	GetListOfSagaEvents(ctx context.Context, saga_uuid uuid.UUID) (*models.SagaListEvents, error)
 	GetRevertEvent(ctx context.Context, event_uuid uuid.UUID) (*models.Event, error)
+	GetOperationSaga(ctx context.Context, operation_uuid uuid.UUID) (*models.ListOfSaga, error)
 }
