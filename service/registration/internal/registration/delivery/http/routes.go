@@ -19,5 +19,6 @@ func MapRegistrationRoutes(RegistrationGroup *echo.Group, h registration.Handler
 	RegistrationGroup.POST("/check_password", h.CheckUserPassword())
 	RegistrationGroup.GET("/get_operation_status", h.GetOperationStatus())
 	RegistrationGroup.GET("/get_operation_tree_data", h.GetOperationTree())
+	RegistrationGroup.GET("/get_operations_range", h.GetOperationListBetween())
 
 }

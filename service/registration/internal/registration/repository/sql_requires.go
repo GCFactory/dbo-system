@@ -82,4 +82,7 @@ const (
 	GetListOfOperationSagas = `SELECT saga_uuid as list_of_saga
 							FROM saga
 							WHERE operation_uuid = $1;`
+	GetListOperationsBetweenInterval = `SELECT operation_uuid as list_id
+										FROM operation
+										WHERE create_time BETWEEN $1 AND $2;`
 )

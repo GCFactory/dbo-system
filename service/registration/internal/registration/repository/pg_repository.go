@@ -8,6 +8,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/opentracing/opentracing-go"
 	"golang.org/x/net/context"
+	"time"
 )
 
 type registrationRepo struct {
@@ -721,6 +722,48 @@ func (repo registrationRepo) GetOperationSaga(ctx context.Context, operation_uui
 		}
 
 		result.ListId = append(result.ListId, saga_uuid)
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (repo registrationRepo) GetOperationBetweenInterval(ctx context.Context, begin time.Time, end time.Time) ([]uuid.UUID, error) {
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationRepo.GetOperationSaga")
+	defer span.Finish()
+
+	tx, err := repo.db.BeginTx(ctxWithTrace, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+	
+	rows, err := repo.db.QueryxContext(
+		ctxWithTrace,
+		GetListOperationsBetweenInterval,
+		begin,
+		end,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]uuid.UUID, 0)
+
+	for rows.Next() {
+		var operation_uuid uuid.UUID
+
+		if err := rows.Scan(&operation_uuid); err != nil {
+			return nil, err
+		}
+
+		result = append(result, operation_uuid)
 	}
 
 	if err = tx.Commit(); err != nil {

@@ -14,6 +14,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/opentracing/opentracing-go"
 	"net/http"
+	"time"
 )
 
 type RegistrationHandlers struct {
@@ -441,6 +442,48 @@ func (h RegistrationHandlers) GetOperationTree() echo.HandlerFunc {
 
 		return c.JSON(http.StatusAccepted, response)
 	}
+}
+
+func (h RegistrationHandlers) GetOperationListBetween() echo.HandlerFunc {
+
+	return func(c echo.Context) error {
+
+		span, ctxWithTrace := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "RegistrationHandlers.GetOperationTree")
+		defer span.Finish()
+
+		operation_info := &models.TimeBetween{}
+		if err := h.safeReadRequest(c, operation_info); err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, err.Error(), nil))
+		}
+
+		time_begin, err := time.Parse("02-01-2006 15:04:05", operation_info.Time_begin)
+		if err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, err.Error(), nil))
+		}
+
+		time_end, err := time.Parse("02-01-2006 15:04:05", operation_info.Time_end)
+		if err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, err.Error(), nil))
+		}
+
+		data, err := h.registrationUC.GerOperationListBetween(ctxWithTrace, time_begin, time_end)
+		if err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
+		}
+
+		response := make(map[string]interface{})
+		result := make(map[string]interface{})
+		result["operations"] = data
+
+		response["info"] = result
+
+		return c.JSON(http.StatusAccepted, response)
+	}
+
 }
 
 func NewRegistrationHandlers(cfg *config.Config, logger logger.Logger, usecase registration.UseCase, grpc registration.RegistrationGRPCHandlers) registration.Handlers {

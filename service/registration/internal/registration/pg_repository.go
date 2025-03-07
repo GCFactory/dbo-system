@@ -5,6 +5,7 @@ import (
 	"context"
 	"github.com/GCFactory/dbo-system/service/registration/internal/models"
 	"github.com/google/uuid"
+	"time"
 )
 
 type Repository interface {
@@ -28,4 +29,5 @@ type Repository interface {
 	GetListOfSagaEvents(ctx context.Context, saga_uuid uuid.UUID) (*models.SagaListEvents, error)
 	GetRevertEvent(ctx context.Context, event_uuid uuid.UUID) (*models.Event, error)
 	GetOperationSaga(ctx context.Context, operation_uuid uuid.UUID) (*models.ListOfSaga, error)
+	GetOperationBetweenInterval(ctx context.Context, begin time.Time, end time.Time) ([]uuid.UUID, error)
 }

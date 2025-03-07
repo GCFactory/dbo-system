@@ -1,6 +1,8 @@
 package models
 
-import "github.com/google/uuid"
+import (
+	"github.com/google/uuid"
+)
 
 type Passport struct {
 	Series               string `json:"series" validate:"required,len=4,number"`
@@ -98,4 +100,9 @@ type EventTreeNode struct {
 type SagaConnectionTree struct {
 	Parent_id uuid.UUID `json:"parent_id"`
 	Child_id  uuid.UUID `json:"child_id"`
+}
+
+type TimeBetween struct {
+	Time_begin string `json:"time_begin" validate:"required,datetime=02-01-2006 15:04:05,min=1"`
+	Time_end   string `json:"time_end" validate:"required,datetime=02-01-2006 15:04:05,min=1"`
 }

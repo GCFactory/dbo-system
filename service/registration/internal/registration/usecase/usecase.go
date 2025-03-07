@@ -1637,8 +1637,18 @@ func (regUC registrationUC) GetOperationTree(ctx context.Context, operation_uuid
 	return data, err
 }
 
-func (regUC registrationUC) GerOperationListBetween(ctx context.Context, begin time.Time, end time.Time) ([]*uuid.UUID, error) {
-	return nil, nil
+func (regUC registrationUC) GerOperationListBetween(ctx context.Context, begin time.Time, end time.Time) ([]uuid.UUID, error) {
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.GerOperationListBetween")
+	defer span.Finish()
+
+	result, err := regUC.registrationRepo.GetOperationBetweenInterval(ctxWithTrace, begin, end)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+
 }
 
 func NewRegistrationUseCase(cfg *config.Config, registration_repo registration.Repository, log logger.Logger) registration.UseCase {

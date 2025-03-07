@@ -15,4 +15,5 @@ type Handlers interface {
 	GetUserDataByLogin() echo.HandlerFunc
 	CheckUserPassword() echo.HandlerFunc
 	GetOperationTree() echo.HandlerFunc
+	GetOperationListBetween() echo.HandlerFunc
 }

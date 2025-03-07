@@ -15,5 +15,5 @@ type UseCase interface {
 	GetOperationStatus(ctx context.Context, operation_id uuid.UUID) (string, error)
 	GetOperationResultData(ctx context.Context, operation_uuid uuid.UUID) (map[string]interface{}, error)
 	GetOperationTree(ctx context.Context, operation_uuid uuid.UUID) (map[string]interface{}, error)
-	GerOperationListBetween(ctx context.Context, begin time.Time, end time.Time) ([]*uuid.UUID, error)
+	GerOperationListBetween(ctx context.Context, begin time.Time, end time.Time) ([]uuid.UUID, error)
 }
