@@ -1435,7 +1435,7 @@ func (regUC registrationUC) GetOperationResultData(ctx context.Context, operatio
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.GetOperationResultData")
 	defer span.Finish()
 
-	_, err = regUC.registrationRepo.GetOperation(ctxWithTrace, operation_uuid)
+	operation, err := regUC.registrationRepo.GetOperation(ctxWithTrace, operation_uuid)
 	if err != nil {
 		err = ErrorNoOperationFound
 	} else {
@@ -1546,7 +1546,99 @@ func (regUC registrationUC) GetOperationResultData(ctx context.Context, operatio
 		}
 	}
 
+	data["time_begin"] = operation.Create_time
+	data["time_end"] = operation.Last_time_update
+
 	return data, err
+}
+
+func (regUC registrationUC) GetOperationTree(ctx context.Context, operation_uuid uuid.UUID) (data map[string]interface{}, err error) {
+	data = make(map[string]interface{})
+	err = nil
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "registrationUC.GetOperationTree")
+	defer span.Finish()
+
+	operation, err := regUC.registrationRepo.GetOperation(ctxWithTrace, operation_uuid)
+	if err != nil {
+		return nil, err
+	}
+
+	data["operation_name"] = operation.Operation_name
+
+	var saga_list_node []*models.SagaTreeNode
+	var event_tree_node []*models.EventTreeNode
+	var saga_connection_list_node []*models.SagaConnectionTree
+
+	saga_uuids, err := regUC.registrationRepo.GetOperationSaga(ctxWithTrace, operation_uuid)
+	if err != nil {
+		return data, err
+	}
+
+	for _, saga_uuid := range saga_uuids.ListId {
+		saga, err := regUC.registrationRepo.GetSaga(ctxWithTrace, saga_uuid)
+		if err != nil {
+			return data, err
+		}
+
+		events_uuid, err := regUC.registrationRepo.GetListOfSagaEvents(ctxWithTrace, saga.Saga_uuid)
+		if err != nil {
+			return nil, err
+		}
+
+		saga_node := &models.SagaTreeNode{
+			Name:   saga.Saga_name,
+			Status: uint8(saga.Saga_status),
+			Id:     saga.Saga_uuid,
+			Events: events_uuid.EventList,
+		}
+
+		saga_list_node = append(saga_list_node, saga_node)
+
+		for _, event_uuid := range events_uuid.EventList {
+
+			event, err := regUC.registrationRepo.GetEvent(ctxWithTrace, event_uuid)
+			if err != nil {
+
+				return nil, err
+
+			}
+
+			event_node := &models.EventTreeNode{
+				Name:         event.Event_name,
+				Id:           event.Event_uuid,
+				Status:       event.Event_status,
+				Roll_back_id: event.Event_rollback_uuid,
+			}
+
+			event_tree_node = append(event_tree_node, event_node)
+
+		}
+
+		saga_connections, err := regUC.registrationRepo.GetSagaConnectionsCurrentSaga(ctxWithTrace, saga_uuid)
+		if err == nil {
+			for _, saga_connection := range saga_connections.List_of_connetcions {
+
+				saga_connection_node := &models.SagaConnectionTree{
+					Parent_id: saga_connection.Current_saga_uuid,
+					Child_id:  saga_connection.Next_saga_uuid,
+				}
+
+				saga_connection_list_node = append(saga_connection_list_node, saga_connection_node)
+
+			}
+		}
+	}
+
+	data["saga"] = saga_list_node
+	data["events"] = event_tree_node
+	data["saga_depend"] = saga_connection_list_node
+
+	return data, err
+}
+
+func (regUC registrationUC) GerOperationListBetween(ctx context.Context, begin time.Time, end time.Time) ([]*uuid.UUID, error) {
+	return nil, nil
 }
 
 func NewRegistrationUseCase(cfg *config.Config, registration_repo registration.Repository, log logger.Logger) registration.UseCase {

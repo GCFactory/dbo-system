@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/GCFactory/dbo-system/service/registration/internal/models"
 	"github.com/google/uuid"
+	"time"
 )
 
 type UseCase interface {
@@ -13,4 +14,6 @@ type UseCase interface {
 	SetOrUpdateSagaData(ctx context.Context, saga_uuid uuid.UUID, new_saga_data map[string]interface{}) error
 	GetOperationStatus(ctx context.Context, operation_id uuid.UUID) (string, error)
 	GetOperationResultData(ctx context.Context, operation_uuid uuid.UUID) (map[string]interface{}, error)
+	GetOperationTree(ctx context.Context, operation_uuid uuid.UUID) (map[string]interface{}, error)
+	GerOperationListBetween(ctx context.Context, begin time.Time, end time.Time) ([]*uuid.UUID, error)
 }

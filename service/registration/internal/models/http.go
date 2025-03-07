@@ -1,5 +1,7 @@
 package models
 
+import "github.com/google/uuid"
+
 type Passport struct {
 	Series               string `json:"series" validate:"required,len=4,number"`
 	Number               string `json:"number" validate:"required,len=6,number"`
@@ -77,4 +79,23 @@ type GetUserDataByLogin struct {
 type CheckUserPassword struct {
 	User_ID  string `json:"user_id" validate:"required,uuid4"`
 	Password string `json:"password" validate:"required"`
+}
+
+type SagaTreeNode struct {
+	Id     uuid.UUID   `json:"id"`
+	Status uint8       `json:"status"`
+	Name   string      `json:"name"`
+	Events []uuid.UUID `json:"events"`
+}
+
+type EventTreeNode struct {
+	Id           uuid.UUID `json:"id"`
+	Name         string    `json:"name"`
+	Status       uint8     `json:"status"`
+	Roll_back_id uuid.UUID `json:"roll_back_id"`
+}
+
+type SagaConnectionTree struct {
+	Parent_id uuid.UUID `json:"parent_id"`
+	Child_id  uuid.UUID `json:"child_id"`
 }

@@ -410,6 +410,39 @@ func (h RegistrationHandlers) CheckUserPassword() echo.HandlerFunc {
 
 }
 
+func (h RegistrationHandlers) GetOperationTree() echo.HandlerFunc {
+
+	return func(c echo.Context) error {
+
+		span, ctxWithTrace := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "RegistrationHandlers.GetOperationTree")
+		defer span.Finish()
+
+		operation_info := &models.OperationID{}
+		if err := h.safeReadRequest(c, operation_info); err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, err.Error(), nil))
+		}
+
+		operation_id_str := operation_info.Operation_ID
+		opreation_id, err := uuid.Parse(operation_id_str)
+		if err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, err.Error(), nil))
+		}
+
+		data, err := h.registrationUC.GetOperationTree(ctxWithTrace, opreation_id)
+		if err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
+		}
+
+		response := make(map[string]interface{})
+		response["info"] = data
+
+		return c.JSON(http.StatusAccepted, response)
+	}
+}
+
 func NewRegistrationHandlers(cfg *config.Config, logger logger.Logger, usecase registration.UseCase, grpc registration.RegistrationGRPCHandlers) registration.Handlers {
 	return &RegistrationHandlers{cfg: cfg, logger: logger, registrationGRPC: grpc, registrationUC: usecase}
 }
