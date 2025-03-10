@@ -82,6 +82,6 @@ func (repo *apiGatewayRepo) DeleteToken(ctx context.Context, token_id uuid.UUID)
 	return nil
 }
 
-func NewRegistrationRepository(db *redis.Client) api_gateway.Repository {
+func NewApiGatewayRepository(db *redis.Client) api_gateway.Repository {
 	return &apiGatewayRepo{redis: db}
 }
