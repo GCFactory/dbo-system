@@ -15,12 +15,13 @@ http-server:
   Debug: false
 
 redis:
-  RedisAddr: redis_api_gateway:6379
+  RedisAddr: localhost:5500
   RedisPassword: admin
-  DB: 0
-  RedisDB: admin
-  Password: admin
-  PoolTimeout: 10
+  MaxRetries: 3
+  User: admin
+  DbId: 0
+  DialTimeout: 1
+  Timeout: 1
 
 jaeger:
   Host: localhost:6831

@@ -6,17 +6,16 @@ import (
 	"github.com/GCFactory/dbo-system/platform/config"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/platform/pkg/utils"
-	"github.com/GCFactory/dbo-system/service/registration/internal/server"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/GCFactory/dbo-system/service/api_gateway/internal/server"
 	"github.com/opentracing/opentracing-go"
 	redis "github.com/redis/go-redis/v9"
 	"github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
 	jaegerlog "github.com/uber/jaeger-client-go/log"
 	"github.com/uber/jaeger-lib/metrics"
-	"go.gitflic.ru/dbo-team/dbo-system/service
 	"log"
 	"os"
+	"time"
 )
 
 //	@Title			Registration Service
@@ -54,10 +53,14 @@ func main() {
 	appLogger.Infof("AppVersion: %s, LogLevel: %s, Env: %s, SSL: %v", cfg.Version, cfg.Logger.Level, cfg.Env, cfg.HTTPServer.SSL)
 
 	redis := redis.NewClient(&redis.Options{
-		Addr:     cfg.Redis.RedisAddr,
-		Password: cfg.Redis.RedisPassword,
-		DB:       cfg.Redis.DB,
-		Username: cfg.Redis.RedisDB,
+		Addr:         cfg.Redis.RedisAddr,
+		Password:     cfg.Redis.RedisPassword,
+		DB:           cfg.Redis.DB,
+		Username:     cfg.Redis.User,
+		MaxRetries:   cfg.Redis.MaxRetries,
+		DialTimeout:  time.Duration(1000000000 * cfg.Redis.DialTimeout),
+		ReadTimeout:  time.Duration(1000000000 * cfg.Redis.Timeout),
+		WriteTimeout: time.Duration(1000000000 * cfg.Redis.Timeout),
 	})
 
 	if err := redis.Ping(context.Background()).Err(); err != nil {

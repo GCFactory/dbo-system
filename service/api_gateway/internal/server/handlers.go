@@ -5,8 +5,7 @@ import (
 	"github.com/GCFactory/dbo-system/platform/pkg/csrf"
 	"github.com/GCFactory/dbo-system/platform/pkg/metric"
 	"github.com/GCFactory/dbo-system/platform/pkg/utils"
-	"github.com/GCFactory/dbo-system/service/totp/docs"
-	//"go.gitflic.ru/dbo-team/dbo-system"
+	apiMiddlewares "github.com/GCFactory/dbo-system/service/api_gateway/internal/middleware"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -46,7 +45,7 @@ func (s *Server) MapHandlers(e *echo.Echo) error {
 	e.Use(mw.RequestLoggerMiddleware)
 
 	if s.cfg.Docs.Enable {
-		docs.SwaggerInfo.Title = s.cfg.Docs.Title
+		//docs.SwaggerInfo.Title = s.cfg.Docs.Title
 		e.GET(fmt.Sprintf("/%s/*", s.cfg.Docs.Prefix), echoSwagger.WrapHandler)
 	}
 
@@ -78,14 +77,14 @@ func (s *Server) MapHandlers(e *echo.Echo) error {
 		e.Use(mw.DebugMiddleware)
 	}
 
-	v1 := e.Group("/api/v1")
+	//v1 := e.Group("/api/v1")
 
 	health := e.Group("/health/ready")
-	tGroup := v1.Group("/totp")
+	//tGroup := v1.Group("/totp")
 	//authGroup := v1.Group("/auth")
 
 	//authHttp.MapAuthRoutes(authGroup, authHandlers, mw)
-	totpHttp.MapTOTPRoutes(tGroup, tHandlers, mw)
+	//totpHttp.MapTOTPRoutes(tGroup, tHandlers, mw)
 
 	health.GET("", func(c echo.Context) error {
 		s.logger.Infof("Health check RequestID: %s", utils.GetRequestID(c))
