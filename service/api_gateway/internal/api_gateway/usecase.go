@@ -12,4 +12,8 @@ type UseCase interface {
 	CheckExistingToken(ctx context.Context, token_id uuid.UUID) (bool, error)
 	UpdateToken(ctx context.Context, token_id uuid.UUID, new_expire_time time.Duration) error
 	DeleteToken(ctx context.Context, token_id uuid.UUID) error
+	//
+	CreateSignInPage() (string, error)
+	CreateErrorPage(error string) (string, error)
+	CreateSignUpPage() (string, error)
 }

@@ -31,7 +31,7 @@ func (s *Server) MapHandlers(e *echo.Echo) error {
 	// Init repositories
 	apiGatewayRepo := repository.NewApiGatewayRepository(s.redis)
 	// Init useCases
-	apiGatewayUsecase := usecase.NewApiGatewayUseCase(apiGatewayRepo)
+	apiGatewayUsecase := usecase.NewApiGatewayUseCase(s.cfg, apiGatewayRepo)
 	// Init handlers
 	apiGatewayHalndlers := delivery.NewApiGatewayHandlers(s.cfg, s.logger, apiGatewayUsecase)
 

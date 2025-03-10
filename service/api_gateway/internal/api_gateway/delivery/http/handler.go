@@ -3,20 +3,22 @@ package http
 import (
 	"fmt"
 	"github.com/GCFactory/dbo-system/platform/config"
+	"github.com/GCFactory/dbo-system/platform/pkg/httpErrors"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/platform/pkg/utils"
 	"github.com/GCFactory/dbo-system/service/api_gateway/internal/api_gateway"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
+	"net/http"
 )
 
-type RegistrationHandlers struct {
+type ApiGatewayHandlers struct {
 	cfg     *config.Config
 	useCase api_gateway.UseCase
 	logger  logger.Logger
 }
 
-func (h RegistrationHandlers) safeReadRequest(c echo.Context, v interface{}) error {
+func (h ApiGatewayHandlers) safeReadRequest(c echo.Context, v interface{}) error {
 	var err error = nil
 	func() {
 		defer func() {
@@ -45,39 +47,40 @@ func (h RegistrationHandlers) safeReadRequest(c echo.Context, v interface{}) err
 	return err
 }
 
-func (h RegistrationHandlers) SignInPage() echo.HandlerFunc {
+func (h ApiGatewayHandlers) SignInPage() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		//span, ctxWithTrace := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "RegistrationHandlers.GetOperationStatus")
-		//defer span.Finish()
 
-		//operation_info := &models.OperationID{}
-		//if err := h.safeReadRequest(c, operation_info); err != nil {
-		//	utils.LogResponseError(c, h.logger, err)
-		//	return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, err.Error(), nil))
-		//}
-		//
-		//operation_id := uuid.MustParse(operation_info.Operation_ID)
-		//
-		//operation_status, err := h.registrationUC.GetOperationStatus(ctxWithTrace, operation_id)
-		//if err != nil {
-		//	utils.LogResponseError(c, h.logger, err)
-		//	return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
-		//}
-		//
-		//response := make(map[string]interface{})
-		//response["info"] = operation_status
-		//
-		//operation_data, err := h.registrationUC.GetOperationResultData(ctxWithTrace, operation_id)
-		//if err != nil {
-		//	return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
-		//}
-		//response["additional_info"] = operation_data
+		page, err := h.useCase.CreateSignInPage()
+		if err != nil {
+			error_page, err := h.useCase.CreateErrorPage(err.Error())
+			if err != nil {
+				utils.LogResponseError(c, h.logger, err)
+				return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
+			}
+			return c.HTML(http.StatusInternalServerError, error_page)
+		}
 
-		//return c.JSON(http.StatusOK, response)
-		return nil
+		return c.HTML(http.StatusOK, page)
+	}
+}
+
+func (h ApiGatewayHandlers) SignUpPage() echo.HandlerFunc {
+	return func(c echo.Context) error {
+
+		page, err := h.useCase.CreateSignUpPage()
+		if err != nil {
+			error_page, err := h.useCase.CreateErrorPage(err.Error())
+			if err != nil {
+				utils.LogResponseError(c, h.logger, err)
+				return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
+			}
+			return c.HTML(http.StatusInternalServerError, error_page)
+		}
+
+		return c.HTML(http.StatusOK, page)
 	}
 }
 
 func NewApiGatewayHandlers(cfg *config.Config, logger logger.Logger, usecase api_gateway.UseCase) api_gateway.Handlers {
-	return &RegistrationHandlers{cfg: cfg, logger: logger, useCase: usecase}
+	return &ApiGatewayHandlers{cfg: cfg, logger: logger, useCase: usecase}
 }

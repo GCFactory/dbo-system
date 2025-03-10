@@ -6,7 +6,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func MapApiGatewayRoutes(RegistrationGroup *echo.Group, h api_gateway.Handlers, mw *middleware.MiddlewareManager) {
-	RegistrationGroup.POST("/sign_in", h.SignInPage())
-
+func MapApiGatewayRoutes(apiGatewayGroup *echo.Group, h api_gateway.Handlers, mw *middleware.MiddlewareManager) {
+	apiGatewayGroup.GET("/sign_in", h.SignInPage())
+	apiGatewayGroup.GET("/sign_up", h.SignUpPage())
 }
