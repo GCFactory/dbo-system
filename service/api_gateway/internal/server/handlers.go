@@ -5,6 +5,9 @@ import (
 	"github.com/GCFactory/dbo-system/platform/pkg/csrf"
 	"github.com/GCFactory/dbo-system/platform/pkg/metric"
 	"github.com/GCFactory/dbo-system/platform/pkg/utils"
+	delivery "github.com/GCFactory/dbo-system/service/api_gateway/internal/api_gateway/delivery/http"
+	"github.com/GCFactory/dbo-system/service/api_gateway/internal/api_gateway/repository"
+	"github.com/GCFactory/dbo-system/service/api_gateway/internal/api_gateway/usecase"
 	apiMiddlewares "github.com/GCFactory/dbo-system/service/api_gateway/internal/middleware"
 
 	"github.com/labstack/echo/v4"
@@ -26,20 +29,12 @@ func (s *Server) MapHandlers(e *echo.Echo) error {
 	)
 
 	// Init repositories
-	//tRepo := totpRepository.NewTOTPRepository(s.db)
-	////sRepo := sessionRepository.NewSessionRepository(s.redisClient, s.cfg)
-	////newsRedisRepo := newsRepository.NewNewsRedisRepo(s.redisClient)
-	//
-	//tLogic :=
-	//
-	//// Init useCases
-	//tUC := totpUsecase.NewTOTPUseCase(s.cfg, tRepo, s.logger)
-	////authUC := authUseCase.NewAuthUseCase(s.cfg, aRepo, authRedisRepo, s.logger)
-	//
-	//// Init handlers
-	//tHandlers := totpHttp.NewTOTPHandlers(s.cfg, tUC, s.logger)
-	////authHandlers := authHttp.NewAuthHandlers(s.cfg, authUC, sessUC, s.logger)
-	//
+	apiGatewayRepo := repository.NewApiGatewayRepository(s.redis)
+	// Init useCases
+	apiGatewayUsecase := usecase.NewApiGatewayUseCase(apiGatewayRepo)
+	// Init handlers
+	apiGatewayHalndlers := delivery.NewApiGatewayHandlers(s.cfg, s.logger, apiGatewayUsecase)
+
 	mw := apiMiddlewares.NewMiddlewareManager(s.cfg, []string{"*"}, s.logger)
 
 	e.Use(mw.RequestLoggerMiddleware)
@@ -77,14 +72,12 @@ func (s *Server) MapHandlers(e *echo.Echo) error {
 		e.Use(mw.DebugMiddleware)
 	}
 
-	//v1 := e.Group("/api/v1")
+	v1 := e.Group("/api/v1")
 
 	health := e.Group("/health/ready")
-	//tGroup := v1.Group("/totp")
-	//authGroup := v1.Group("/auth")
+	apiGatewayGroup := v1.Group("/api_gateway")
 
-	//authHttp.MapAuthRoutes(authGroup, authHandlers, mw)
-	//totpHttp.MapTOTPRoutes(tGroup, tHandlers, mw)
+	delivery.MapApiGatewayRoutes(apiGatewayGroup, apiGatewayHalndlers, mw)
 
 	health.GET("", func(c echo.Context) error {
 		s.logger.Infof("Health check RequestID: %s", utils.GetRequestID(c))
