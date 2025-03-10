@@ -3,10 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
-	platformConfig "github.com/GCFactory/dbo-system/platform/config"
+	"github.com/GCFactory/dbo-system/platform/config"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/platform/pkg/utils"
-	"github.com/GCFactory/dbo-system/service/registration/config"
 	"github.com/GCFactory/dbo-system/service/registration/internal/server"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/opentracing/opentracing-go"
@@ -15,6 +14,7 @@ import (
 	jaegercfg "github.com/uber/jaeger-client-go/config"
 	jaegerlog "github.com/uber/jaeger-client-go/log"
 	"github.com/uber/jaeger-lib/metrics"
+	"go.gitflic.ru/dbo-team/dbo-system/service
 	"log"
 	"os"
 )
@@ -31,6 +31,7 @@ import (
 //	@BasePath	/api/v1/registration/
 
 func main() {
+
 	log.Println("Starting api server")
 
 	configPath := utils.GetConfigPath(os.Getenv("config"))
@@ -45,7 +46,7 @@ func main() {
 		log.Fatalf("ParseConfig: %v", err)
 	}
 
-	appLogger := logger.NewServerLogger(&platformConfig.Config{
+	appLogger := logger.NewServerLogger(&config.Config{
 		Logger: cfg.Logger,
 	})
 
@@ -53,11 +54,10 @@ func main() {
 	appLogger.Infof("AppVersion: %s, LogLevel: %s, Env: %s, SSL: %v", cfg.Version, cfg.Logger.Level, cfg.Env, cfg.HTTPServer.SSL)
 
 	redis := redis.NewClient(&redis.Options{
-		Addr:       cfg.Redis.RedisAddr,
-		Password:   cfg.Redis.RedisPassword,
-		DB:         cfg.Redis.DB,
-		Username:   cfg.Redis.User,
-		MaxRetries: cfg.Redis.MaxRetries,
+		Addr:     cfg.Redis.RedisAddr,
+		Password: cfg.Redis.RedisPassword,
+		DB:       cfg.Redis.DB,
+		Username: cfg.Redis.RedisDB,
 	})
 
 	if err := redis.Ping(context.Background()).Err(); err != nil {

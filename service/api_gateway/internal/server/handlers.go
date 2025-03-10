@@ -6,10 +6,7 @@ import (
 	"github.com/GCFactory/dbo-system/platform/pkg/metric"
 	"github.com/GCFactory/dbo-system/platform/pkg/utils"
 	"github.com/GCFactory/dbo-system/service/totp/docs"
-	apiMiddlewares "github.com/GCFactory/dbo-system/service/totp/internal/middleware"
-	totpHttp "github.com/GCFactory/dbo-system/service/totp/internal/totp/delivery/http"
-	totpRepository "github.com/GCFactory/dbo-system/service/totp/internal/totp/repository"
-	totpUsecase "github.com/GCFactory/dbo-system/service/totp/internal/totp/usecase"
+	//"go.gitflic.ru/dbo-team/dbo-system"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -30,20 +27,20 @@ func (s *Server) MapHandlers(e *echo.Echo) error {
 	)
 
 	// Init repositories
-	tRepo := totpRepository.NewTOTPRepository(s.db)
-	//sRepo := sessionRepository.NewSessionRepository(s.redisClient, s.cfg)
-	//newsRedisRepo := newsRepository.NewNewsRedisRepo(s.redisClient)
-
-	tLogic :=
-
-	// Init useCases
-	tUC := totpUsecase.NewTOTPUseCase(s.cfg, tRepo, s.logger)
-	//authUC := authUseCase.NewAuthUseCase(s.cfg, aRepo, authRedisRepo, s.logger)
-
-	// Init handlers
-	tHandlers := totpHttp.NewTOTPHandlers(s.cfg, tUC, s.logger)
-	//authHandlers := authHttp.NewAuthHandlers(s.cfg, authUC, sessUC, s.logger)
-
+	//tRepo := totpRepository.NewTOTPRepository(s.db)
+	////sRepo := sessionRepository.NewSessionRepository(s.redisClient, s.cfg)
+	////newsRedisRepo := newsRepository.NewNewsRedisRepo(s.redisClient)
+	//
+	//tLogic :=
+	//
+	//// Init useCases
+	//tUC := totpUsecase.NewTOTPUseCase(s.cfg, tRepo, s.logger)
+	////authUC := authUseCase.NewAuthUseCase(s.cfg, aRepo, authRedisRepo, s.logger)
+	//
+	//// Init handlers
+	//tHandlers := totpHttp.NewTOTPHandlers(s.cfg, tUC, s.logger)
+	////authHandlers := authHttp.NewAuthHandlers(s.cfg, authUC, sessUC, s.logger)
+	//
 	mw := apiMiddlewares.NewMiddlewareManager(s.cfg, []string{"*"}, s.logger)
 
 	e.Use(mw.RequestLoggerMiddleware)

@@ -2,7 +2,7 @@ package server
 
 import (
 	"context"
-	"gitflic.ru/project/dbo-team/dbo-system/service/api_gateway"
+	"github.com/GCFactory/dbo-system/platform/config"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
