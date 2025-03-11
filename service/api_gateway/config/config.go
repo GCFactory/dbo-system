@@ -20,8 +20,7 @@ type Config struct {
 	Metrics Metrics               `yaml:"metrics"`
 	Docs    Docs
 
-	KafkaConsumer KafkaConsumer `yaml:"kafkaConsumer"`
-	KafkaProducer KafkaProducer `yaml:"kafkaConsumer"`
+	Registration RegistrationOrch `yaml:"registration"`
 
 	Postgres platformConfig.PostgresConfig `yaml:"postgres,omitempty"`
 	AWS      AWS                           `yaml:"aws,omitempty"`

@@ -64,12 +64,12 @@ var (
   </head>
   <body>
     <header class="center_content">
-      <h1>{{.Message}}</h1>
+      <h1>ERROR</h1>
     </header>
     <hr>
     <main>
         <div class="center_content">
-            <p><b>Error desciption</b></p>
+            <p><b>{{.Message}}</b></p>
             <form action="{{.SignInPageRequest}}">
               <input type="submit" value="Return">
             </form>

@@ -3,9 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/GCFactory/dbo-system/platform/config"
+	platformConfig "github.com/GCFactory/dbo-system/platform/config"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/platform/pkg/utils"
+	"github.com/GCFactory/dbo-system/service/api_gateway/config"
 	"github.com/GCFactory/dbo-system/service/api_gateway/internal/server"
 	"github.com/opentracing/opentracing-go"
 	redis "github.com/redis/go-redis/v9"
@@ -45,7 +46,7 @@ func main() {
 		log.Fatalf("ParseConfig: %v", err)
 	}
 
-	appLogger := logger.NewServerLogger(&config.Config{
+	appLogger := logger.NewServerLogger(&platformConfig.Config{
 		Logger: cfg.Logger,
 	})
 

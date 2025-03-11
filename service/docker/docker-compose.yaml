@@ -178,6 +178,7 @@ services:
     build:
       context: ./../users
       dockerfile: ./docker/Dockerfile
+    hostname: service_users
     image: users_image
     deploy:
       mode: replicated
@@ -212,6 +213,7 @@ services:
       context: ./../account
       dockerfile: ./docker/Dockerfile
     image: accounts_image
+    hostname: service_accounts
     deploy:
       mode: replicated
       replicas: 1
@@ -245,6 +247,7 @@ services:
       context: ./../registration
       dockerfile: ./docker/Dockerfile
     image: registration_image
+    hostname: service_registration
     deploy:
       mode: replicated
       replicas: 1

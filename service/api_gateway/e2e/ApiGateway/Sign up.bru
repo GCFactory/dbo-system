@@ -1,0 +1,30 @@
+meta {
+  name: Sign up
+  type: http
+  seq: 5
+}
+
+post {
+  url: http://localhost:8080/api/v1/api_gateway/sign_up/sign_up
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+      "login": "admin",
+      "password": "admin",
+      "passport_series": "0123",
+      "passport_number": "456789",
+      "name": "test",
+      "surname": "test",
+      "patronymic": "test",
+      "birth_date": "31-01-2024 01:01:01",
+      "birth_location": "test",
+      "passport_pick_up_point": "test",
+      "passport_authority": "123-456",
+      "passport_authority_date": "10-10-2024 10:10:10",
+      "passport_registration_address": "test",
+      "inn": "01234567890123456789"
+  }
+}

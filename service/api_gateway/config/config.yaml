@@ -23,9 +23,16 @@ redis:
   DialTimeout: 1
   Timeout: 1
 
+registration:
+  Host: localhost
+  Port: 8113
+  Retry: 5
+  TimeWaitRetry: 1
+  TimeWaitResponse: 1
+
 jaeger:
   Host: localhost:6831
-  ServiceName: registration
+  ServiceName: api_gateway
   LogSpans: false
 
 docs:

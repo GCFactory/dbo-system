@@ -2,8 +2,8 @@ package server
 
 import (
 	"context"
-	"github.com/GCFactory/dbo-system/platform/config"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
+	"github.com/GCFactory/dbo-system/service/api_gateway/config"
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
 	"net/http"

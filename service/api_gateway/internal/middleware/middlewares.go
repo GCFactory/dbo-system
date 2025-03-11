@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	"github.com/GCFactory/dbo-system/platform/config"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
+	"github.com/GCFactory/dbo-system/service/api_gateway/config"
 )
 
 // Middleware manager

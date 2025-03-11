@@ -16,4 +16,8 @@ type UseCase interface {
 	CreateSignInPage() (string, error)
 	CreateErrorPage(error string) (string, error)
 	CreateSignUpPage() (string, error)
+	CreateUserPage(user_info *models.UserInfo) (string, error)
+	//
+	SignIn(login_info *models.SignInInfo) (bool, error)
+	SignUp(sign_up_info *models.SignUpInfo) (uuid.UUID, error)
 }

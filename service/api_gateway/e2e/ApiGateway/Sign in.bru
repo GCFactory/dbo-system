@@ -1,0 +1,18 @@
+meta {
+  name: Sign in
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:{{port}}/api/v1/api_gateway/sign_in/sign_in
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+      "login": "admin",
+      "password": "admin"
+  }
+}
