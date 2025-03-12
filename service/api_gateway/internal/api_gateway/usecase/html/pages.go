@@ -154,6 +154,164 @@ var (
           
       </form>
     </div>
+
   </body>
 </html>`
+	HomePage string = `<!DOCTYPE html>
+<html>
+  <head>
+    <title>Registration page</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+    html {
+        height: 100%;
+    }
+    body {
+        height: 99%;
+    }
+    header {
+        display: grid;
+        grid-auto-flow: column; /* Arrange items in a row */
+        justify-content: end; /* Align items to the right */
+        width: 100%;
+    }
+    .center_content {
+        display: grid;
+        margin: auto;
+        justify-items: center;
+    }
+    .pre-tab {
+        white-space: pre; /* Сохраняем изначальное форматирование */
+    }
+    .form_grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .form_grid_4 {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    .bold {
+        
+    }
+    table {
+        border: collapse;
+        width: 100%;
+    }
+    thead {
+      background-color: rgb(228 240 245);
+    }
+    td {
+        text-align: center;
+    }
+    tbody tr:nth-child(odd) {
+      background-color: rgb(123,123,123);
+      color: #fff;
+    }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+          <p>{{.Login}}</p>
+      </div>
+      <p class="pre-tab">   |   </p>
+      <div class="center_content">
+          <form class="center_content" action="{{.SignOutRequest}}">
+              <input type="submit" value="Sign out">
+          </form>
+      </div>
+    </header>
+    <hr>
+    <main>
+        <div class="center_content">
+            <p><b>USER DATA</b></p>
+        </div>
+        <div class="center_content form_grid">
+            
+            <p><b>Surname</b></p>
+            <p>{{.Surname}}</p>
+            
+            <p><b>Name</b></p>
+            <p>{{.Name}}</p>
+            
+            <p><b>Patronymic</b></p>
+            <p>{{.Patronymic}}</p>
+            
+            <p><b>INN</b></p>
+            <p>{{.INN}}</p>
+            
+            <p><b>Passport code</b></p>
+            <p>{{.PassportCode}}</p>
+            
+            <p><b>Birth date</b></p>
+            <p>{{.BirthDate}}</p>
+            
+            <p><b>Birth location</b></p>
+            <p>{{.BirthLocation}}</p>
+            
+            <p><b>Pick up point</b></p>
+            <p>{{.PickUpPoint}}</p>
+            
+            <p><b>Authority</b></p>
+            <p>{{.Authority}}</p>
+            
+            <p><b>Authority date</b></p>
+            <p>{{.AuthorityDate}}</p>
+            
+            <p><b>Registration address</b></p>
+            <p>{{.RegistrationAddress}}</p>
+            
+        </div>
+        <hr>
+        <div class="center_content">
+            <p><b>ACCOUNTS</b></p>
+            <form action="{{.CreateAccountRequest}}">
+				<input type="hidden" name="user_id" value="{{.UserId}}">
+                <input type="submit" value="Open account">
+            </form>
+        </div>
+        <div class="center_content">
+            <table>
+                <thead>
+                    <tr>
+                        <th scope="col">Account name</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Account cache</th>
+                        <th scope="col">Account operations</th>
+                    </tr>
+                </thead>
+                <tbody>
+					{{.ListOfAccounts}}
+                </tbody>
+            </table>
+        </div>
+    </main>
+  </body>
+</html>`
+)
+
+var (
+	HomePageAccount string = `
+		<tr>
+			<td>{{.Name}}</td>
+			<td>{{.Status}}</td>
+			<td>{{.Cache}}</td>
+			<td>
+				<div class="center_content form_grid_4">
+					 <form action="{{.GetCreditsRequest}}">
+						<input type="submit" value="Get credits">
+					</form>
+					<form action="{{.AddCacheRequest}}">
+						<input type="submit" value="Add cache">
+					</form>
+					<form action="{{.ReduceCacheRequest}}">
+						<input type="submit" value="Reduce cache">
+					</form>
+					<form action="{{.CloseAccountRequest}}">
+						<input type="submit" value="Close account">
+					</form>   
+				</div>
+				
+			</td>
+		</tr>
+	`
 )

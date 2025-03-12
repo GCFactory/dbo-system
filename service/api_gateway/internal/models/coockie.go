@@ -6,7 +6,7 @@ import (
 )
 
 type Token struct {
-	ID          uuid.UUID
-	Live_time   time.Duration
-	Date_expire time.Time
+	ID        uuid.UUID
+	Data      uuid.UUID
+	Live_time time.Duration
 }

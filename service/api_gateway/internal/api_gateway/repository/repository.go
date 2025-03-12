@@ -19,7 +19,7 @@ func (repo *apiGatewayRepo) AddToken(ctx context.Context, token *models.Token) e
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "apiGatewayRepo.AddToken")
 	defer span.Finish()
 
-	err := repo.redis.Set(ctxWithTrace, token.ID.String(), token.Date_expire, token.Live_time).Err()
+	err := repo.redis.Set(ctxWithTrace, token.ID.String(), token.Data.String(), token.Live_time).Err()
 	if err != nil {
 		return ErrorAddToken
 	}
@@ -32,12 +32,12 @@ func (repo *apiGatewayRepo) GetToken(ctx context.Context, token_id uuid.UUID) (*
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "apiGatewayRepo.GetToken")
 	defer span.Finish()
 
-	time_expire_str, err := repo.redis.Get(ctxWithTrace, token_id.String()).Result()
+	data_str, err := repo.redis.Get(ctxWithTrace, token_id.String()).Result()
 	if err != nil {
 		return nil, ErrorGetTokenValue
 	}
 
-	date_expire, err := time.Parse("02-01-2006 15:04:05", time_expire_str)
+	data, err := uuid.Parse(data_str)
 	if err != nil {
 		return nil, err
 	}
@@ -50,9 +50,9 @@ func (repo *apiGatewayRepo) GetToken(ctx context.Context, token_id uuid.UUID) (*
 	time_live := cmd.Val()
 
 	return &models.Token{
-		ID:          token_id,
-		Date_expire: date_expire,
-		Live_time:   time_live,
+		ID:        token_id,
+		Data:      data,
+		Live_time: time_live,
 	}, nil
 }
 

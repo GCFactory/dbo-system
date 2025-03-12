@@ -9,6 +9,8 @@ import (
 	"github.com/GCFactory/dbo-system/service/api_gateway/internal/api_gateway/repository"
 	"github.com/GCFactory/dbo-system/service/api_gateway/internal/api_gateway/usecase"
 	apiMiddlewares "github.com/GCFactory/dbo-system/service/api_gateway/internal/middleware"
+	"github.com/GCFactory/dbo-system/service/api_gateway/internal/models"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -31,7 +33,15 @@ func (s *Server) MapHandlers(e *echo.Echo) error {
 	// Init repositories
 	apiGatewayRepo := repository.NewApiGatewayRepository(s.redis)
 	// Init useCases
-	apiGatewayUsecase := usecase.NewApiGatewayUseCase(s.cfg, apiGatewayRepo)
+	registrationServerInfo := &models.RegistrationServerInfo{
+		Host:             s.cfg.Registration.Host,
+		Port:             s.cfg.Registration.Port,
+		NumRetry:         s.cfg.Registration.Retry,
+		WaitTimeRetry:    time.Duration(time.Millisecond.Nanoseconds() * int64(s.cfg.Registration.TimeWaitRetry)),
+		TimeWaitResponse: time.Duration(time.Millisecond.Nanoseconds() * int64(s.cfg.Registration.TimeWaitResponse)),
+	}
+
+	apiGatewayUsecase := usecase.NewApiGatewayUseCase(s.cfg, apiGatewayRepo, registrationServerInfo)
 	// Init handlers
 	apiGatewayHalndlers := delivery.NewApiGatewayHandlers(s.cfg, s.logger, apiGatewayUsecase)
 
