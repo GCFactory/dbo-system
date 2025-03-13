@@ -9,13 +9,14 @@ import (
 func MapApiGatewayRoutes(apiGatewayGroup *echo.Group, h api_gateway.Handlers, mw *middleware.MiddlewareManager) {
 	apiGatewayGroup.GET("/sign_in", h.SignInPage())
 	apiGatewayGroup.GET("/sign_up", h.SignUpPage())
-	apiGatewayGroup.POST("/sign_in/sign_in", h.SignIn())
-	apiGatewayGroup.POST("/sign_up/sign_up", h.SignUp())
-	apiGatewayGroup.POST("/sign_out", h.SignOut())
 	apiGatewayGroup.GET("/main_page", h.HomePage())
 	apiGatewayGroup.GET("/open_account", h.OpenAccountPage())
 	apiGatewayGroup.GET("/get_account_info", h.AccountCreditsPage())
 	apiGatewayGroup.GET("/adding_account", h.AddAccountCachePage())
 	apiGatewayGroup.GET("/width_account", h.WidthAccountCachePage())
 	apiGatewayGroup.GET("/close_account", h.CloseAccountPage())
+	apiGatewayGroup.POST("/sign_in/sign_in", h.SignIn())
+	apiGatewayGroup.POST("/sign_up/sign_up", h.SignUp())
+	apiGatewayGroup.POST("/sign_out", h.SignOut())
+	apiGatewayGroup.POST("/open_account/open_account", h.OpenAccount())
 }

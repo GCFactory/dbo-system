@@ -512,6 +512,8 @@ var (
         </div>
     </main>
 
+	{{.OperationScript}}
+
 	<script>
 		document.getElementById('signOutForm').addEventListener('submit', function(event) {
 		event.preventDefault(); // Предотвращаем стандартную отправку формы
@@ -589,24 +591,26 @@ var (
 	`
 	AccountOperationCreateAccount string = `
         <div>
-            <form class="center_content" action="{{.OperationRequest}}">
+            <form class="center_content" id="createAccountForm">
                 
                 <label for="name"><b>Account name</b></label>
-                <input type="text" id="name" name="name">
+                <input type="text" id="name" name="name" placeholder="Name" required>
                 
                 <label for="culc_number"><b>Culc number</b></label>
-                <input type="text" id="culc_number" name="culc_number">
+                <input type="text" id="culc_number" name="culc_number" placeholder="40705810990123456789" required>
                 
                 <label for="corr_number"><b>Corr number</b></label>
-                <input type="text" id="corr_number" name="corr_number">
+                <input type="text" id="corr_number" name="corr_number" placeholder="30125810502500000025" required>
                 
                 <label for="bic"><b>BIC</b></label>
-                <input type="text" id="bic" name="bic">
+                <input type="text" id="bic" name="bic" placeholder="245025025" required>
                 
                 <label for="cio"><b>CIO</b></label>
-                <input type="text" id="cio" name="cio">
+                <input type="text" id="cio" name="cio" placeholder="509910012" required>
+				
+				<div id="message"></div>
                 
-                <input type="submit" value="Create">
+                <input type="submit" value="Create" id="createAccountButton">
                 
             </form>
         </div>
@@ -655,4 +659,62 @@ var (
             </form>    
         </div>`
 	AccountOperationWidthCache string = AccountOperationAddCache
+)
+
+var (
+	ScriptOpenAccountOperation string = `
+		<script>
+			document.getElementById('createAccountForm').addEventListener('submit', function(event) {
+			event.preventDefault(); // Предотвращаем стандартную отправку формы
+		
+			var submitButton = document.getElementById('createAccountButton');
+			submitButton.disabled = true; // Отключаем кнопку
+			submitButton.innerText = 'Creating...'; // Меняем текст кнопки
+		
+			var formData = {
+				name: document.querySelector('input[name="name"]').value,
+				culc_number: document.querySelector('input[name="culc_number"]').value,
+				corr_number: document.querySelector('input[name="corr_number"]').value,
+				bic: document.querySelector('input[name="bic"]').value,
+				cio: document.querySelector('input[name="cio"]').value,
+			};
+
+			// Отправляем POST-запрос с учётом cookie
+			fetch('{{.OperationRequest}}', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json' // Указываем, что отправляем JSON
+				},
+				body: JSON.stringify(formData), // Преобразуем объект в JSON
+				credentials: 'include' // Важно: включаем отправку и получение cookie
+			})
+			.then(response => {
+				if (response.ok) {
+					return response.json(); // Парсим JSON-ответ
+				} else {
+					return response.json().then(errorData => {
+						throw new Error(errorData.error);
+					});
+				}
+			})
+			.then(data => {
+				if (data.success) {
+					window.location.href = '{{.HomePageRequest}}'; // Перенаправляем на GET-страницу
+				} else {
+					// Если есть ошибка, выводим сообщение
+					document.getElementById('message').innerText = data.error;
+				}
+			})
+			.catch(error => {
+				document.getElementById('message').innerText = error;
+				document.getElementById('message').style.color = 'red'; // Делаем текст красным
+				console.error('Error:', error);
+			})
+			.finally(() => {
+				submitButton.disabled = false; // Включаем кнопку обратно
+				submitButton.innerText = 'Create';
+			});
+		});
+		</script>
+`
 )

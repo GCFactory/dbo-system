@@ -88,11 +88,13 @@ type AccountOperationPage struct {
 	SignInPageRequest string
 	OperationName     string
 	Operation         string
+	OperationScript   string
 	ReturnRequest     string
 }
 
 type AccountOperationData struct {
 	OperationRequest string
+	HomePageRequest  string
 	AccountId        string
 }
 

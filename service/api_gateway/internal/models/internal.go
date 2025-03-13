@@ -7,20 +7,20 @@ import (
 
 type UserInfo struct {
 	Id                          uuid.UUID
-	Login                       string      `json:"login" validation:"required"`
-	Password                    string      `json:"password" validation:"required"`
-	PassportSeries              string      `json:"passport_series" validation:"required"`
-	PassportNumber              string      `json:"passport_number" validation:"required"`
-	Name                        string      `json:"name" validation:"required"`
-	Surname                     string      `json:"surname" validation:"required"`
-	Patronymic                  string      `json:"patronymic" validation:"required"`
-	BirthDate                   string      `json:"birth_date" validation:"required,datetime=02-01-2006 15:04:05,min=1"`
-	BirthLocation               string      `json:"birth_location" validation:"required"`
-	PassportPickUpPoint         string      `json:"passport_pick_up_point" validation:"required"`
-	PassportAuthority           string      `json:"passport_authority" validation:"required"`
-	PassportAuthorityDate       string      `json:"passport_authority_date" validation:"required,datetime=02-01-2006 15:04:05,min=1"`
-	PassportRegistrationAddress string      `json:"passport_registration_address" validation:"required"`
-	Inn                         string      `json:"inn" validation:"required,number,min=20,max=1"`
+	Login                       string      `json:"login" validate:"required"`
+	Password                    string      `json:"password" validate:"required"`
+	PassportSeries              string      `json:"passport_series" validate:"required"`
+	PassportNumber              string      `json:"passport_number" validate:"required"`
+	Name                        string      `json:"name" validate:"required"`
+	Surname                     string      `json:"surname" validate:"required"`
+	Patronymic                  string      `json:"patronymic" validate:"required"`
+	BirthDate                   string      `json:"birth_date" validate:"required,datetime=02-01-2006 15:04:05,min=1"`
+	BirthLocation               string      `json:"birth_location" validate:"required"`
+	PassportPickUpPoint         string      `json:"passport_pick_up_point" validate:"required"`
+	PassportAuthority           string      `json:"passport_authority" validate:"required"`
+	PassportAuthorityDate       string      `json:"passport_authority_date" validate:"required,datetime=02-01-2006 15:04:05,min=1"`
+	PassportRegistrationAddress string      `json:"passport_registration_address" validate:"required"`
+	Inn                         string      `json:"inn" validate:"required,number,min=20,max=1"`
 	Accounts                    []uuid.UUID `json:"accounts"`
 }
 
@@ -88,6 +88,16 @@ type GetUserDataBoyd struct {
 type GetAccountDataBody struct {
 	UserId    uuid.UUID `json:"user_id"`
 	AccountId uuid.UUID `json:"account_id"`
+}
+
+type OpenAccountBody struct {
+	UserId        uuid.UUID `json:"user_id"`
+	AccName       string    `json:"acc_name" validate:"required"`
+	CulcNumber    string    `json:"culc_number" validate:"required"`
+	CorrNumber    string    `json:"corr_number" validate:"required"`
+	BIC           string    `json:"bic" validate:"required"`
+	CIO           string    `json:"cio" validate:"required"`
+	ReserveReason string    `json:"reserve_reason"`
 }
 
 type OperationResponse struct {

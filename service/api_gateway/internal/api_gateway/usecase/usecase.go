@@ -553,11 +553,12 @@ func (uc *apiGateWayUseCase) CreateOperationPage(operation_type string, addition
 		var buffer bytes.Buffer
 
 		account_operation_page_info := &models.AccountOperationPage{
-			OperationName:  operation_type,
-			Operation:      "",
-			Login:          login.(string),
-			SignOutRequest: "",
-			ReturnRequest:  "",
+			OperationName:   operation_type,
+			Operation:       "",
+			Login:           login.(string),
+			SignOutRequest:  "",
+			OperationScript: "",
+			ReturnRequest:   "",
 		}
 
 		curr_server_data := &models.RequestData{
@@ -567,8 +568,9 @@ func (uc *apiGateWayUseCase) CreateOperationPage(operation_type string, addition
 		switch operation_type {
 		case AccountOperationTypeOpen:
 			{
+				account_operation_page_info.Operation = html.AccountOperationCreateAccount
 
-				template_operation_open_account, err := template.New("AccountOperationCreateAccount").Parse(html.AccountOperationCreateAccount)
+				template_operation_open_account_script, err := template.New("ScriptOpenAccountOperation").Parse(html.ScriptOpenAccountOperation)
 				if err != nil {
 					return "", err
 				}
@@ -585,15 +587,29 @@ func (uc *apiGateWayUseCase) CreateOperationPage(operation_type string, addition
 
 				operation_data := &models.AccountOperationData{
 					OperationRequest: buffer.String(),
+					HomePageRequest:  "",
 				}
 				buffer.Reset()
 
-				err = template_operation_open_account.Execute(&buffer, &operation_data)
+				template_home_page_request, err := template.New("RequestUserPage").Parse(html.RequestUserPage)
 				if err != nil {
 					return "", err
 				}
 
-				account_operation_page_info.Operation = buffer.String()
+				err = template_home_page_request.Execute(&buffer, &curr_server_data)
+				if err != nil {
+					return "", err
+				}
+
+				operation_data.HomePageRequest = buffer.String()
+				buffer.Reset()
+
+				err = template_operation_open_account_script.Execute(&buffer, &operation_data)
+				if err != nil {
+					return "", err
+				}
+
+				account_operation_page_info.OperationScript = buffer.String()
 				buffer.Reset()
 
 			}
@@ -852,6 +868,87 @@ func (uc *apiGateWayUseCase) SignUp(sign_up_info *models.SignUpInfo) (*models.To
 	}
 
 	return token, nil
+}
+
+func (uc *apiGateWayUseCase) CreateAccount(user_id uuid.UUID, account_info *models.AccountInfo) error {
+
+	return uc.openAccountRequest(user_id, account_info)
+
+}
+
+func (uc *apiGateWayUseCase) openAccountRequest(user_id uuid.UUID, account_info *models.AccountInfo) error {
+
+	template_request_open_account, err := template.New("RequestOpenAccount").Parse(RequestOpenAccount)
+	if err != nil {
+		return err
+	}
+
+	var buffer bytes.Buffer
+
+	err = template_request_open_account.Execute(&buffer, uc.registrationServerInfo)
+	if err != nil {
+		return err
+	}
+
+	request_open_account := buffer.String()
+	buffer.Reset()
+
+	request_open_account_body := &models.OpenAccountBody{
+		UserId:        user_id,
+		BIC:           account_info.BIC,
+		CIO:           account_info.CIO,
+		CulcNumber:    account_info.CulcNumber,
+		CorrNumber:    account_info.CorrNumber,
+		AccName:       account_info.Name,
+		ReserveReason: "",
+	}
+
+	request_body, err := json.Marshal(&request_open_account_body)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, request_open_account, bytes.NewBuffer(request_body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{
+		Timeout: uc.registrationServerInfo.TimeWaitResponse,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	resp_body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	var resp_data = &models.OperationResponse{}
+
+	err = json.Unmarshal(resp_body, &resp_data)
+	if err != nil {
+		return err
+	}
+
+	operation_id_str := resp_data.Info
+
+	operation_id, err := uuid.Parse(operation_id_str)
+	if err != nil {
+		return err
+	}
+
+	_, err = uc.GetOperationData(operation_id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
 }
 
 func (uc *apiGateWayUseCase) GetAccountDataRequest(user_id uuid.UUID, account_id uuid.UUID) (*models.AccountInfo, error) {

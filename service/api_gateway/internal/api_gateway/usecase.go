@@ -26,4 +26,5 @@ type UseCase interface {
 	//
 	SignIn(login_info *models.SignInInfo) (*models.Token, error)
 	SignUp(sign_up_info *models.SignUpInfo) (*models.Token, error)
+	CreateAccount(user_id uuid.UUID, account_info *models.AccountInfo) error
 }

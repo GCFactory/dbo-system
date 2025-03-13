@@ -7,4 +7,5 @@ var (
 	RequestCreateUser         string = "http://{{.Host}}:{{.Port}}/api/v1/registration/create_user"
 	GetUserData               string = "http://{{.Host}}:{{.Port}}/api/v1/registration/get_user_data"
 	GetAccountData            string = "http://{{.Host}}:{{.Port}}/api/v1/registration/get_account_data"
+	RequestOpenAccount        string = "http://{{.Host}}:{{.Port}}/api/v1/registration/open_account"
 )
