@@ -215,42 +215,33 @@ func (h ApiGatewayHandlers) SignIn() echo.HandlerFunc {
 	return func(c echo.Context) error {
 
 		operation_info := &models.SignInInfo{}
-		err := h.safeReadQueryParamsRequest(c, operation_info)
+		operation_result := &models.PostRequestStatus{
+			Success: false,
+		}
+		err := h.safeReadBodyRequest(c, operation_info)
 		if err != nil {
-			error_page, err := h.useCase.CreateErrorPage(err.Error())
-			if err != nil {
-				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
-			}
+			operation_result.Error = err.Error()
 			utils.LogResponseError(c, h.logger, err)
-			return c.HTML(http.StatusBadRequest, error_page)
+			return c.JSON(http.StatusBadRequest, operation_result)
 		}
 
-		home_page, token, err := h.useCase.SignIn(operation_info)
+		token, err := h.useCase.SignIn(operation_info)
 		if err != nil {
-			error_page, err := h.useCase.CreateErrorPage(err.Error())
-			if err != nil {
-				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
-			}
+			operation_result.Error = err.Error()
 			utils.LogResponseError(c, h.logger, err)
-			return c.HTML(http.StatusBadRequest, error_page)
+			return c.JSON(http.StatusBadRequest, operation_result)
 		}
 
 		err = h.CreateCookie(c, token)
 		if err != nil {
-			error_page, err := h.useCase.CreateErrorPage(err.Error())
-			if err != nil {
-				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
-			}
+			operation_result.Error = err.Error()
 			utils.LogResponseError(c, h.logger, err)
-			return c.HTML(http.StatusBadRequest, error_page)
+			return c.JSON(http.StatusBadRequest, operation_result)
 		}
 
-		//c.Set("Content-Type", "text/html; charset=utf-8")
+		operation_result.Success = true
 
-		return c.HTML(http.StatusOK, home_page)
+		return c.JSON(http.StatusOK, operation_result)
 	}
 }
 
@@ -258,39 +249,32 @@ func (h ApiGatewayHandlers) SignUp() echo.HandlerFunc {
 	return func(c echo.Context) error {
 
 		operation_info := &models.SignUpInfo{}
-		if err := h.safeReadQueryParamsRequest(c, operation_info); err != nil {
-			error_page, err := h.useCase.CreateErrorPage(err.Error())
-			if err != nil {
-				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
-			}
+		operation_result := &models.PostRequestStatus{
+			Success: false,
+		}
+		if err := h.safeReadBodyRequest(c, operation_info); err != nil {
+			operation_result.Error = err.Error()
 			utils.LogResponseError(c, h.logger, err)
-			return c.HTML(http.StatusBadRequest, error_page)
+			return c.JSON(http.StatusBadRequest, operation_result)
 		}
 
-		home_page, token, err := h.useCase.SignUp(operation_info)
+		token, err := h.useCase.SignUp(operation_info)
 		if err != nil {
-			error_page, err := h.useCase.CreateErrorPage(err.Error())
-			if err != nil {
-				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
-			}
+			operation_result.Error = err.Error()
 			utils.LogResponseError(c, h.logger, err)
-			return c.HTML(http.StatusBadRequest, error_page)
+			return c.JSON(http.StatusBadRequest, operation_result)
 		}
 
 		err = h.CreateCookie(c, token)
 		if err != nil {
-			error_page, err := h.useCase.CreateErrorPage(err.Error())
-			if err != nil {
-				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
-			}
+			operation_result.Error = err.Error()
 			utils.LogResponseError(c, h.logger, err)
-			return c.HTML(http.StatusBadRequest, error_page)
+			return c.JSON(http.StatusBadRequest, operation_result)
 		}
 
-		return c.HTML(http.StatusOK, home_page)
+		operation_result.Success = true
+
+		return c.JSON(http.StatusOK, operation_result)
 	}
 }
 
@@ -298,34 +282,22 @@ func (h ApiGatewayHandlers) SignOut() echo.HandlerFunc {
 	return func(c echo.Context) error {
 
 		is_ok, token_id, err := h.CheckToken(c)
+		operation_result := &models.PostRequestStatus{
+			Success: false,
+		}
 		if err != nil {
-			error_page, err := h.useCase.CreateErrorPage(err.Error())
-			if err != nil {
-				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
-			}
-			return c.HTML(http.StatusInternalServerError, error_page)
+			operation_result.Error = err.Error()
+			utils.LogResponseError(c, h.logger, err)
+			return c.JSON(http.StatusBadRequest, operation_result)
 		}
 
 		if is_ok && token_id != uuid.Nil {
 			err = h.useCase.DeleteToken(context.Background(), token_id)
 			if err != nil {
-				error_page, err := h.useCase.CreateErrorPage(err.Error())
-				if err != nil {
-					utils.LogResponseError(c, h.logger, err)
-					return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
-				}
-				return c.HTML(http.StatusInternalServerError, error_page)
-			}
-		}
-		sign_in_page, err := h.useCase.CreateSignInPage()
-		if err != nil {
-			error_page, err := h.useCase.CreateErrorPage(err.Error())
-			if err != nil {
+				operation_result.Error = err.Error()
 				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
+				return c.JSON(http.StatusBadRequest, operation_result)
 			}
-			return c.HTML(http.StatusInternalServerError, error_page)
 		}
 
 		cookie := &http.Cookie{
@@ -337,7 +309,9 @@ func (h ApiGatewayHandlers) SignOut() echo.HandlerFunc {
 
 		c.SetCookie(cookie)
 
-		return c.HTML(http.StatusOK, sign_in_page)
+		operation_result.Success = true
+
+		return c.JSON(http.StatusOK, operation_result)
 	}
 }
 

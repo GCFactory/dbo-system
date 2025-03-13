@@ -24,6 +24,6 @@ type UseCase interface {
 	CreateAddAccountCachePage(user_id uuid.UUID, account_id uuid.UUID) (string, error)
 	CreateWidthAccountCachePage(user_id uuid.UUID, account_id uuid.UUID) (string, error)
 	//
-	SignIn(login_info *models.SignInInfo) (string, *models.Token, error)
-	SignUp(sign_up_info *models.SignUpInfo) (string, *models.Token, error)
+	SignIn(login_info *models.SignInInfo) (*models.Token, error)
+	SignUp(sign_up_info *models.SignUpInfo) (*models.Token, error)
 }

@@ -140,9 +140,23 @@ func (uc *apiGateWayUseCase) CreateSignInPage() (string, error) {
 		return "", err
 	}
 
+	template_home_page_request, err := template.New("RequestUserPage").Parse(html.RequestUserPage)
+	if err != nil {
+		return "", nil
+	}
+
+	err = template_home_page_request.Execute(&writer, &request_data)
+	if err != nil {
+		return "", err
+	}
+
+	request_home_page := writer.String()
+	writer.Reset()
+
 	requests := models.HtmlSignInRequests{
 		SignInRequest:     request_sign_in,
 		SignUpPageRequest: request_sign_up_page,
+		HomePageRequest:   request_home_page,
 	}
 
 	err = template_page.Execute(&writer, &requests)
@@ -224,8 +238,22 @@ func (uc *apiGateWayUseCase) CreateSignUpPage() (string, error) {
 		return "", err
 	}
 
+	template_home_page_request, err := template.New("RequestUserPage").Parse(html.RequestUserPage)
+	if err != nil {
+		return "", nil
+	}
+
+	err = template_home_page_request.Execute(&writer, &request_data)
+	if err != nil {
+		return "", err
+	}
+
+	request_home_page := writer.String()
+	writer.Reset()
+
 	requests := models.HtmlSignUpPage{
-		SignUpRequest: request_sign_up,
+		SignUpRequest:   request_sign_up,
+		HomePageRequest: request_home_page,
 	}
 
 	err = template_page.Execute(&writer, &requests)
@@ -267,9 +295,23 @@ func (uc *apiGateWayUseCase) CreateUserPage(user_id uuid.UUID) (string, error) {
 	sign_out_request := writer.String()
 	writer.Reset()
 
+	template_sing_in_page_request, err := template.New("RequestSignInPage").Parse(html.RequestSignInPage)
+	if err != nil {
+		return "", err
+	}
+
+	err = template_sing_in_page_request.Execute(&writer, &curr_server_data)
+	if err != nil {
+		return "", err
+	}
+
+	sign_in_page_request := writer.String()
+	writer.Reset()
+
 	user_page_info := &models.HomePage{
 		UserId:              user_id.String(),
 		Login:               user_data.Login,
+		SignInPageRequest:   sign_in_page_request,
 		SignOutRequest:      sign_out_request,
 		Surname:             user_data.Surname,
 		Name:                user_data.Name,
@@ -730,6 +772,19 @@ func (uc *apiGateWayUseCase) CreateOperationPage(operation_type string, addition
 			account_operation_page_info.SignOutRequest = buffer.String()
 			buffer.Reset()
 
+			template_sing_in_page_request, err := template.New("RequestSignInPage").Parse(html.RequestSignInPage)
+			if err != nil {
+				return "", err
+			}
+
+			err = template_sing_in_page_request.Execute(&buffer, &curr_server_data)
+			if err != nil {
+				return "", err
+			}
+
+			account_operation_page_info.SignInPageRequest = buffer.String()
+			buffer.Reset()
+
 			template_request_user_page, err := template.New("RequestUserPage").Parse(html.RequestUserPage)
 			if err != nil {
 				return "", err
@@ -758,54 +813,45 @@ func (uc *apiGateWayUseCase) CreateOperationPage(operation_type string, addition
 	return result, err
 }
 
-func (uc *apiGateWayUseCase) SignIn(login_info *models.SignInInfo) (string, *models.Token, error) {
+func (uc *apiGateWayUseCase) SignIn(login_info *models.SignInInfo) (*models.Token, error) {
 
 	user_data, err := uc.GetUserDataByLoginRequest(login_info.Login)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 
 	is_ok, err := uc.CheckUserPasswordRequest(user_data.Id, login_info.Password)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 
 	if is_ok {
-		home_page, err := uc.CreateUserPage(user_data.Id)
-		if err != nil {
-			return "", nil, err
-		}
 
 		token, err := uc.CreateToken(context.Background(), uuid.New(), TokenLiveTime, user_data.Id)
 		if err != nil {
-			return "", nil, err
+			return nil, err
 		}
 
-		return home_page, token, nil
+		return token, nil
 	}
 
-	return "", nil, ErrorWrongPassword
+	return nil, ErrorWrongPassword
 
 }
 
-func (uc *apiGateWayUseCase) SignUp(sign_up_info *models.SignUpInfo) (string, *models.Token, error) {
+func (uc *apiGateWayUseCase) SignUp(sign_up_info *models.SignUpInfo) (*models.Token, error) {
 
 	user_id, err := uc.CreateUserRequest(sign_up_info)
 	if err != nil {
-		return "", nil, err
-	}
-
-	home_page, err := uc.CreateUserPage(user_id)
-	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 
 	token, err := uc.CreateToken(context.Background(), uuid.New(), TokenLiveTime, user_id)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 
-	return home_page, token, nil
+	return token, nil
 }
 
 func (uc *apiGateWayUseCase) GetAccountDataRequest(user_id uuid.UUID, account_id uuid.UUID) (*models.AccountInfo, error) {

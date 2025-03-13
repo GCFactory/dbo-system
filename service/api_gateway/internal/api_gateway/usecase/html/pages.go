@@ -25,19 +25,73 @@ var (
   </head>
   <body>
     <div class="center">
-      <form class="center" action="{{.SignInRequest}}">
+      <form class="center" id="signInForm">
           <label for="login">Login</label>
-          <input type="text" id="login" name="login" placeholder="login">
+          <input type="text" id="login" name="login" placeholder="login" required>
           
           <label for="password">Password</label>
-          <input type="text" id="password" name="password" placeholder="*****">
+          <input type="text" id="password" name="password" placeholder="*****" required>
           
-          <input type="submit" value="Sign in"><br>
+			<div id="message"></div>
+			<br>
+          <input type="submit" value="Sign in" id="signInButton"><br>
       </form>
       <form action="{{.SignUpPageRequest}}">
           <input type="submit" value="Sign up">
       </form>
     </div>
+
+	<script>
+		document.getElementById('signInForm').addEventListener('submit', function(event) {
+		event.preventDefault(); // Предотвращаем стандартную отправку формы
+	
+		var submitButton = document.getElementById('signInButton');
+		submitButton.disabled = true; // Отключаем кнопку
+		submitButton.innerText = 'Check login and password...'; // Меняем текст кнопки
+	
+		var formData = {
+			login: document.querySelector('input[name="login"]').value,
+			password: document.querySelector('input[name="password"]').value
+		};
+	
+		// Отправляем POST-запрос с учётом cookie
+		fetch('{{.SignInRequest}}', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json' // Указываем, что отправляем JSON
+			},
+			body: JSON.stringify(formData), // Преобразуем объект в JSON
+			credentials: 'include' // Важно: включаем отправку и получение cookie
+		})
+		.then(response => {
+			if (response.ok) {
+				return response.json(); // Парсим JSON-ответ
+			} else {
+				return response.json().then(errorData => {
+					throw new Error(errorData.error || 'Sending post request check login and password error');
+				});
+			}
+		})
+		.then(data => {
+			if (data.success) {
+				window.location.href = '{{.HomePageRequest}}'; // Перенаправляем на GET-страницу
+			} else {
+				// Если есть ошибка, выводим сообщение
+				document.getElementById('message').innerText = data.error;
+			}
+		})
+		.catch(error => {
+			document.getElementById('message').innerText = error;
+			document.getElementById('message').style.color = 'red'; // Делаем текст красным
+			console.error('Error:', error);
+		})
+		.finally(() => {
+			submitButton.disabled = false; // Включаем кнопку обратно
+			submitButton.innerText = 'Sign in';
+		});
+	});
+	</script>
+
   </body>
 </html>`
 	ErrorPage string = `<!DOCTYPE html>
@@ -113,49 +167,114 @@ var (
   <body>
     <div class="center">
         <p>SIGN UP</p>
-      <form class="center form_grid" action="{{.SignUpRequest}}">
+      <form class="center form_grid" id="signUpForm">
           
         <label for="login">Login</label>
-        <input type="text" id="login" name="login" placeholder="login">
+        <input type="text" id="login" name="login" placeholder="login" required>
         <label for="password">Password</label>
-        <input type="text" id="password" name="password" placeholder="*****">
+        <input type="text" id="password" name="password" placeholder="*****" required>
         <div class="grid_full_line">
             <br>
         </div>
         
         <label for="surname">Surname</label>
-        <input type="text" id="surname" name="surname" placeholder="Surname">
+        <input type="text" id="surname" name="surname" placeholder="Surname" required>
         <label for="name">Name</label>
-        <input type="text" id="name" name="name" placeholder="Name">
+        <input type="text" id="name" name="name" placeholder="Name" required>
         <label for="patronymic">Patronymic</label>
-        <input type="text" id="patronymic" name="patronymic" placeholder="Patronymic">
+        <input type="text" id="patronymic" name="patronymic" placeholder="Patronymic" required>
         <label for="passport_series">Passport series</label>
-        <input type="text" id="passport_series" name="passport_series" placeholder="0000">
+        <input type="text" id="passport_series" name="passport_series" placeholder="0000" required>
         <label for="passport_number">Passport series</label>
-        <input type="text" id="passport_number" name="passport_number" placeholder="000000">
+        <input type="text" id="passport_number" name="passport_number" placeholder="000000" required>
         <label for="birth_date">Birth date</label>
-        <input type="text" id="birth_date" name="birth_date" placeholder="01-02-2001">
+        <input type="text" id="birth_date" name="birth_date" placeholder="01-02-2001" required>
         <label for="birth_location">Birth location</label>
-        <input type="text" id="birth_location" name="birth_location" placeholder="Moscow">
+        <input type="text" id="birth_location" name="birth_location" placeholder="Moscow" required>
         <label for="passport_pick_up_point">Pick up point</label>
-        <input type="text" id="passport_pick_up_point" name="passport_pick_up_point" placeholder="Pick up point name">
+        <input type="text" id="passport_pick_up_point" name="passport_pick_up_point" placeholder="Pick up point name" required>
         <label for="passport_authority">Authority</label>
-        <input type="text" id="passport_authority" name="passport_authority" placeholder="123-321">
+        <input type="text" id="passport_authority" name="passport_authority" placeholder="123-321" required>
         <label for="passport_authority_date">Authority date</label>
-        <input type="text" id="passport_authority_date" name="passport_authority_date" placeholder="01-02-2001">
+        <input type="text" id="passport_authority_date" name="passport_authority_date" placeholder="01-02-2001" required>
         <label for="passport_registration_address">Registration address</label>
-        <input type="text" id="passport_registration_address" name="passport_registration_address" placeholder="Current registration adress">
+        <input type="text" id="passport_registration_address" name="passport_registration_address" placeholder="Current registration address" required>
           
         <label for="inn">INN</label>
-        <input type="text" id="inn" name="inn" placeholder="01234567890123456789">
+        <input type="text" id="inn" name="inn" placeholder="01234567890123456789" required>
         <br>
           
+		<div id="message"></div>
+		<br>
         <div class="fird_div_full_line grid_full_line">
-            <input type="submit" value="Register" style="width: 100%;">
+            <input type="submit" value="Register" style="width: 100%;" id="signUpButton">
         </div>
           
       </form>
     </div>
+
+	<script>
+		document.getElementById('signUpForm').addEventListener('submit', function(event) {
+		event.preventDefault(); // Предотвращаем стандартную отправку формы
+	
+		var submitButton = document.getElementById('signUpButton');
+		submitButton.disabled = true; // Отключаем кнопку
+		submitButton.innerText = 'Register user...'; // Меняем текст кнопки
+	
+		var formData = {
+			login: document.querySelector('input[name="login"]').value,
+			password: document.querySelector('input[name="password"]').value,
+			surname: document.querySelector('input[name="surname"]').value,
+			name: document.querySelector('input[name="name"]').value,
+			patronymic: document.querySelector('input[name="patronymic"]').value,
+			passport_series: document.querySelector('input[name="passport_series"]').value,
+			passport_number: document.querySelector('input[name="passport_number"]').value,
+			birth_date: document.querySelector('input[name="birth_date"]').value,
+			birth_location: document.querySelector('input[name="birth_location"]').value,
+			passport_pick_up_point: document.querySelector('input[name="passport_pick_up_point"]').value,
+			passport_authority: document.querySelector('input[name="passport_authority"]').value,
+			passport_authority_date: document.querySelector('input[name="passport_authority_date"]').value,
+			passport_registration_address: document.querySelector('input[name="passport_registration_address"]').value,
+			inn: document.querySelector('input[name="inn"]').value
+		};
+	
+		// Отправляем POST-запрос с учётом cookie
+		fetch('{{.SignUpRequest}}', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json' // Указываем, что отправляем JSON
+			},
+			body: JSON.stringify(formData), // Преобразуем объект в JSON
+			credentials: 'include' // Важно: включаем отправку и получение cookie
+		})
+		.then(response => {
+			if (response.ok) {
+				return response.json(); // Парсим JSON-ответ
+			} else {
+				return response.json().then(errorData => {
+					throw new Error(errorData.error || 'Sending post request register user error');
+				});
+			}
+		})
+		.then(data => {
+			if (data.success) {
+				window.location.href = '{{.HomePageRequest}}'; // Перенаправляем на GET-страницу
+			} else {
+				// Если есть ошибка, выводим сообщение
+				document.getElementById('message').innerText = data.error;
+			}
+		})
+		.catch(error => {
+			document.getElementById('message').innerText = error;
+			document.getElementById('message').style.color = 'red'; // Делаем текст красным
+			console.error('Error:', error);
+		})
+		.finally(() => {
+			submitButton.disabled = false; // Включаем кнопку обратно
+			submitButton.innerText = 'Sign up';
+		});
+	});
+	</script>
 
   </body>
 </html>`
@@ -217,8 +336,9 @@ var (
       </div>
       <p class="pre-tab">   |   </p>
       <div class="center_content">
-          <form class="center_content" action="{{.SignOutRequest}}">
-              <input type="submit" value="Sign out">
+          <form class="center_content" id="signOutForm">
+              <input type="submit" value="Sign out" id="signOutButton">
+				<div id="message"></div>
           </form>
       </div>
     </header>
@@ -287,6 +407,49 @@ var (
             </table>
         </div>
     </main>
+
+	<script>
+		document.getElementById('signOutForm').addEventListener('submit', function(event) {
+		event.preventDefault(); // Предотвращаем стандартную отправку формы
+	
+		var submitButton = document.getElementById('signOutButton');
+		submitButton.disabled = true; // Отключаем кнопку
+		submitButton.innerText = 'Exiting...'; // Меняем текст кнопки
+	
+		// Отправляем POST-запрос с учётом cookie
+		fetch('{{.SignOutRequest}}', {
+			method: 'POST',
+			credentials: 'include' // Важно: включаем отправку и получение cookie
+		})
+		.then(response => {
+			if (response.ok) {
+				return response.json(); // Парсим JSON-ответ
+			} else {
+				return response.json().then(errorData => {
+					throw new Error(errorData.error || 'Sending post request register user error');
+				});
+			}
+		})
+		.then(data => {
+			if (data.success) {
+				window.location.href = '{{.SignInPageRequest}}'; // Перенаправляем на GET-страницу
+			} else {
+				// Если есть ошибка, выводим сообщение
+				document.getElementById('message').innerText = data.error;
+			}
+		})
+		.catch(error => {
+			document.getElementById('message').innerText = error;
+			document.getElementById('message').style.color = 'red'; // Делаем текст красным
+			console.error('Error:', error);
+		})
+		.finally(() => {
+			submitButton.disabled = false; // Включаем кнопку обратно
+			submitButton.innerText = 'Sign out';
+		});
+	});
+	</script>
+
   </body>
 </html>`
 	AccountOperationPage string = `<!DOCTYPE html>
@@ -327,8 +490,9 @@ var (
       </div>
       <p class="pre-tab">   |   </p>
       <div class="center_content">
-          <form class="center_content" action="{{.SignOutRequest}}">
-              <input type="submit" value="Log out">
+          <form class="center_content" id="signOutForm">
+              <input type="submit" value="Sign out" id="signOutButton">
+				<div id="message"></div>
           </form>
       </div>
     </header>
@@ -347,6 +511,49 @@ var (
             </form>
         </div>
     </main>
+
+	<script>
+		document.getElementById('signOutForm').addEventListener('submit', function(event) {
+		event.preventDefault(); // Предотвращаем стандартную отправку формы
+	
+		var submitButton = document.getElementById('signOutButton');
+		submitButton.disabled = true; // Отключаем кнопку
+		submitButton.innerText = 'Exiting...'; // Меняем текст кнопки
+	
+		// Отправляем POST-запрос с учётом cookie
+		fetch('{{.SignOutRequest}}', {
+			method: 'POST',
+			credentials: 'include' // Важно: включаем отправку и получение cookie
+		})
+		.then(response => {
+			if (response.ok) {
+				return response.json(); // Парсим JSON-ответ
+			} else {
+				return response.json().then(errorData => {
+					throw new Error(errorData.error || 'Sending post request register user error');
+				});
+			}
+		})
+		.then(data => {
+			if (data.success) {
+				window.location.href = '{{.SignInPageRequest}}'; // Перенаправляем на GET-страницу
+			} else {
+				// Если есть ошибка, выводим сообщение
+				document.getElementById('message').innerText = data.error;
+			}
+		})
+		.catch(error => {
+			document.getElementById('message').innerText = error;
+			document.getElementById('message').style.color = 'red'; // Делаем текст красным
+			console.error('Error:', error);
+		})
+		.finally(() => {
+			submitButton.disabled = false; // Включаем кнопку обратно
+			submitButton.innerText = 'Sign out';
+		});
+	});
+	</script>
+
   </body>
 </html>`
 )

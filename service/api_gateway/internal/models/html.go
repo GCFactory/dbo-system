@@ -5,6 +5,7 @@ type RequestData struct {
 }
 type HtmlSignInRequests struct {
 	SignInRequest     string
+	HomePageRequest   string
 	SignUpPageRequest string
 }
 
@@ -14,7 +15,8 @@ type HtmlErrorPage struct {
 }
 
 type HtmlSignUpPage struct {
-	SignUpRequest string
+	SignUpRequest   string
+	HomePageRequest string
 }
 
 type SignInInfo struct {
@@ -43,9 +45,16 @@ type SignUpInfo struct {
 	Inn                         string `json:"inn" validate:"required,number,min=20,max=20" msg:"Error validation inn"`
 }
 
+type PostRequestStatus struct {
+	Success bool   `json:"success"`
+	Info    string `json:"info"`
+	Error   string `json:"error"`
+}
+
 type HomePage struct {
 	Login                string
 	SignOutRequest       string
+	SignInPageRequest    string
 	Surname              string
 	Name                 string
 	Patronymic           string
@@ -74,11 +83,12 @@ type HomePageAccountDescription struct {
 }
 
 type AccountOperationPage struct {
-	Login          string
-	SignOutRequest string
-	OperationName  string
-	Operation      string
-	ReturnRequest  string
+	Login             string
+	SignOutRequest    string
+	SignInPageRequest string
+	OperationName     string
+	Operation         string
+	ReturnRequest     string
 }
 
 type AccountOperationData struct {
