@@ -25,10 +25,14 @@ type UserInfo struct {
 }
 
 type AccountInfo struct {
-	Id     uuid.UUID `json:"id"`
-	Name   string    `json:"name"`
-	Status string    `json:"status"`
-	Cache  float64   `json:"cache"`
+	Id         uuid.UUID `json:"id"`
+	Name       string    `json:"name"`
+	Status     string    `json:"status"`
+	Cache      float64   `json:"cache"`
+	BIC        string    `json:"bic"`
+	CIO        string    `json:"cio"`
+	CulcNumber string    `json:"culc_number"`
+	CorrNumber string    `json:"corr_number"`
 }
 
 type RegistrationServerInfo struct {

@@ -127,25 +127,27 @@ var (
         <input type="text" id="surname" name="surname" placeholder="Surname">
         <label for="name">Name</label>
         <input type="text" id="name" name="name" placeholder="Name">
-        <label for="patronimic">Patronimic</label>
-        <input type="text" id="patronimic" name="patronimic" placeholder="Patronimic">
-        <label for="passport_code">Passport code</label>
-        <input type="text" id="passport_code" name="passport_code" placeholder="0000-00000">
+        <label for="patronymic">Patronymic</label>
+        <input type="text" id="patronymic" name="patronymic" placeholder="Patronymic">
+        <label for="passport_series">Passport series</label>
+        <input type="text" id="passport_series" name="passport_series" placeholder="0000">
+        <label for="passport_number">Passport series</label>
+        <input type="text" id="passport_number" name="passport_number" placeholder="000000">
         <label for="birth_date">Birth date</label>
-        <input type="text" id="birth_date" name="birth_date" placeholder="01.02.2001">
+        <input type="text" id="birth_date" name="birth_date" placeholder="01-02-2001">
         <label for="birth_location">Birth location</label>
         <input type="text" id="birth_location" name="birth_location" placeholder="Moscow">
-        <label for="pick_up_point">Pick up point</label>
-        <input type="text" id="pick_up_point" name="pick_up_point" placeholder="Pick up point name">
-        <label for="authority">Authority</label>
-        <input type="text" id="authority" name="authority" placeholder="123-321">
-        <label for="authority_date">Authority date</label>
-        <input type="text" id="authority_date" name="authority_date" placeholder="01.02.2001">
-        <label for="registration_adress">Registration address</label>
-        <input type="text" id="registration_adress" name="registration_adress" placeholder="Current registration adress">
+        <label for="passport_pick_up_point">Pick up point</label>
+        <input type="text" id="passport_pick_up_point" name="passport_pick_up_point" placeholder="Pick up point name">
+        <label for="passport_authority">Authority</label>
+        <input type="text" id="passport_authority" name="passport_authority" placeholder="123-321">
+        <label for="passport_authority_date">Authority date</label>
+        <input type="text" id="passport_authority_date" name="passport_authority_date" placeholder="01-02-2001">
+        <label for="passport_registration_address">Registration address</label>
+        <input type="text" id="passport_registration_address" name="passport_registration_address" placeholder="Current registration adress">
           
         <label for="inn">INN</label>
-        <input type="text" id="inn" name="inn" placeholder="INN">
+        <input type="text" id="inn" name="inn" placeholder="01234567890123456789">
         <br>
           
         <div class="fird_div_full_line grid_full_line">
@@ -287,6 +289,66 @@ var (
     </main>
   </body>
 </html>`
+	AccountOperationPage string = `<!DOCTYPE html>
+<html>
+  <head>
+    <title>Registration page</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+    html {
+        height: 100%;
+    }
+    body {
+        height: 99%;
+    }
+    header {
+        display: grid;
+        grid-auto-flow: column; /* Arrange items in a row */
+        justify-content: end; /* Align items to the right */
+        width: 100%;
+    }
+    .center_content {
+        display: grid;
+        margin: auto;
+        justify-items: center;
+    }
+    .form_grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .pre-tab {
+        white-space: pre; /* Сохраняем изначальное форматирование */
+    }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+          <p>{{.Login}}</p>
+      </div>
+      <p class="pre-tab">   |   </p>
+      <div class="center_content">
+          <form class="center_content" action="{{.SignOutRequest}}">
+              <input type="submit" value="Log out">
+          </form>
+      </div>
+    </header>
+    <hr>
+    <main>
+        <div class="center_content">
+            <h1>{{.OperationName}}</h1>
+        </div>
+
+		{{.Operation}}
+
+        <br>        
+        <div>
+            <form class="center_content" action="{{.ReturnRequest}}">
+                <input type="submit" value="Return">
+            </form>
+        </div>
+    </main>
+  </body>
+</html>`
 )
 
 var (
@@ -298,15 +360,19 @@ var (
 			<td>
 				<div class="center_content form_grid_4">
 					 <form action="{{.GetCreditsRequest}}">
+						<input type="hidden" name="account_id" value="{{.AccountId}}">
 						<input type="submit" value="Get credits">
 					</form>
 					<form action="{{.AddCacheRequest}}">
+						<input type="hidden" name="account_id" value="{{.AccountId}}">
 						<input type="submit" value="Add cache">
 					</form>
 					<form action="{{.ReduceCacheRequest}}">
+						<input type="hidden" name="account_id" value="{{.AccountId}}">
 						<input type="submit" value="Reduce cache">
 					</form>
 					<form action="{{.CloseAccountRequest}}">
+						<input type="hidden" name="account_id" value="{{.AccountId}}">
 						<input type="submit" value="Close account">
 					</form>   
 				</div>
@@ -314,4 +380,72 @@ var (
 			</td>
 		</tr>
 	`
+	AccountOperationCreateAccount string = `
+        <div>
+            <form class="center_content" action="{{.OperationRequest}}">
+                
+                <label for="name"><b>Account name</b></label>
+                <input type="text" id="name" name="name">
+                
+                <label for="culc_number"><b>Culc number</b></label>
+                <input type="text" id="culc_number" name="culc_number">
+                
+                <label for="corr_number"><b>Corr number</b></label>
+                <input type="text" id="corr_number" name="corr_number">
+                
+                <label for="bic"><b>BIC</b></label>
+                <input type="text" id="bic" name="bic">
+                
+                <label for="cio"><b>CIO</b></label>
+                <input type="text" id="cio" name="cio">
+                
+                <input type="submit" value="Create">
+                
+            </form>
+        </div>
+	`
+	AccountOperationCloseAccount string = `        
+		<div>
+            <form class="center_content" action="{{.OperationRequest}}">
+				<input type="hidden" name="account_id" value="{{.AccountId}}">
+                <input type="submit" value="Confirm">
+            </form>
+        </div>
+	`
+	AccountOperationGetCredits string = `
+		<div class="center_content form_grid">
+		
+		    <p><b>Account name</b></p>
+		    <p>{{.Name}}</p>
+		
+		    <p><b>Status</b></p>
+		    <p>{{.Status}}</p>
+		
+		    <p><b>Amount</b></p>
+		    <p>{{.Amount}}</p>
+		
+		    <p><b>Culc number</b></p>
+		    <p>{{.CulcNumber}}</p>
+		
+		    <p><b>Corr number</b></p>
+		    <p>{{.CorrNumber}}</p>
+		
+		    <p><b>BIC</b></p>
+		    <p>{{.BIC}}</p>
+		
+		    <p><b>CIO</b></p>
+		    <p>{{.CIO}}</p>
+		
+		</div>
+	`
+	AccountOperationAddCache string = `
+	        <div>
+            <form class="center_content" action="{{.OperationRequest}}">
+				<input type="hidden" name="account_id" value="{{.AccountId}}">
+                <lable for="money">Money</lable>
+                <input type="text" id="money" name="money">
+                <input type="submit" value="Confirm">
+            </form>    
+        </div>`
+	AccountOperationWidthCache string = AccountOperationAddCache
 )

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strconv"
 
 	//"errors"
 	"fmt"
@@ -25,6 +26,8 @@ type apiGateWayUseCase struct {
 	repo                   api_gateway.Repository
 	registrationServerInfo *models.RegistrationServerInfo
 }
+
+var TokenLiveTime = time.Minute
 
 func (uc *apiGateWayUseCase) CreateToken(ctx context.Context, token_id uuid.UUID, live_time time.Duration, token_value uuid.UUID) (*models.Token, error) {
 
@@ -298,11 +301,64 @@ func (uc *apiGateWayUseCase) CreateUserPage(user_id uuid.UUID) (string, error) {
 			Name:                account_data.Name,
 			Status:              account_data.Status,
 			Cache:               fmt.Sprint(account_data.Cache),
+			AccountId:           account_id.String(),
 			GetCreditsRequest:   "",
 			AddCacheRequest:     "",
 			ReduceCacheRequest:  "",
 			CloseAccountRequest: "",
 		}
+
+		template_get_account_credits_request, err := template.New("RequestAccountCreditsPage").Parse(html.RequestAccountCreditsPage)
+		if err != nil {
+			return "", nil
+		}
+
+		err = template_get_account_credits_request.Execute(&writer, &curr_server_data)
+		if err != nil {
+			return "", nil
+		}
+
+		account_html_data.GetCreditsRequest = writer.String()
+		writer.Reset()
+
+		templage_close_account_request, err := template.New("RequestAccountClosePage").Parse(html.RequestAccountClosePage)
+		if err != nil {
+			return "", nil
+		}
+
+		err = templage_close_account_request.Execute(&writer, &curr_server_data)
+		if err != nil {
+			return "", nil
+		}
+
+		account_html_data.CloseAccountRequest = writer.String()
+		writer.Reset()
+
+		templage_add_account_cache_request, err := template.New("RequestAddAccountCachePage").Parse(html.RequestAddAccountCachePage)
+		if err != nil {
+			return "", nil
+		}
+
+		err = templage_add_account_cache_request.Execute(&writer, &curr_server_data)
+		if err != nil {
+			return "", nil
+		}
+
+		account_html_data.AddCacheRequest = writer.String()
+		writer.Reset()
+
+		templage_width_account_cache_request, err := template.New("RequestWidthAccountCachePage").Parse(html.RequestWidthAccountCachePage)
+		if err != nil {
+			return "", nil
+		}
+
+		err = templage_width_account_cache_request.Execute(&writer, &curr_server_data)
+		if err != nil {
+			return "", nil
+		}
+
+		account_html_data.ReduceCacheRequest = writer.String()
+		writer.Reset()
 
 		err = template_account_raw.Execute(&writer, &account_html_data)
 		if err != nil {
@@ -313,8 +369,6 @@ func (uc *apiGateWayUseCase) CreateUserPage(user_id uuid.UUID) (string, error) {
 		writer.Reset()
 
 		accounts += account_raw + "\n"
-
-		//	TODO: доделать запросы
 	}
 
 	user_page_info.ListOfAccounts = accounts
@@ -348,6 +402,362 @@ func (uc *apiGateWayUseCase) CreateUserPage(user_id uuid.UUID) (string, error) {
 
 }
 
+func (uc *apiGateWayUseCase) CreateOpenAccountPage(user_id uuid.UUID) (string, error) {
+
+	user_data, err := uc.GetUserDataRequest(user_id)
+	if err != nil {
+		return "", err
+	}
+
+	additional_data := make(map[string]interface{})
+	additional_data["login"] = user_data.Login
+
+	result, err := uc.CreateOperationPage(AccountOperationTypeOpen, additional_data)
+	if err != nil {
+		return "", err
+	}
+
+	return result, nil
+}
+
+func (uc *apiGateWayUseCase) CreateAccountCreditsPage(user_id uuid.UUID, account_id uuid.UUID) (string, error) {
+	user_data, err := uc.GetUserDataRequest(user_id)
+	if err != nil {
+		return "", err
+	}
+
+	additional_data := make(map[string]interface{})
+	additional_data["login"] = user_data.Login
+	additional_data["user_id"] = user_id.String()
+	additional_data["account_id"] = account_id.String()
+
+	result, err := uc.CreateOperationPage(AccountOperationTypeGetCredits, additional_data)
+	if err != nil {
+		return "", err
+	}
+
+	return result, nil
+}
+
+func (uc *apiGateWayUseCase) CreateCloseAccountPage(user_id uuid.UUID, account_id uuid.UUID) (string, error) {
+	user_data, err := uc.GetUserDataRequest(user_id)
+	if err != nil {
+		return "", err
+	}
+
+	additional_data := make(map[string]interface{})
+	additional_data["login"] = user_data.Login
+	additional_data["user_id"] = user_id.String()
+	additional_data["account_id"] = account_id.String()
+
+	result, err := uc.CreateOperationPage(AccountOperationTypeClose, additional_data)
+	if err != nil {
+		return "", err
+	}
+
+	return result, nil
+}
+
+func (uc *apiGateWayUseCase) CreateAddAccountCachePage(user_id uuid.UUID, account_id uuid.UUID) (string, error) {
+	user_data, err := uc.GetUserDataRequest(user_id)
+	if err != nil {
+		return "", err
+	}
+
+	additional_data := make(map[string]interface{})
+	additional_data["login"] = user_data.Login
+	additional_data["user_id"] = user_id.String()
+	additional_data["account_id"] = account_id.String()
+
+	result, err := uc.CreateOperationPage(AccountOperationAddCache, additional_data)
+	if err != nil {
+		return "", err
+	}
+
+	return result, nil
+}
+
+func (uc *apiGateWayUseCase) CreateWidthAccountCachePage(user_id uuid.UUID, account_id uuid.UUID) (string, error) {
+	user_data, err := uc.GetUserDataRequest(user_id)
+	if err != nil {
+		return "", err
+	}
+
+	additional_data := make(map[string]interface{})
+	additional_data["login"] = user_data.Login
+	additional_data["user_id"] = user_id.String()
+	additional_data["account_id"] = account_id.String()
+
+	result, err := uc.CreateOperationPage(AccountOperationWidthCache, additional_data)
+	if err != nil {
+		return "", err
+	}
+
+	return result, nil
+}
+
+func (uc *apiGateWayUseCase) CreateOperationPage(operation_type string, additional_data map[string]interface{}) (string, error) {
+
+	result := ""
+	var err error = nil
+
+	if ValidateOperationTypeData(operation_type, additional_data) {
+
+		login, ok := additional_data["login"]
+		if !ok {
+			return "", ErrorNoOperationData
+		}
+
+		var buffer bytes.Buffer
+
+		account_operation_page_info := &models.AccountOperationPage{
+			OperationName:  operation_type,
+			Operation:      "",
+			Login:          login.(string),
+			SignOutRequest: "",
+			ReturnRequest:  "",
+		}
+
+		curr_server_data := &models.RequestData{
+			Port: uc.cfg.HTTPServer.Port[1:],
+		}
+
+		switch operation_type {
+		case AccountOperationTypeOpen:
+			{
+
+				template_operation_open_account, err := template.New("AccountOperationCreateAccount").Parse(html.AccountOperationCreateAccount)
+				if err != nil {
+					return "", err
+				}
+
+				template_operation_open_account_request, err := template.New("RequestOpenAccount").Parse(html.RequestOpenAccount)
+				if err != nil {
+					return "", err
+				}
+
+				err = template_operation_open_account_request.Execute(&buffer, &curr_server_data)
+				if err != nil {
+					return "", err
+				}
+
+				operation_data := &models.AccountOperationData{
+					OperationRequest: buffer.String(),
+				}
+				buffer.Reset()
+
+				err = template_operation_open_account.Execute(&buffer, &operation_data)
+				if err != nil {
+					return "", err
+				}
+
+				account_operation_page_info.Operation = buffer.String()
+				buffer.Reset()
+
+			}
+		case AccountOperationTypeGetCredits,
+			AccountOperationTypeClose,
+			AccountOperationAddCache,
+			AccountOperationWidthCache:
+			{
+
+				acc_id_str, ok := additional_data["account_id"]
+				if !ok {
+					return "", ErrorNoOperationData
+				}
+
+				user_id_str, ok := additional_data["user_id"]
+				if !ok {
+					return "", ErrorNoOperationData
+				}
+
+				account_id, err := uuid.Parse(acc_id_str.(string))
+				if err != nil {
+					return "", err
+				}
+
+				user_id, err := uuid.Parse(user_id_str.(string))
+				if err != nil {
+					return "", err
+				}
+
+				acc_data, err := uc.GetAccountDataRequest(user_id, account_id)
+				if err != nil {
+					return "", err
+				}
+
+				if operation_type == AccountOperationTypeGetCredits {
+					account_credits := &models.AccountOperationCreditsData{
+						Name:       acc_data.Name,
+						Status:     acc_data.Status,
+						BIC:        acc_data.BIC,
+						CIO:        acc_data.CIO,
+						Amount:     acc_data.Cache,
+						CorrNumber: acc_data.CorrNumber,
+						CulcNumber: acc_data.CulcNumber,
+					}
+
+					template_operation_account_credits, err := template.New("AccountOperationGetCredits").Parse(html.AccountOperationGetCredits)
+					if err != nil {
+						return "", err
+					}
+
+					err = template_operation_account_credits.Execute(&buffer, &account_credits)
+					if err != nil {
+						return "", err
+					}
+
+				} else if operation_type == AccountOperationTypeClose {
+
+					operation_info := &models.AccountOperationData{
+						OperationRequest: "",
+						AccountId:        account_id.String(),
+					}
+
+					template_close_account_request, err := template.New("RequestAccountClose").Parse(html.RequestAccountClose)
+					if err != nil {
+						return "", err
+					}
+
+					err = template_close_account_request.Execute(&buffer, &curr_server_data)
+					if err != nil {
+						return "", err
+					}
+
+					operation_info.OperationRequest = buffer.String()
+					buffer.Reset()
+
+					template_operation_close_account, err := template.New("AccountOperationCloseAccount").Parse(html.AccountOperationCloseAccount)
+					if err != nil {
+						return "", err
+					}
+
+					err = template_operation_close_account.Execute(&buffer, &operation_info)
+					if err != nil {
+						return "", err
+					}
+
+				} else if operation_type == AccountOperationAddCache {
+
+					operation_info := &models.AccountOperationData{
+						OperationRequest: "",
+						AccountId:        account_id.String(),
+					}
+
+					template_account_add_cache_request, err := template.New("RequestAddAccountCache").Parse(html.RequestAddAccountCache)
+					if err != nil {
+						return "", err
+					}
+
+					err = template_account_add_cache_request.Execute(&buffer, &curr_server_data)
+					if err != nil {
+						return "", err
+					}
+
+					operation_info.OperationRequest = buffer.String()
+					buffer.Reset()
+
+					template_operation_account_add_cache, err := template.New("AccountOperationAddCache").Parse(html.AccountOperationAddCache)
+					if err != nil {
+						return "", err
+					}
+
+					err = template_operation_account_add_cache.Execute(&buffer, &operation_info)
+					if err != nil {
+						return "", err
+					}
+
+				} else if operation_type == AccountOperationWidthCache {
+
+					operation_info := &models.AccountOperationData{
+						OperationRequest: "",
+						AccountId:        account_id.String(),
+					}
+
+					template_account_width_cache_request, err := template.New("RequestWidthAccountCache").Parse(html.RequestWidthAccountCache)
+					if err != nil {
+						return "", err
+					}
+
+					err = template_account_width_cache_request.Execute(&buffer, &curr_server_data)
+					if err != nil {
+						return "", err
+					}
+
+					operation_info.OperationRequest = buffer.String()
+					buffer.Reset()
+
+					template_operation_account_width_cache, err := template.New("AccountOperationWidthCache").Parse(html.AccountOperationWidthCache)
+					if err != nil {
+						return "", err
+					}
+
+					err = template_operation_account_width_cache.Execute(&buffer, &operation_info)
+					if err != nil {
+						return "", err
+					}
+
+				}
+
+				account_operation_page_info.Operation = buffer.String()
+				buffer.Reset()
+
+			}
+		default:
+			{
+				err = ErrorUnknownAccountOperationType
+			}
+
+		}
+
+		if err == nil {
+
+			template_operation_page, err := template.New("AccountOperationPage").Parse(html.AccountOperationPage)
+			if err != nil {
+				return "", err
+			}
+
+			template_sign_out_request, err := template.New("RequestSignOut").Parse(html.RequestSignOut)
+			if err != nil {
+				return "", err
+			}
+
+			err = template_sign_out_request.Execute(&buffer, &curr_server_data)
+			if err != nil {
+				return "", err
+			}
+
+			account_operation_page_info.SignOutRequest = buffer.String()
+			buffer.Reset()
+
+			template_request_user_page, err := template.New("RequestUserPage").Parse(html.RequestUserPage)
+			if err != nil {
+				return "", err
+			}
+
+			err = template_request_user_page.Execute(&buffer, &curr_server_data)
+			if err != nil {
+				return "", err
+			}
+
+			account_operation_page_info.ReturnRequest = buffer.String()
+			buffer.Reset()
+
+			err = template_operation_page.Execute(&buffer, &account_operation_page_info)
+			if err != nil {
+				return "", err
+			}
+
+			result = buffer.String()
+
+		}
+	} else {
+		err = ErrorValidationAccountOperationData
+	}
+
+	return result, err
+}
+
 func (uc *apiGateWayUseCase) SignIn(login_info *models.SignInInfo) (string, *models.Token, error) {
 
 	user_data, err := uc.GetUserDataByLoginRequest(login_info.Login)
@@ -366,7 +776,7 @@ func (uc *apiGateWayUseCase) SignIn(login_info *models.SignInInfo) (string, *mod
 			return "", nil, err
 		}
 
-		token, err := uc.CreateToken(context.Background(), uuid.New(), time.Minute, user_data.Id)
+		token, err := uc.CreateToken(context.Background(), uuid.New(), TokenLiveTime, user_data.Id)
 		if err != nil {
 			return "", nil, err
 		}
@@ -390,7 +800,7 @@ func (uc *apiGateWayUseCase) SignUp(sign_up_info *models.SignUpInfo) (string, *m
 		return "", nil, err
 	}
 
-	token, err := uc.CreateToken(context.Background(), uuid.New(), time.Minute, user_id)
+	token, err := uc.CreateToken(context.Background(), uuid.New(), TokenLiveTime, user_id)
 	if err != nil {
 		return "", nil, err
 	}
@@ -507,6 +917,18 @@ func (uc *apiGateWayUseCase) GetAccountDataRequest(user_id uuid.UUID, account_id
 			}
 		}
 		result.Status = status_str
+	}
+	if corr_number, ok := additional_data["acc_corr_number"]; ok {
+		result.CorrNumber = corr_number.(string)
+	}
+	if culc_number, ok := additional_data["acc_culc_number"]; ok {
+		result.CulcNumber = culc_number.(string)
+	}
+	if cio, ok := additional_data["acc_cio"]; ok {
+		result.CIO = cio.(string)
+	}
+	if bic, ok := additional_data["acc_bic"]; ok {
+		result.BIC = bic.(string)
 	}
 
 	return result, nil
@@ -829,8 +1251,8 @@ func (uc *apiGateWayUseCase) CreateUserRequest(user_info *models.SignUpInfo) (uu
 			BirthLocation:       user_info.BirthLocation,
 			PickUpPoint:         user_info.PassportPickUpPoint,
 			RegistrationAddress: user_info.PassportRegistrationAddress,
-			AuthorityDate:       user_info.PassportAuthorityDate,
-			BirthDate:           user_info.BirthDate,
+			AuthorityDate:       user_info.PassportAuthorityDate + " 00:00:00",
+			BirthDate:           user_info.BirthDate + " 00:00:00",
 		},
 	}
 
@@ -864,6 +1286,11 @@ func (uc *apiGateWayUseCase) CreateUserRequest(user_info *models.SignUpInfo) (uu
 	err = json.Unmarshal(resp_body, &resp_data)
 	if err != nil {
 		return uuid.Nil, err
+	}
+
+	if resp_data.Info == "" {
+		err_str := "Operation_error, code: " + strconv.Itoa(resp_data.Status)
+		return uuid.Nil, errors.New(err_str)
 	}
 
 	operation_id_str := resp_data.Info

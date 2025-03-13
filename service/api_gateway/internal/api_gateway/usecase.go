@@ -18,6 +18,11 @@ type UseCase interface {
 	CreateErrorPage(error string) (string, error)
 	CreateSignUpPage() (string, error)
 	CreateUserPage(user_id uuid.UUID) (string, error)
+	CreateOpenAccountPage(user_id uuid.UUID) (string, error)
+	CreateAccountCreditsPage(user_id uuid.UUID, account_id uuid.UUID) (string, error)
+	CreateCloseAccountPage(user_id uuid.UUID, account_id uuid.UUID) (string, error)
+	CreateAddAccountCachePage(user_id uuid.UUID, account_id uuid.UUID) (string, error)
+	CreateWidthAccountCachePage(user_id uuid.UUID, account_id uuid.UUID) (string, error)
 	//
 	SignIn(login_info *models.SignInInfo) (string, *models.Token, error)
 	SignUp(sign_up_info *models.SignUpInfo) (string, *models.Token, error)

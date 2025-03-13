@@ -25,10 +25,10 @@ redis:
 
 registration:
   Host: localhost
-  Port: 8117
-  Retry: 5
+  Port: 8113
+  Retry: 10
   TimeWaitRetry: 100
-  TimeWaitResponse: 3000
+  TimeWaitResponse: 5000
 
 jaeger:
   Host: localhost:6831
