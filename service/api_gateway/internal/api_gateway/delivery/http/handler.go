@@ -370,6 +370,206 @@ func (h ApiGatewayHandlers) OpenAccount() echo.HandlerFunc {
 	}
 }
 
+func (h ApiGatewayHandlers) CloseAccount() echo.HandlerFunc {
+	return func(c echo.Context) error {
+
+		is_ok, token_id, err := h.CheckToken(c)
+		operation_result := &models.PostRequestStatus{
+			Success: false,
+		}
+		if err != nil {
+			operation_result.Error = err.Error()
+			utils.LogResponseError(c, h.logger, err)
+			return c.JSON(http.StatusBadRequest, operation_result)
+		}
+		operation_info := &models.AccountInfoRequest{}
+		if err := h.safeReadBodyRequest(c, operation_info); err != nil {
+			operation_result.Error = err.Error()
+			utils.LogResponseError(c, h.logger, err)
+			return c.JSON(http.StatusBadRequest, operation_result)
+		}
+
+		if is_ok && token_id != uuid.Nil {
+			err = h.useCase.UpdateToken(context.Background(), token_id, usecase.TokenLiveTime)
+			if err != nil {
+				operation_result.Error = err.Error()
+				utils.LogResponseError(c, h.logger, err)
+				return c.JSON(http.StatusBadRequest, operation_result)
+			}
+
+			err = h.UpdateCookie(c)
+			if err != nil {
+				operation_result.Error = err.Error()
+				utils.LogResponseError(c, h.logger, err)
+				return c.JSON(http.StatusBadRequest, operation_result)
+			}
+
+			user_id, err := h.useCase.GetTokenValue(context.Background(), token_id)
+			if err != nil {
+				operation_result.Error = err.Error()
+				utils.LogResponseError(c, h.logger, err)
+				return c.JSON(http.StatusBadRequest, operation_result)
+			}
+
+			account_id, err := uuid.Parse(operation_info.AccountId)
+			if err != nil {
+				operation_result.Error = err.Error()
+				utils.LogResponseError(c, h.logger, err)
+				return c.JSON(http.StatusBadRequest, operation_result)
+			}
+
+			err = h.useCase.CloseAccount(user_id, account_id)
+			if err != nil {
+				operation_result.Error = err.Error()
+				utils.LogResponseError(c, h.logger, err)
+				return c.JSON(http.StatusBadRequest, operation_result)
+			}
+		}
+
+		operation_result.Success = true
+
+		return c.JSON(http.StatusOK, operation_result)
+	}
+}
+
+func (h ApiGatewayHandlers) AddAccountCache() echo.HandlerFunc {
+	return func(c echo.Context) error {
+
+		is_ok, token_id, err := h.CheckToken(c)
+		operation_result := &models.PostRequestStatus{
+			Success: false,
+		}
+		if err != nil {
+			operation_result.Error = err.Error()
+			utils.LogResponseError(c, h.logger, err)
+			return c.JSON(http.StatusBadRequest, operation_result)
+		}
+		operation_info := &models.AccountChangeMoneyRequestBody{}
+		if err := h.safeReadBodyRequest(c, operation_info); err != nil {
+			operation_result.Error = err.Error()
+			utils.LogResponseError(c, h.logger, err)
+			return c.JSON(http.StatusBadRequest, operation_result)
+		}
+
+		if is_ok && token_id != uuid.Nil {
+			err = h.useCase.UpdateToken(context.Background(), token_id, usecase.TokenLiveTime)
+			if err != nil {
+				operation_result.Error = err.Error()
+				utils.LogResponseError(c, h.logger, err)
+				return c.JSON(http.StatusBadRequest, operation_result)
+			}
+
+			err = h.UpdateCookie(c)
+			if err != nil {
+				operation_result.Error = err.Error()
+				utils.LogResponseError(c, h.logger, err)
+				return c.JSON(http.StatusBadRequest, operation_result)
+			}
+
+			user_id, err := h.useCase.GetTokenValue(context.Background(), token_id)
+			if err != nil {
+				operation_result.Error = err.Error()
+				utils.LogResponseError(c, h.logger, err)
+				return c.JSON(http.StatusBadRequest, operation_result)
+			}
+
+			account_id, err := uuid.Parse(operation_info.AccountId)
+			if err != nil {
+				operation_result.Error = err.Error()
+				utils.LogResponseError(c, h.logger, err)
+				return c.JSON(http.StatusBadRequest, operation_result)
+			}
+
+			money, err := strconv.ParseFloat(operation_info.Money, 64)
+			if err != nil {
+				operation_result.Error = err.Error()
+				utils.LogResponseError(c, h.logger, err)
+				return c.JSON(http.StatusBadRequest, operation_result)
+			}
+
+			err = h.useCase.AddAccountCache(user_id, account_id, money)
+			if err != nil {
+				operation_result.Error = err.Error()
+				utils.LogResponseError(c, h.logger, err)
+				return c.JSON(http.StatusBadRequest, operation_result)
+			}
+		}
+
+		operation_result.Success = true
+
+		return c.JSON(http.StatusOK, operation_result)
+	}
+}
+
+func (h ApiGatewayHandlers) WidthAccountCache() echo.HandlerFunc {
+	return func(c echo.Context) error {
+
+		is_ok, token_id, err := h.CheckToken(c)
+		operation_result := &models.PostRequestStatus{
+			Success: false,
+		}
+		if err != nil {
+			operation_result.Error = err.Error()
+			utils.LogResponseError(c, h.logger, err)
+			return c.JSON(http.StatusBadRequest, operation_result)
+		}
+		operation_info := &models.AccountChangeMoneyRequestBody{}
+		if err := h.safeReadBodyRequest(c, operation_info); err != nil {
+			operation_result.Error = err.Error()
+			utils.LogResponseError(c, h.logger, err)
+			return c.JSON(http.StatusBadRequest, operation_result)
+		}
+
+		if is_ok && token_id != uuid.Nil {
+			err = h.useCase.UpdateToken(context.Background(), token_id, usecase.TokenLiveTime)
+			if err != nil {
+				operation_result.Error = err.Error()
+				utils.LogResponseError(c, h.logger, err)
+				return c.JSON(http.StatusBadRequest, operation_result)
+			}
+
+			err = h.UpdateCookie(c)
+			if err != nil {
+				operation_result.Error = err.Error()
+				utils.LogResponseError(c, h.logger, err)
+				return c.JSON(http.StatusBadRequest, operation_result)
+			}
+
+			user_id, err := h.useCase.GetTokenValue(context.Background(), token_id)
+			if err != nil {
+				operation_result.Error = err.Error()
+				utils.LogResponseError(c, h.logger, err)
+				return c.JSON(http.StatusBadRequest, operation_result)
+			}
+
+			account_id, err := uuid.Parse(operation_info.AccountId)
+			if err != nil {
+				operation_result.Error = err.Error()
+				utils.LogResponseError(c, h.logger, err)
+				return c.JSON(http.StatusBadRequest, operation_result)
+			}
+
+			money, err := strconv.ParseFloat(operation_info.Money, 64)
+			if err != nil {
+				operation_result.Error = err.Error()
+				utils.LogResponseError(c, h.logger, err)
+				return c.JSON(http.StatusBadRequest, operation_result)
+			}
+
+			err = h.useCase.WidthAccountCache(user_id, account_id, money)
+			if err != nil {
+				operation_result.Error = err.Error()
+				utils.LogResponseError(c, h.logger, err)
+				return c.JSON(http.StatusBadRequest, operation_result)
+			}
+		}
+
+		operation_result.Success = true
+
+		return c.JSON(http.StatusOK, operation_result)
+	}
+}
+
 func (h ApiGatewayHandlers) OpenAccountPage() echo.HandlerFunc {
 	return func(c echo.Context) error {
 

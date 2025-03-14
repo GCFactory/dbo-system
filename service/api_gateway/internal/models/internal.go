@@ -90,6 +90,17 @@ type GetAccountDataBody struct {
 	AccountId uuid.UUID `json:"account_id"`
 }
 
+type CloseAccountBody struct {
+	UserId    uuid.UUID `json:"user_id"`
+	AccountId uuid.UUID `json:"account_id"`
+}
+
+type AddAccountCacheBody struct {
+	UserId    uuid.UUID `json:"user_id"`
+	AccountId uuid.UUID `json:"account_id"`
+	CacheDiff float64   `json:"cache_diff"`
+}
+
 type OpenAccountBody struct {
 	UserId        uuid.UUID `json:"user_id"`
 	AccName       string    `json:"acc_name" validate:"required"`

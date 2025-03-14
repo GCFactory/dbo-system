@@ -348,6 +348,11 @@ func (uc *apiGateWayUseCase) CreateUserPage(user_id uuid.UUID) (string, error) {
 			AddCacheRequest:     "",
 			ReduceCacheRequest:  "",
 			CloseAccountRequest: "",
+			Disabled:            false,
+		}
+
+		if account_html_data.Status != "Opened" {
+			account_html_data.Disabled = true
 		}
 
 		template_get_account_credits_request, err := template.New("RequestAccountCreditsPage").Parse(html.RequestAccountCreditsPage)
@@ -668,9 +673,23 @@ func (uc *apiGateWayUseCase) CreateOperationPage(operation_type string, addition
 				} else if operation_type == AccountOperationTypeClose {
 
 					operation_info := &models.AccountOperationData{
+						HomePageRequest:  "",
 						OperationRequest: "",
 						AccountId:        account_id.String(),
 					}
+
+					template_operation_close_account, err := template.New("AccountOperationCloseAccount").Parse(html.AccountOperationCloseAccount)
+					if err != nil {
+						return "", err
+					}
+
+					err = template_operation_close_account.Execute(&buffer, &operation_info)
+					if err != nil {
+						return "", err
+					}
+
+					account_operation_page_info.Operation = buffer.String()
+					buffer.Reset()
 
 					template_close_account_request, err := template.New("RequestAccountClose").Parse(html.RequestAccountClose)
 					if err != nil {
@@ -685,22 +704,52 @@ func (uc *apiGateWayUseCase) CreateOperationPage(operation_type string, addition
 					operation_info.OperationRequest = buffer.String()
 					buffer.Reset()
 
-					template_operation_close_account, err := template.New("AccountOperationCloseAccount").Parse(html.AccountOperationCloseAccount)
+					template_home_page_request, err := template.New("RequestUserPage").Parse(html.RequestUserPage)
 					if err != nil {
 						return "", err
 					}
 
-					err = template_operation_close_account.Execute(&buffer, &operation_info)
+					err = template_home_page_request.Execute(&buffer, &curr_server_data)
 					if err != nil {
 						return "", err
 					}
+
+					operation_info.HomePageRequest = buffer.String()
+					buffer.Reset()
+
+					template_close_account_script, err := template.New("ScriptCloseAccountOperation").Parse(html.ScriptCloseAccountOperation)
+					if err != nil {
+						return "", err
+					}
+
+					err = template_close_account_script.Execute(&buffer, &operation_info)
+					if err != nil {
+						return "", err
+					}
+
+					account_operation_page_info.OperationScript = buffer.String()
+					buffer.Reset()
 
 				} else if operation_type == AccountOperationAddCache {
 
 					operation_info := &models.AccountOperationData{
+						HomePageRequest:  "",
 						OperationRequest: "",
 						AccountId:        account_id.String(),
 					}
+
+					template_operation_account_add_cache, err := template.New("AccountOperationAddCache").Parse(html.AccountOperationAddCache)
+					if err != nil {
+						return "", err
+					}
+
+					err = template_operation_account_add_cache.Execute(&buffer, &operation_info)
+					if err != nil {
+						return "", err
+					}
+
+					account_operation_page_info.Operation = buffer.String()
+					buffer.Reset()
 
 					template_account_add_cache_request, err := template.New("RequestAddAccountCache").Parse(html.RequestAddAccountCache)
 					if err != nil {
@@ -715,22 +764,52 @@ func (uc *apiGateWayUseCase) CreateOperationPage(operation_type string, addition
 					operation_info.OperationRequest = buffer.String()
 					buffer.Reset()
 
-					template_operation_account_add_cache, err := template.New("AccountOperationAddCache").Parse(html.AccountOperationAddCache)
+					template_home_page_request, err := template.New("RequestUserPage").Parse(html.RequestUserPage)
 					if err != nil {
 						return "", err
 					}
 
-					err = template_operation_account_add_cache.Execute(&buffer, &operation_info)
+					err = template_home_page_request.Execute(&buffer, &curr_server_data)
 					if err != nil {
 						return "", err
 					}
 
-				} else if operation_type == AccountOperationWidthCache {
+					operation_info.HomePageRequest = buffer.String()
+					buffer.Reset()
+
+					template_add_account_cache_script, err := template.New("ScriptOperationAccountCache").Parse(html.ScriptOperationAccountCache)
+					if err != nil {
+						return "", err
+					}
+
+					err = template_add_account_cache_script.Execute(&buffer, &operation_info)
+					if err != nil {
+						return "", err
+					}
+
+					account_operation_page_info.OperationScript = buffer.String()
+					buffer.Reset()
+
+				} else {
 
 					operation_info := &models.AccountOperationData{
+						HomePageRequest:  "",
 						OperationRequest: "",
 						AccountId:        account_id.String(),
 					}
+
+					template_operation_account_width_cache, err := template.New("AccountOperationWidthCache").Parse(html.AccountOperationWidthCache)
+					if err != nil {
+						return "", err
+					}
+
+					err = template_operation_account_width_cache.Execute(&buffer, &operation_info)
+					if err != nil {
+						return "", err
+					}
+
+					account_operation_page_info.Operation = buffer.String()
+					buffer.Reset()
 
 					template_account_width_cache_request, err := template.New("RequestWidthAccountCache").Parse(html.RequestWidthAccountCache)
 					if err != nil {
@@ -745,20 +824,33 @@ func (uc *apiGateWayUseCase) CreateOperationPage(operation_type string, addition
 					operation_info.OperationRequest = buffer.String()
 					buffer.Reset()
 
-					template_operation_account_width_cache, err := template.New("AccountOperationWidthCache").Parse(html.AccountOperationWidthCache)
+					template_home_page_request, err := template.New("RequestUserPage").Parse(html.RequestUserPage)
 					if err != nil {
 						return "", err
 					}
 
-					err = template_operation_account_width_cache.Execute(&buffer, &operation_info)
+					err = template_home_page_request.Execute(&buffer, &curr_server_data)
 					if err != nil {
 						return "", err
 					}
+
+					operation_info.HomePageRequest = buffer.String()
+					buffer.Reset()
+
+					template_width_account_cache_script, err := template.New("ScriptOperationAccountCache").Parse(html.ScriptOperationAccountCache)
+					if err != nil {
+						return "", err
+					}
+
+					err = template_width_account_cache_script.Execute(&buffer, &operation_info)
+					if err != nil {
+						return "", err
+					}
+
+					account_operation_page_info.OperationScript = buffer.String()
+					buffer.Reset()
 
 				}
-
-				account_operation_page_info.Operation = buffer.String()
-				buffer.Reset()
 
 			}
 		default:
@@ -874,6 +966,227 @@ func (uc *apiGateWayUseCase) CreateAccount(user_id uuid.UUID, account_info *mode
 
 	return uc.openAccountRequest(user_id, account_info)
 
+}
+
+func (uc *apiGateWayUseCase) CloseAccount(user_id uuid.UUID, account_id uuid.UUID) error {
+	return uc.closeAccountRequest(user_id, account_id)
+}
+
+func (uc *apiGateWayUseCase) AddAccountCache(user_id uuid.UUID, account_id uuid.UUID, money float64) error {
+	return uc.addAccountCacheRequest(user_id, account_id, money)
+}
+
+func (uc *apiGateWayUseCase) WidthAccountCache(user_id uuid.UUID, account_id uuid.UUID, money float64) error {
+	return uc.widthAccountCacheRequest(user_id, account_id, money)
+}
+
+func (uc *apiGateWayUseCase) widthAccountCacheRequest(user_id uuid.UUID, account_id uuid.UUID, money float64) error {
+
+	template_request_width_account_cache, err := template.New("RequestWidthAccountCache").Parse(RequestWidthAccountCache)
+	if err != nil {
+		return err
+	}
+
+	var buffer bytes.Buffer
+
+	err = template_request_width_account_cache.Execute(&buffer, uc.registrationServerInfo)
+	if err != nil {
+		return err
+	}
+
+	request_width_account_cache := buffer.String()
+	buffer.Reset()
+
+	request_width_account_cache_body := &models.AddAccountCacheBody{
+		UserId:    user_id,
+		AccountId: account_id,
+		CacheDiff: money,
+	}
+
+	request_body, err := json.Marshal(&request_width_account_cache_body)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, request_width_account_cache, bytes.NewBuffer(request_body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{
+		Timeout: uc.registrationServerInfo.TimeWaitResponse,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	resp_body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	var resp_data = &models.OperationResponse{}
+
+	err = json.Unmarshal(resp_body, &resp_data)
+	if err != nil {
+		return err
+	}
+
+	operation_id_str := resp_data.Info
+
+	operation_id, err := uuid.Parse(operation_id_str)
+	if err != nil {
+		return err
+	}
+
+	_, err = uc.GetOperationData(operation_id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (uc *apiGateWayUseCase) addAccountCacheRequest(user_id uuid.UUID, account_id uuid.UUID, money float64) error {
+
+	template_request_add_account_cache, err := template.New("RequestAddAccountCache").Parse(RequestAddAccountCache)
+	if err != nil {
+		return err
+	}
+
+	var buffer bytes.Buffer
+
+	err = template_request_add_account_cache.Execute(&buffer, uc.registrationServerInfo)
+	if err != nil {
+		return err
+	}
+
+	request_add_account_cache := buffer.String()
+	buffer.Reset()
+
+	request_add_account_cache_body := &models.AddAccountCacheBody{
+		UserId:    user_id,
+		AccountId: account_id,
+		CacheDiff: money,
+	}
+
+	request_body, err := json.Marshal(&request_add_account_cache_body)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, request_add_account_cache, bytes.NewBuffer(request_body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{
+		Timeout: uc.registrationServerInfo.TimeWaitResponse,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	resp_body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	var resp_data = &models.OperationResponse{}
+
+	err = json.Unmarshal(resp_body, &resp_data)
+	if err != nil {
+		return err
+	}
+
+	operation_id_str := resp_data.Info
+
+	operation_id, err := uuid.Parse(operation_id_str)
+	if err != nil {
+		return err
+	}
+
+	_, err = uc.GetOperationData(operation_id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (uc *apiGateWayUseCase) closeAccountRequest(user_id uuid.UUID, account_id uuid.UUID) error {
+
+	template_request_close_account, err := template.New("RequestCloseAccount").Parse(RequestCloseAccount)
+	if err != nil {
+		return err
+	}
+
+	var buffer bytes.Buffer
+
+	err = template_request_close_account.Execute(&buffer, uc.registrationServerInfo)
+	if err != nil {
+		return err
+	}
+
+	request_close_account := buffer.String()
+	buffer.Reset()
+
+	request_close_account_body := &models.CloseAccountBody{
+		UserId:    user_id,
+		AccountId: account_id,
+	}
+
+	request_body, err := json.Marshal(&request_close_account_body)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, request_close_account, bytes.NewBuffer(request_body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{
+		Timeout: uc.registrationServerInfo.TimeWaitResponse,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	resp_body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	var resp_data = &models.OperationResponse{}
+
+	err = json.Unmarshal(resp_body, &resp_data)
+	if err != nil {
+		return err
+	}
+
+	operation_id_str := resp_data.Info
+
+	operation_id, err := uuid.Parse(operation_id_str)
+	if err != nil {
+		return err
+	}
+
+	_, err = uc.GetOperationData(operation_id)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (uc *apiGateWayUseCase) openAccountRequest(user_id uuid.UUID, account_info *models.AccountInfo) error {

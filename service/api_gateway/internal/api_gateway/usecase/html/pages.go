@@ -570,19 +570,19 @@ var (
 				<div class="center_content form_grid_4">
 					 <form action="{{.GetCreditsRequest}}">
 						<input type="hidden" name="account_id" value="{{.AccountId}}">
-						<input type="submit" value="Get credits">
+						<input type="submit" value="Get credits" {{if .Disabled -}} disabled {{else -}} {{end}}>
 					</form>
 					<form action="{{.AddCacheRequest}}">
 						<input type="hidden" name="account_id" value="{{.AccountId}}">
-						<input type="submit" value="Add cache">
+						<input type="submit" value="Add cache" {{if .Disabled -}} disabled {{else -}} {{end}}>
 					</form>
 					<form action="{{.ReduceCacheRequest}}">
 						<input type="hidden" name="account_id" value="{{.AccountId}}">
-						<input type="submit" value="Reduce cache">
+						<input type="submit" value="Reduce cache" {{if .Disabled -}} disabled {{else -}} {{end}}>
 					</form>
 					<form action="{{.CloseAccountRequest}}">
 						<input type="hidden" name="account_id" value="{{.AccountId}}">
-						<input type="submit" value="Close account">
+						<input type="submit" value="Close account" {{if .Disabled -}} disabled {{else -}} {{end}}>
 					</form>   
 				</div>
 				
@@ -608,7 +608,7 @@ var (
                 <label for="cio"><b>CIO</b></label>
                 <input type="text" id="cio" name="cio" placeholder="509910012" required>
 				
-				<div id="message"></div>
+				<div id="operationMessage"></div>
                 
                 <input type="submit" value="Create" id="createAccountButton">
                 
@@ -617,9 +617,9 @@ var (
 	`
 	AccountOperationCloseAccount string = `        
 		<div>
-            <form class="center_content" action="{{.OperationRequest}}">
+            <form class="center_content" id="closeForm">
 				<input type="hidden" name="account_id" value="{{.AccountId}}">
-                <input type="submit" value="Confirm">
+                <input type="submit" value="Confirm" id="closeButton">
             </form>
         </div>
 	`
@@ -651,11 +651,12 @@ var (
 	`
 	AccountOperationAddCache string = `
 	        <div>
-            <form class="center_content" action="{{.OperationRequest}}">
+            <form class="center_content" id="formAccountMoney">
 				<input type="hidden" name="account_id" value="{{.AccountId}}">
                 <lable for="money">Money</lable>
                 <input type="text" id="money" name="money">
-                <input type="submit" value="Confirm">
+				<div id="operationMessage"></div>
+                <input type="submit" value="Confirm" id="accountMoneyButton">
             </form>    
         </div>`
 	AccountOperationWidthCache string = AccountOperationAddCache
@@ -702,12 +703,115 @@ var (
 					window.location.href = '{{.HomePageRequest}}'; // Перенаправляем на GET-страницу
 				} else {
 					// Если есть ошибка, выводим сообщение
-					document.getElementById('message').innerText = data.error;
+					document.getElementById('operationMessage').innerText = data.error;
 				}
 			})
 			.catch(error => {
-				document.getElementById('message').innerText = error;
-				document.getElementById('message').style.color = 'red'; // Делаем текст красным
+				document.getElementById('operationMessage').innerText = error;
+				document.getElementById('operationMessage').style.color = 'red'; // Делаем текст красным
+				console.error('Error:', error);
+			})
+			.finally(() => {
+				submitButton.disabled = false; // Включаем кнопку обратно
+				submitButton.innerText = 'Create';
+			});
+		});
+		</script>
+`
+	ScriptCloseAccountOperation string = `
+		<script>
+			document.getElementById('closeForm').addEventListener('submit', function(event) {
+			event.preventDefault(); // Предотвращаем стандартную отправку формы
+		
+			var submitButton = document.getElementById('closeButton');
+			submitButton.disabled = true; // Отключаем кнопку
+			submitButton.innerText = 'Closing...'; // Меняем текст кнопки
+		
+			var formData = {
+				account_id: document.querySelector('input[name="account_id"]').value
+			};
+
+			// Отправляем POST-запрос с учётом cookie
+			fetch('{{.OperationRequest}}', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json' // Указываем, что отправляем JSON
+				},
+				body: JSON.stringify(formData), // Преобразуем объект в JSON
+				credentials: 'include' // Важно: включаем отправку и получение cookie
+			})
+			.then(response => {
+				if (response.ok) {
+					return response.json(); // Парсим JSON-ответ
+				} else {
+					return response.json().then(errorData => {
+						throw new Error(errorData.error);
+					});
+				}
+			})
+			.then(data => {
+				if (data.success) {
+					window.location.href = '{{.HomePageRequest}}'; // Перенаправляем на GET-страницу
+				} else {
+					// Если есть ошибка, выводим сообщение
+					document.getElementById('operationMessage').innerText = data.error;
+				}
+			})
+			.catch(error => {
+				document.getElementById('operationMessage').innerText = error;
+				document.getElementById('operationMessage').style.color = 'red'; // Делаем текст красным
+				console.error('Error:', error);
+			})
+			.finally(() => {
+				submitButton.disabled = false; // Включаем кнопку обратно
+				submitButton.innerText = 'Create';
+			});
+		});
+		</script>
+`
+	ScriptOperationAccountCache string = `
+		<script>
+			document.getElementById('formAccountMoney').addEventListener('submit', function(event) {
+			event.preventDefault(); // Предотвращаем стандартную отправку формы
+		
+			var submitButton = document.getElementById('accountMoneyButton');
+			submitButton.disabled = true; // Отключаем кнопку
+			submitButton.innerText = 'Processing...'; // Меняем текст кнопки
+		
+			var formData = {
+				account_id: document.querySelector('input[name="account_id"]').value,
+				money: document.querySelector('input[name="money"]').value
+			};
+
+			// Отправляем POST-запрос с учётом cookie
+			fetch('{{.OperationRequest}}', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json' // Указываем, что отправляем JSON
+				},
+				body: JSON.stringify(formData), // Преобразуем объект в JSON
+				credentials: 'include' // Важно: включаем отправку и получение cookie
+			})
+			.then(response => {
+				if (response.ok) {
+					return response.json(); // Парсим JSON-ответ
+				} else {
+					return response.json().then(errorData => {
+						throw new Error(errorData.error);
+					});
+				}
+			})
+			.then(data => {
+				if (data.success) {
+					window.location.href = '{{.HomePageRequest}}'; // Перенаправляем на GET-страницу
+				} else {
+					// Если есть ошибка, выводим сообщение
+					document.getElementById('operationMessage').innerText = data.error;
+				}
+			})
+			.catch(error => {
+				document.getElementById('operationMessage').innerText = error;
+				document.getElementById('operationMessage').style.color = 'red'; // Делаем текст красным
 				console.error('Error:', error);
 			})
 			.finally(() => {

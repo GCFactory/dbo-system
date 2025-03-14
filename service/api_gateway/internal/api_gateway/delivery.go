@@ -15,4 +15,7 @@ type Handlers interface {
 	SignUp() echo.HandlerFunc
 	SignOut() echo.HandlerFunc
 	OpenAccount() echo.HandlerFunc
+	CloseAccount() echo.HandlerFunc
+	AddAccountCache() echo.HandlerFunc
+	WidthAccountCache() echo.HandlerFunc
 }

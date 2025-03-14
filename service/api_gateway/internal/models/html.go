@@ -28,6 +28,11 @@ type AccountInfoRequest struct {
 	AccountId string `json:"account_id" validate:"required" `
 }
 
+type AccountChangeMoneyRequestBody struct {
+	AccountId string `json:"account_id" validate:"required" `
+	Money     string `json:"money" validate:"required,numeric"`
+}
+
 type SignUpInfo struct {
 	Login                       string `json:"login" validate:"required" msg:"Error validation login"`
 	Password                    string `json:"password" validate:"required" msg:"Error validation password"`
@@ -80,6 +85,7 @@ type HomePageAccountDescription struct {
 	AddCacheRequest     string
 	ReduceCacheRequest  string
 	CloseAccountRequest string
+	Disabled            bool
 }
 
 type AccountOperationPage struct {

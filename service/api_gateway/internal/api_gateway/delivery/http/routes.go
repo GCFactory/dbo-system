@@ -19,4 +19,7 @@ func MapApiGatewayRoutes(apiGatewayGroup *echo.Group, h api_gateway.Handlers, mw
 	apiGatewayGroup.POST("/sign_up/sign_up", h.SignUp())
 	apiGatewayGroup.POST("/sign_out", h.SignOut())
 	apiGatewayGroup.POST("/open_account/open_account", h.OpenAccount())
+	apiGatewayGroup.POST("/close_account/close_account", h.CloseAccount())
+	apiGatewayGroup.POST("/adding_account/adding_account", h.AddAccountCache())
+	apiGatewayGroup.POST("/width_account/width_account", h.WidthAccountCache())
 }
