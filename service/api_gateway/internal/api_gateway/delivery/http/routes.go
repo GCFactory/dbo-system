@@ -10,6 +10,7 @@ func MapApiGatewayRoutes(apiGatewayGroup *echo.Group, h api_gateway.Handlers, mw
 	apiGatewayGroup.GET("/sign_in", h.SignInPage())
 	apiGatewayGroup.GET("/sign_up", h.SignUpPage())
 	apiGatewayGroup.GET("/main_page", h.HomePage())
+	apiGatewayGroup.GET("/admin", h.AdminPage())
 	apiGatewayGroup.GET("/open_account", h.OpenAccountPage())
 	apiGatewayGroup.GET("/get_account_info", h.AccountCreditsPage())
 	apiGatewayGroup.GET("/adding_account", h.AddAccountCachePage())

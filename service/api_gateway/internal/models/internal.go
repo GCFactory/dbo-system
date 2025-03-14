@@ -116,3 +116,52 @@ type OperationResponse struct {
 	Info           string      `json:"info"`
 	AdditionalInfo interface{} `json:"additional_info"`
 }
+
+type OperationListRequestBody struct {
+	TimeBegin string `json:"time_begin"`
+	TimeEnd   string `json:"time_end"`
+}
+
+type OperationListRequestResultBody struct {
+	Status string      `json:"status"`
+	Info   interface{} `json:"info"`
+}
+
+type OperationTreeRequestBody struct {
+	OperationId uuid.UUID `json:"operation_id"`
+}
+
+type OperationTreeRequestResultBody struct {
+	Status string      `json:"status"`
+	Info   interface{} `json:"info"`
+}
+
+type ListOfOperations struct {
+	Operations []uuid.UUID
+}
+
+type SagaTree struct {
+	Id     uuid.UUID
+	Status float64
+	Name   string
+	Events []uuid.UUID
+}
+
+type EventTree struct {
+	Id         uuid.UUID
+	Name       string
+	Status     float64
+	RollBackId uuid.UUID
+}
+
+type SagaDependTree struct {
+	ParentId uuid.UUID
+	ChildId  uuid.UUID
+}
+
+type OperationTree struct {
+	OperationName  string
+	SagaList       []*SagaTree
+	EventList      []*EventTree
+	SagaDependList []*SagaDependTree
+}

@@ -23,6 +23,7 @@ type UseCase interface {
 	CreateCloseAccountPage(user_id uuid.UUID, account_id uuid.UUID) (string, error)
 	CreateAddAccountCachePage(user_id uuid.UUID, account_id uuid.UUID) (string, error)
 	CreateWidthAccountCachePage(user_id uuid.UUID, account_id uuid.UUID) (string, error)
+	CreateAdminPage(begin string, end string) (string, error)
 	//
 	SignIn(login_info *models.SignInInfo) (*models.Token, error)
 	SignUp(sign_up_info *models.SignUpInfo) (*models.Token, error)

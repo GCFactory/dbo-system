@@ -16,4 +16,5 @@ var (
 	RequestAccountClose          string = "http://localhost:{{.Port}}/api/v1/api_gateway/close_account/close_account"
 	RequestAddAccountCache       string = "http://localhost:{{.Port}}/api/v1/api_gateway/adding_account/adding_account"
 	RequestWidthAccountCache     string = "http://localhost:{{.Port}}/api/v1/api_gateway/width_account/width_account"
+	RequestAdminPage             string = "http://localhost:{{.Port}}/api/v1/api_gateway/admin"
 )

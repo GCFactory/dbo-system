@@ -558,6 +558,90 @@ var (
 
   </body>
 </html>`
+	AdminPage string = `<!DOCTYPE html>
+<html>
+  <head>
+    <title>Registration page</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+    html {
+        height: 100%;
+    }
+    body {
+        height: 99%;
+    }
+    header {
+        display: grid;
+        margin: auto;
+        justify-items: center;
+        width: 100%;
+    }
+    .center_content {
+        display: grid;
+        margin: auto;
+        justify-items: center;
+    }
+    .form_grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .pre-tab {
+        white-space: pre; /* Сохраняем изначальное форматирование */
+    }
+    table {
+        border: collapse;
+        width: 100%;
+    }
+    thead {
+      background-color: rgb(228 240 245);
+    }
+    td {
+        text-align: center;
+    }
+    tbody tr:nth-child(odd) {
+      background-color: rgb(123,123,123);
+      color: #fff;
+    }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>ADMIN PAGE</h1>
+    </header>
+    <hr>
+    <main>
+      <div class="center_content">
+        <form action="{{.GetOperationsRequest}}">
+          
+          <label for="start">Time begin:</label>
+          <input type="text" id="start" name="start" placeholder="01-02-2001 12:12:12">
+          
+          <label for="end">Time end:</label>
+          <input type="text" id="end" name="end" placeholder="01-02-2001 12:12:12">
+          
+          <input type="submit" value="Get operations">
+          
+        </form>
+      </div>
+        <table>
+            <thead>
+                <tr>
+                    <th scope="col">Operation id</th>
+                    <th scope="col">Operation name</th>
+                    <th scope="col">Operation status</th>
+                    <th scope="col">Time start</th>
+                    <th scope="col">Time end</th>
+                    <th scope="col">Operation tree</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+				{{.Operations}}
+
+            </tbody>
+        </table>
+    </main>
+  </body>
+</html>`
 )
 
 var (
@@ -660,6 +744,20 @@ var (
             </form>    
         </div>`
 	AccountOperationWidthCache string = AccountOperationAddCache
+	AdminOperation             string = `
+	<tr>
+		<td>{{.Id}}</td>
+		<td>{{.Name}}</td>
+		<td>{{.Status}}</td>
+		<td>{{.Begin}}</td>
+		<td>{{.End}}</td>
+		<td>
+			<img src="" 
+			style="width:100px; height: 100px;"
+			alt="operation_graph">
+		</td>
+	</tr>
+`
 )
 
 var (

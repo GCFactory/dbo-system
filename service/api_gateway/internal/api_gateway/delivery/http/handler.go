@@ -211,6 +211,57 @@ func (h ApiGatewayHandlers) SignUpPage() echo.HandlerFunc {
 	}
 }
 
+func (h ApiGatewayHandlers) AdminPage() echo.HandlerFunc {
+	return func(c echo.Context) error {
+
+		operation_info := &models.AdminPageRequestBody{}
+		if err := h.safeReadQueryParamsRequest(c, operation_info); err != nil {
+			if err != nil {
+				error_page, err := h.useCase.CreateErrorPage(err.Error())
+				if err != nil {
+					utils.LogResponseError(c, h.logger, err)
+					return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
+				}
+				return c.HTML(http.StatusInternalServerError, error_page)
+			}
+		}
+
+		if operation_info.Start == "" || operation_info.End == "" {
+			operation_info.Start = time.Date(
+				time.Now().Year(),
+				time.Now().Month(),
+				time.Now().Day(),
+				0,
+				0,
+				0,
+				0,
+				time.Now().Location(),
+			).Format("02-01-2006 15:04:05")
+			operation_info.End = time.Date(
+				time.Now().Year(),
+				time.Now().Month(),
+				time.Now().Day(),
+				23,
+				59,
+				59,
+				0,
+				time.Now().Location(),
+			).Format("02-01-2006 15:04:05")
+		}
+		page, err := h.useCase.CreateAdminPage(operation_info.Start, operation_info.End)
+		if err != nil {
+			error_page, err := h.useCase.CreateErrorPage(err.Error())
+			if err != nil {
+				utils.LogResponseError(c, h.logger, err)
+				return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
+			}
+			return c.HTML(http.StatusInternalServerError, error_page)
+		}
+
+		return c.HTML(http.StatusOK, page)
+	}
+}
+
 func (h ApiGatewayHandlers) SignIn() echo.HandlerFunc {
 	return func(c echo.Context) error {
 

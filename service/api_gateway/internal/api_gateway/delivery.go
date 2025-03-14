@@ -11,6 +11,7 @@ type Handlers interface {
 	CloseAccountPage() echo.HandlerFunc
 	AddAccountCachePage() echo.HandlerFunc
 	WidthAccountCachePage() echo.HandlerFunc
+	AdminPage() echo.HandlerFunc
 	SignIn() echo.HandlerFunc
 	SignUp() echo.HandlerFunc
 	SignOut() echo.HandlerFunc

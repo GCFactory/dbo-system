@@ -921,6 +921,109 @@ func (uc *apiGateWayUseCase) CreateOperationPage(operation_type string, addition
 	return result, err
 }
 
+func (uc *apiGateWayUseCase) CreateAdminPage(begin string, end string) (string, error) {
+
+	template_admin_page, err := template.New("AdminPage").Parse(html.AdminPage)
+	if err != nil {
+		return "", err
+	}
+
+	var buffer bytes.Buffer
+
+	admin_page_data := &models.AdminPageData{
+		GetOperationsRequest: "",
+		Operations:           "",
+	}
+
+	template_get_operations_request, err := template.New("RequestAdminPage").Parse(html.RequestAdminPage)
+	if err != nil {
+		return "", err
+	}
+
+	curr_server_data := &models.RequestData{
+		Port: uc.cfg.HTTPServer.Port[1:],
+	}
+
+	err = template_get_operations_request.Execute(&buffer, &curr_server_data)
+	if err != nil {
+		return "", err
+	}
+	admin_page_data.GetOperationsRequest = buffer.String()
+	buffer.Reset()
+
+	operations := ""
+
+	operations_id_list, err := uc.getListOfOperations(begin, end)
+	if err != nil {
+		return "", err
+	}
+
+	for _, operation_id := range operations_id_list.Operations {
+
+		operation_data, _ := uc.GetOperationData(operation_id)
+
+		if operation_data != nil {
+
+			operation_tree, err := uc.getOperationTree(operation_id)
+			if err != nil {
+				return "", err
+			}
+			//	TODO: добавить формирование графа операции
+
+			// TODO: доделать заполнение операций
+			template_admin_operation, err := template.New("AdminOperation").Parse(html.AdminOperation)
+			if err != nil {
+				return "", err
+			}
+
+			admin_operation_data := &models.AdminOperationData{
+				Id:     operation_id,
+				Name:   operation_tree.OperationName,
+				Status: operation_data.Info,
+				Begin:  "",
+				End:    "",
+			}
+
+			additional_data := operation_data.AdditionalInfo.(map[string]interface{})
+
+			if time_begin, ok := additional_data["time_begin"]; ok {
+				tmp, err := time.Parse(time.RFC3339Nano, time_begin.(string))
+				if err != nil {
+					return "", err
+				}
+				tmp_str := tmp.Format("02-01-2006 15:04:05")
+				admin_operation_data.Begin = tmp_str
+			}
+			if time_end, ok := additional_data["time_end"]; ok {
+				tmp, err := time.Parse(time.RFC3339Nano, time_end.(string))
+				if err != nil {
+					return "", err
+				}
+				tmp_str := tmp.Format("02-01-2006 15:04:05")
+				admin_operation_data.End = tmp_str
+			}
+
+			err = template_admin_operation.Execute(&buffer, &admin_operation_data)
+			if err != nil {
+				return "", err
+			}
+
+			operations += buffer.String() + "\n"
+			buffer.Reset()
+		}
+
+	}
+
+	admin_page_data.Operations = operations
+
+	err = template_admin_page.Execute(&buffer, &admin_page_data)
+	if err != nil {
+		return "", err
+	}
+
+	return buffer.String(), nil
+}
+
 func (uc *apiGateWayUseCase) SignIn(login_info *models.SignInInfo) (*models.Token, error) {
 
 	user_data, err := uc.GetUserDataByLoginRequest(login_info.Login)
@@ -1262,6 +1365,240 @@ func (uc *apiGateWayUseCase) openAccountRequest(user_id uuid.UUID, account_info 
 
 	return nil
 
+}
+
+func (uc *apiGateWayUseCase) getListOfOperations(start string, end string) (*models.ListOfOperations, error) {
+
+	template_request_get_operations, err := template.New("RequestGetListOfOperations").Parse(RequestGetListOfOperations)
+	if err != nil {
+		return nil, err
+	}
+
+	var buffer bytes.Buffer
+
+	err = template_request_get_operations.Execute(&buffer, uc.registrationServerInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	request_get_operations := buffer.String()
+	buffer.Reset()
+
+	request_get_operations_body := &models.OperationListRequestBody{
+		TimeBegin: start,
+		TimeEnd:   end,
+	}
+
+	request_body, err := json.Marshal(&request_get_operations_body)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, request_get_operations, bytes.NewBuffer(request_body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{
+		Timeout: uc.registrationServerInfo.TimeWaitResponse,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	resp_body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp_data = &models.OperationListRequestResultBody{}
+
+	err = json.Unmarshal(resp_body, &resp_data)
+	if err != nil {
+		return nil, err
+	}
+
+	info := resp_data.Info.(map[string]interface{})
+
+	result := &models.ListOfOperations{
+		Operations: make([]uuid.UUID, 0),
+	}
+
+	if operations, ok := info["operations"]; ok {
+		list_of_operations := operations.([]interface{})
+		for _, operation_id_str := range list_of_operations {
+			operation_id, err := uuid.Parse(operation_id_str.(string))
+			if err != nil {
+				return nil, err
+			}
+			result.Operations = append(result.Operations, operation_id)
+		}
+	}
+
+	return result, nil
+}
+
+func (uc *apiGateWayUseCase) getOperationTree(operation_id uuid.UUID) (*models.OperationTree, error) {
+
+	template_request_get_operation_tree, err := template.New("RequestGetOperationTree").Parse(RequestGetOperationTree)
+	if err != nil {
+		return nil, err
+	}
+
+	var buffer bytes.Buffer
+
+	err = template_request_get_operation_tree.Execute(&buffer, uc.registrationServerInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	request_get_operation_tree := buffer.String()
+	buffer.Reset()
+
+	request_get_operation_tree_body := &models.OperationTreeRequestBody{
+		OperationId: operation_id,
+	}
+
+	request_body, err := json.Marshal(&request_get_operation_tree_body)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, request_get_operation_tree, bytes.NewBuffer(request_body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{
+		Timeout: uc.registrationServerInfo.TimeWaitResponse,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	resp_body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp_data = &models.OperationTreeRequestResultBody{}
+
+	err = json.Unmarshal(resp_body, &resp_data)
+	if err != nil {
+		return nil, err
+	}
+
+	info := resp_data.Info.(map[string]interface{})
+
+	result := &models.OperationTree{
+		OperationName:  "",
+		SagaList:       make([]*models.SagaTree, 0),
+		EventList:      make([]*models.EventTree, 0),
+		SagaDependList: make([]*models.SagaDependTree, 0),
+	}
+
+	if saga, ok := info["saga"]; ok && saga != nil {
+		saga_list := saga.([]interface{})
+		for _, saga_info_inter := range saga_list {
+			saga_info := saga_info_inter.(map[string]interface{})
+			saga_tree := &models.SagaTree{
+				Events: make([]uuid.UUID, 0),
+			}
+
+			if name, ok := saga_info["name"]; ok {
+				saga_tree.Name = name.(string)
+			}
+			if status, ok := saga_info["status"]; ok {
+				saga_tree.Status = status.(float64)
+			}
+			if id_str, ok := saga_info["id"]; ok {
+				id, err := uuid.Parse(id_str.(string))
+				if err != nil {
+					return nil, err
+				}
+				saga_tree.Id = id
+			}
+			if list_of_events, ok := saga_info["events"]; ok {
+				for _, event_id_str := range list_of_events.([]interface{}) {
+					event_id, err := uuid.Parse(event_id_str.(string))
+					if err != nil {
+						return nil, err
+					}
+					saga_tree.Events = append(saga_tree.Events, event_id)
+				}
+			}
+
+			result.SagaList = append(result.SagaList, saga_tree)
+
+		}
+	}
+
+	if event, ok := info["events"]; ok && event != nil {
+		for _, event_inter := range event.([]interface{}) {
+			event_info := event_inter.(map[string]interface{})
+			event_tree := &models.EventTree{}
+
+			if name, ok := event_info["name"]; ok {
+				event_tree.Name = name.(string)
+			}
+			if status, ok := event_info["status"]; ok {
+				event_tree.Status = status.(float64)
+			}
+			if id_str, ok := event_info["id"]; ok {
+				id, err := uuid.Parse(id_str.(string))
+				if err != nil {
+					return nil, err
+				}
+				event_tree.Id = id
+			}
+			if id_rollback_str, ok := info["roll_back_id"]; ok {
+				id, err := uuid.Parse(id_rollback_str.(string))
+				if err != nil {
+					return nil, err
+				}
+				event_tree.RollBackId = id
+			}
+
+			result.EventList = append(result.EventList, event_tree)
+		}
+	}
+
+	if depends, ok := info["saga_depend"]; ok && depends != nil {
+		for _, saga_depends := range depends.([]interface{}) {
+			saga_depend_info := saga_depends.(map[string]interface{})
+			saga_depend_tree := &models.SagaDependTree{}
+
+			if parent_id_str, ok := saga_depend_info["parent_id"]; ok {
+				id, err := uuid.Parse(parent_id_str.(string))
+				if err != nil {
+					return nil, err
+				}
+				saga_depend_tree.ParentId = id
+			}
+
+			if child_id_str, ok := saga_depend_info["child_id"]; ok {
+				id, err := uuid.Parse(child_id_str.(string))
+				if err != nil {
+					return nil, err
+				}
+				saga_depend_tree.ChildId = id
+			}
+
+			result.SagaDependList = append(result.SagaDependList, saga_depend_tree)
+		}
+	}
+
+	if name, ok := info["operation_name"]; ok {
+		result.OperationName = name.(string)
+	}
+
+	return result, nil
 }
 
 func (uc *apiGateWayUseCase) GetAccountDataRequest(user_id uuid.UUID, account_id uuid.UUID) (*models.AccountInfo, error) {

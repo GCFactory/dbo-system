@@ -1,5 +1,7 @@
 package models
 
+import "github.com/google/uuid"
+
 type RequestData struct {
 	Port string
 }
@@ -31,6 +33,11 @@ type AccountInfoRequest struct {
 type AccountChangeMoneyRequestBody struct {
 	AccountId string `json:"account_id" validate:"required" `
 	Money     string `json:"money" validate:"required,numeric"`
+}
+
+type AdminPageRequestBody struct {
+	Start string `json:"start" validate:"omitempty,datetime=02-01-2006 15:04:05"`
+	End   string `json:"end" validate:"omitempty,datetime=02-01-2006 15:04:05"`
 }
 
 type SignUpInfo struct {
@@ -112,4 +119,17 @@ type AccountOperationCreditsData struct {
 	CorrNumber string
 	BIC        string
 	CIO        string
+}
+
+type AdminPageData struct {
+	Operations           string
+	GetOperationsRequest string
+}
+
+type AdminOperationData struct {
+	Id     uuid.UUID
+	Name   string
+	Status string
+	Begin  string
+	End    string
 }
