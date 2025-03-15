@@ -161,7 +161,7 @@ type SagaDependTree struct {
 
 type OperationTree struct {
 	OperationName  string
-	SagaList       []*SagaTree
-	EventList      []*EventTree
+	SagaList       map[uuid.UUID]*SagaTree
+	EventList      map[uuid.UUID]*EventTree
 	SagaDependList []*SagaDependTree
 }

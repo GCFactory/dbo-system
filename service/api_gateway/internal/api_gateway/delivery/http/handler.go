@@ -14,15 +14,18 @@ import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"net/http"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"time"
 )
 
 type ApiGatewayHandlers struct {
-	cfg     *config.Config
-	useCase api_gateway.UseCase
-	logger  logger.Logger
+	cfg         *config.Config
+	useCase     api_gateway.UseCase
+	logger      logger.Logger
+	folderGraph string
 }
 
 const (
@@ -1213,6 +1216,27 @@ func (h ApiGatewayHandlers) UpdateCookie(c echo.Context) error {
 	return nil
 }
 
-func NewApiGatewayHandlers(cfg *config.Config, logger logger.Logger, usecase api_gateway.UseCase) api_gateway.Handlers {
-	return &ApiGatewayHandlers{cfg: cfg, logger: logger, useCase: usecase}
+func (h ApiGatewayHandlers) GraphImage() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		// Извлекаем путь к файлу из URL
+		filePath := c.Param("*")
+
+		// Путь к директории с картинками
+		imagesDir := h.folderGraph
+
+		// Формируем полный путь к файлу
+		fullPath := filepath.Join(imagesDir, filePath)
+
+		// Проверяем, существует ли файл
+		if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+			return c.String(http.StatusNotFound, "File not found")
+		}
+
+		// Отдаём файл
+		return c.File(fullPath)
+	}
+}
+
+func NewApiGatewayHandlers(cfg *config.Config, logger logger.Logger, graphFolder string, usecase api_gateway.UseCase) api_gateway.Handlers {
+	return &ApiGatewayHandlers{cfg: cfg, logger: logger, useCase: usecase, folderGraph: graphFolder}
 }

@@ -15,7 +15,7 @@ http-server:
   Debug: false
 
 redis:
-  RedisAddr: localhost:5500
+  RedisAddr: redis_api_gateway:6379
   RedisPassword: admin
   MaxRetries: 3
   User: admin
@@ -24,14 +24,14 @@ redis:
   Timeout: 1
 
 registration:
-  Host: localhost
-  Port: 8117
+  Host: service_registration
+  Port: 8080
   Retry: 10
   TimeWaitRetry: 100
   TimeWaitResponse: 5000
 
 jaeger:
-  Host: localhost:6831
+  Host: jaeger:6831
   ServiceName: api_gateway
   LogSpans: false
 

@@ -10,6 +10,11 @@ import (
 	"github.com/GCFactory/dbo-system/service/api_gateway/internal/api_gateway/usecase"
 	apiMiddlewares "github.com/GCFactory/dbo-system/service/api_gateway/internal/middleware"
 	"github.com/GCFactory/dbo-system/service/api_gateway/internal/models"
+	"io/fs"
+	"os"
+	"path/filepath"
+
+	//"path/filepath"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -41,9 +46,32 @@ func (s *Server) MapHandlers(e *echo.Echo) error {
 		TimeWaitResponse: time.Duration(time.Millisecond.Nanoseconds() * int64(s.cfg.Registration.TimeWaitResponse)),
 	}
 
-	apiGatewayUsecase := usecase.NewApiGatewayUseCase(s.cfg, apiGatewayRepo, registrationServerInfo)
+	//executable, err := os.Executable()
+	//if err != nil {
+	//	panic(err)
+	//}
+	//exPath := filepath.Dir(executable)
+
+	folder_images_path := "./graph"
+	ex, err := exists(folder_images_path)
+	if err != nil {
+		return err
+	}
+	if ex {
+		err = os.RemoveAll(folder_images_path)
+		if err != nil {
+			return err
+		}
+	}
+	err = os.MkdirAll(folder_images_path, fs.ModePerm)
+	if err != nil {
+		return err
+	}
+	fmt.Println(filepath.Abs(folder_images_path))
+
+	apiGatewayUsecase := usecase.NewApiGatewayUseCase(s.cfg, apiGatewayRepo, registrationServerInfo, folder_images_path)
 	// Init handlers
-	apiGatewayHalndlers := delivery.NewApiGatewayHandlers(s.cfg, s.logger, apiGatewayUsecase)
+	apiGatewayHalndlers := delivery.NewApiGatewayHandlers(s.cfg, s.logger, folder_images_path, apiGatewayUsecase)
 
 	mw := apiMiddlewares.NewMiddlewareManager(s.cfg, []string{"*"}, s.logger)
 
@@ -95,4 +123,15 @@ func (s *Server) MapHandlers(e *echo.Echo) error {
 	})
 
 	return nil
+}
+
+func exists(path string) (bool, error) {
+	if _, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		} else {
+			return false, err
+		}
+	}
+	return true, nil
 }

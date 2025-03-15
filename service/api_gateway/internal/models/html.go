@@ -127,9 +127,10 @@ type AdminPageData struct {
 }
 
 type AdminOperationData struct {
-	Id     uuid.UUID
-	Name   string
-	Status string
-	Begin  string
-	End    string
+	Id        uuid.UUID
+	Name      string
+	Status    string
+	Begin     string
+	End       string
+	ImagePath string
 }

@@ -752,7 +752,7 @@ var (
 		<td>{{.Begin}}</td>
 		<td>{{.End}}</td>
 		<td>
-			<img src="" 
+			<img src="{{.ImagePath}}" 
 			style="width:100px; height: 100px;"
 			alt="operation_graph">
 		</td>

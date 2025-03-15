@@ -19,6 +19,8 @@
 .pgdata
 service/docker/db
 service/docker/services
+service/api_gateway/graph
+service/api_gateway/app
 
 # Go workspace file
 go.work

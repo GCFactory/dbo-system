@@ -19,4 +19,5 @@ type Handlers interface {
 	CloseAccount() echo.HandlerFunc
 	AddAccountCache() echo.HandlerFunc
 	WidthAccountCache() echo.HandlerFunc
+	GraphImage() echo.HandlerFunc
 }

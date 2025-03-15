@@ -25,6 +25,7 @@ type apiGateWayUseCase struct {
 	cfg                    *config.Config
 	repo                   api_gateway.Repository
 	registrationServerInfo *models.RegistrationServerInfo
+	imagesPath             string
 }
 
 var TokenLiveTime = time.Minute
@@ -968,20 +969,25 @@ func (uc *apiGateWayUseCase) CreateAdminPage(begin string, end string) (string, 
 			if err != nil {
 				return "", err
 			}
-			//	TODO: добавить формирование графа операции
 
-			// TODO: доделать заполнение операций
+			graph_file_name := operation_id.String() + "_" + time.Now().Format("02-01-2006_15:04:05")
+			graph_image_path, err := CreateGraph(operation_tree, uc.imagesPath, graph_file_name)
+			if err != nil {
+				return "", err
+			}
+
 			template_admin_operation, err := template.New("AdminOperation").Parse(html.AdminOperation)
 			if err != nil {
 				return "", err
 			}
 
 			admin_operation_data := &models.AdminOperationData{
-				Id:     operation_id,
-				Name:   operation_tree.OperationName,
-				Status: operation_data.Info,
-				Begin:  "",
-				End:    "",
+				Id:        operation_id,
+				Name:      operation_tree.OperationName,
+				Status:    operation_data.Info,
+				Begin:     "",
+				End:       "",
+				ImagePath: "graph/" + graph_image_path,
 			}
 
 			additional_data := operation_data.AdditionalInfo.(map[string]interface{})
@@ -1498,8 +1504,8 @@ func (uc *apiGateWayUseCase) getOperationTree(operation_id uuid.UUID) (*models.O
 
 	result := &models.OperationTree{
 		OperationName:  "",
-		SagaList:       make([]*models.SagaTree, 0),
-		EventList:      make([]*models.EventTree, 0),
+		SagaList:       make(map[uuid.UUID]*models.SagaTree, 0),
+		EventList:      make(map[uuid.UUID]*models.EventTree, 0),
 		SagaDependList: make([]*models.SagaDependTree, 0),
 	}
 
@@ -1534,7 +1540,7 @@ func (uc *apiGateWayUseCase) getOperationTree(operation_id uuid.UUID) (*models.O
 				}
 			}
 
-			result.SagaList = append(result.SagaList, saga_tree)
+			result.SagaList[saga_tree.Id] = saga_tree
 
 		}
 	}
@@ -1565,7 +1571,7 @@ func (uc *apiGateWayUseCase) getOperationTree(operation_id uuid.UUID) (*models.O
 				event_tree.RollBackId = id
 			}
 
-			result.EventList = append(result.EventList, event_tree)
+			result.EventList[event_tree.Id] = event_tree
 		}
 	}
 
@@ -2201,6 +2207,6 @@ func (uc *apiGateWayUseCase) GetOperationDataRequest(operation_id uuid.UUID) (*m
 	return resp_data, nil
 }
 
-func NewApiGatewayUseCase(cfg *config.Config, repo api_gateway.Repository, registration_server_info *models.RegistrationServerInfo) api_gateway.UseCase {
-	return &apiGateWayUseCase{cfg: cfg, repo: repo, registrationServerInfo: registration_server_info}
+func NewApiGatewayUseCase(cfg *config.Config, repo api_gateway.Repository, registration_server_info *models.RegistrationServerInfo, images_path string) api_gateway.UseCase {
+	return &apiGateWayUseCase{cfg: cfg, repo: repo, registrationServerInfo: registration_server_info, imagesPath: images_path}
 }
