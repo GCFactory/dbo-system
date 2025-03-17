@@ -354,12 +354,13 @@ func (h ApiGatewayHandlers) SignOut() echo.HandlerFunc {
 			}
 		}
 
-		cookie := &http.Cookie{
-			Name:   CookieTokenName,
-			Value:  "",
-			Path:   "/",
-			MaxAge: -1,
-		}
+		cookie := new(http.Cookie)
+		cookie.Name = CookieTokenName
+		cookie.Value = ""
+		cookie.Expires = time.Now().Add(-usecase.TokenLiveTime)
+		cookie.Path = "/"
+		cookie.HttpOnly = true
+		cookie.Secure = false
 
 		c.SetCookie(cookie)
 
@@ -1145,26 +1146,13 @@ func (h ApiGatewayHandlers) HomePage() echo.HandlerFunc {
 }
 
 func (h ApiGatewayHandlers) CreateCookie(c echo.Context, token *models.Token) error {
-
-	cookie, err := c.Cookie(CookieTokenName)
-	if err != echo.ErrCookieNotFound &&
-		err != http.ErrNoCookie {
-		return err
-	}
-
-	if cookie == nil {
-		cookie = &http.Cookie{
-			Name:     CookieTokenName,
-			Value:    token.ID.String(),
-			Path:     "/",
-			HttpOnly: true,
-			Secure:   false,
-			Expires:  time.Now().Add(token.Live_time),
-		}
-	} else {
-		cookie.Value = token.ID.String()
-		cookie.Expires = time.Now().Add(token.Live_time)
-	}
+	cookie := new(http.Cookie)
+	cookie.Name = CookieTokenName
+	cookie.Value = token.ID.String()
+	cookie.Expires = time.Now().Add(usecase.TokenLiveTime)
+	cookie.Path = "/"
+	cookie.HttpOnly = true
+	cookie.Secure = false
 
 	c.SetCookie(cookie)
 
@@ -1190,10 +1178,7 @@ func (h ApiGatewayHandlers) CheckToken(c echo.Context) (bool, uuid.UUID, error) 
 			return false, uuid.Nil, err
 		}
 
-		is_ok, err := h.useCase.CheckExistingToken(context.Background(), token_id)
-		if err != nil {
-			return false, uuid.Nil, err
-		}
+		is_ok, _ := h.useCase.CheckExistingToken(context.Background(), token_id)
 		return is_ok, token_id, nil
 
 	} else {
@@ -1203,13 +1188,21 @@ func (h ApiGatewayHandlers) CheckToken(c echo.Context) (bool, uuid.UUID, error) 
 }
 
 func (h ApiGatewayHandlers) UpdateCookie(c echo.Context) error {
-	cookie, err := c.Cookie(CookieTokenName)
-	if err != echo.ErrCookieNotFound &&
-		err != http.ErrNoCookie {
+	old_cookie, err := c.Cookie(CookieTokenName)
+	if err == echo.ErrCookieNotFound ||
+		err == http.ErrNoCookie {
+		return err
+	} else if err != nil {
 		return err
 	}
 
+	cookie := new(http.Cookie)
+	cookie.Name = CookieTokenName
+	cookie.Value = old_cookie.Value
 	cookie.Expires = time.Now().Add(usecase.TokenLiveTime)
+	cookie.Path = "/"
+	cookie.HttpOnly = true
+	cookie.Secure = false
 
 	c.SetCookie(cookie)
 

@@ -703,6 +703,7 @@ var (
 		<div>
             <form class="center_content" id="closeForm">
 				<input type="hidden" name="account_id" value="{{.AccountId}}">
+				<div id="operationMessage"></div>
                 <input type="submit" value="Confirm" id="closeButton">
             </form>
         </div>

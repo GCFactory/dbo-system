@@ -328,8 +328,6 @@ services:
     image: api_gateway_image
     hostname: service_api_gateway
     deploy:
-      mode: replicated
-      replicas: 1
       resources:
         limits:
           cpus: '0.25'
@@ -338,7 +336,7 @@ services:
           cpus: '0.1'
           memory: 128M
     ports:
-      - "8120-8129:8080"
+      - "8080:8080"
     links:
       - redis_api_gateway
       - service_registration

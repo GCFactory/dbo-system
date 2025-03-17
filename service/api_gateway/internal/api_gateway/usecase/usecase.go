@@ -671,6 +671,9 @@ func (uc *apiGateWayUseCase) CreateOperationPage(operation_type string, addition
 						return "", err
 					}
 
+					account_operation_page_info.Operation = buffer.String()
+					buffer.Reset()
+
 				} else if operation_type == AccountOperationTypeClose {
 
 					operation_info := &models.AccountOperationData{
