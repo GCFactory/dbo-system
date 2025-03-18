@@ -74,6 +74,7 @@ var (
 		})
 		.then(data => {
 			if (data.success) {
+                // Устанавливаем флаг, что перенаправление выполнено
 				window.location.href = '{{.HomePageRequest}}'; // Перенаправляем на GET-страницу
 			} else {
 				// Если есть ошибка, выводим сообщение

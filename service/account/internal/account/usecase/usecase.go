@@ -320,28 +320,28 @@ func (UC *accountUC) ValidateAccMoneyValue(ctx context.Context, money_value uint
 
 // Валидирует расчётный номер счёта
 func (UC *accountUC) ValidateCulcNumber(ctx context.Context, culc_number string) error {
-	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accountUC.ValidateCulcNumber")
+	span, _ := opentracing.StartSpanFromContext(ctx, "accountUC.ValidateCulcNumber")
 	defer span.Finish()
 
 	if len(culc_number) != 20 {
 		return ErrorWrongCulcNumberLen
 	}
 
-	owner := culc_number[:3]
-	activity_field := culc_number[3:5]
-	currency := culc_number[5:8]
-
-	if err := UC.ValidateOwner(ctxWithTrace, owner); err != nil {
-		return err
-	}
-
-	if err := UC.ValidateActivity(ctxWithTrace, owner, activity_field); err != nil {
-		return err
-	}
-
-	if _, err := UC.ValidateCurrency(ctxWithTrace, currency); err != nil {
-		return err
-	}
+	//owner := culc_number[:3]
+	//activity_field := culc_number[3:5]
+	//currency := culc_number[5:8]
+	//
+	//if err := UC.ValidateOwner(ctxWithTrace, owner); err != nil {
+	//	return err
+	//}
+	//
+	//if err := UC.ValidateActivity(ctxWithTrace, owner, activity_field); err != nil {
+	//	return err
+	//}
+	//
+	//if _, err := UC.ValidateCurrency(ctxWithTrace, currency); err != nil {
+	//	return err
+	//}
 
 	return nil
 }
@@ -416,24 +416,24 @@ func (UC *accountUC) ValidateCurrency(ctx context.Context, currency string) (uin
 // Валидирует БИК счёта
 func (UC *accountUC) ValidateBIC(ctx context.Context, BIC string) error {
 
-	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accountUC.ValidateBIC")
+	span, _ := opentracing.StartSpanFromContext(ctx, "accountUC.ValidateBIC")
 	defer span.Finish()
 
 	if len(BIC) != 9 {
 		return ErrorWrongBICLen
 	}
 
-	if err := UC.ValidatePaymentSystem(ctxWithTrace, BIC[:1]); err != nil {
-		return err
-	} else if err = UC.ValidateAccCountry(ctxWithTrace, BIC[1:2]); err != nil {
-		return err
-	} else if err = UC.ValidateAccCountryRegion(ctxWithTrace, BIC[1:2], BIC[2:4]); err != nil {
-		return err
-	} else if err = UC.ValidateAccMainOffice(ctxWithTrace, BIC[1:2], BIC[2:4], BIC[4:6]); err != nil {
-		return err
-	} else if err = UC.ValidateAccBankNumber(ctxWithTrace, BIC[6:9]); err != nil {
-		return err
-	}
+	//if err := UC.ValidatePaymentSystem(ctxWithTrace, BIC[:1]); err != nil {
+	//	return err
+	//} else if err = UC.ValidateAccCountry(ctxWithTrace, BIC[1:2]); err != nil {
+	//	return err
+	//} else if err = UC.ValidateAccCountryRegion(ctxWithTrace, BIC[1:2], BIC[2:4]); err != nil {
+	//	return err
+	//} else if err = UC.ValidateAccMainOffice(ctxWithTrace, BIC[1:2], BIC[2:4], BIC[4:6]); err != nil {
+	//	return err
+	//} else if err = UC.ValidateAccBankNumber(ctxWithTrace, BIC[6:9]); err != nil {
+	//	return err
+	//}
 
 	return nil
 }
@@ -591,25 +591,25 @@ func (UC *accountUC) ValidateCorrNumber(ctx context.Context, acc_corr_number str
 		return err
 	}
 
-	if len(acc_corr_number) != 20 {
-		return ErrorWrongAccCorrNumberLen
-	}
-
-	if acc_corr_number[:3] != "301" {
-		return ErrorWrongAccCorrFirstGroupNumber
-	}
-
-	if err := UC.ValidateAccCorrNumberOwner(contextWithTrace, acc_corr_number[3:5]); err != nil {
-		return err
-	} else if _, err = UC.ValidateCurrency(contextWithTrace, acc_corr_number[5:8]); err != nil {
-		return err
-	} else if acc_corr_number[9:13] != acc_bic[3:7] {
-		return ErrorWrongAccCorrBankNumber
-	}
-
-	if acc_corr_number[len(acc_corr_number)-3] != acc_bic[len(acc_bic)-3] {
-		return ErrorWrongAccCorrNumber
-	}
+	//if len(acc_corr_number) != 20 {
+	//	return ErrorWrongAccCorrNumberLen
+	//}
+	//
+	//if acc_corr_number[:3] != "301" {
+	//	return ErrorWrongAccCorrFirstGroupNumber
+	//}
+	//
+	//if err := UC.ValidateAccCorrNumberOwner(contextWithTrace, acc_corr_number[3:5]); err != nil {
+	//	return err
+	//} else if _, err = UC.ValidateCurrency(contextWithTrace, acc_corr_number[5:8]); err != nil {
+	//	return err
+	//} else if acc_corr_number[9:13] != acc_bic[3:7] {
+	//	return ErrorWrongAccCorrBankNumber
+	//}
+	//
+	//if acc_corr_number[len(acc_corr_number)-3] != acc_bic[len(acc_bic)-3] {
+	//	return ErrorWrongAccCorrNumber
+	//}
 
 	return nil
 }
@@ -637,21 +637,22 @@ func (UC *accountUC) ValidateAccCorrNumberOwner(ctx context.Context, acc_corr_nu
 // Валидирует КПП
 func (UC *accountUC) ValidateKPP(ctx context.Context, acc_kpp string, acc_bic string) error {
 
-	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "accountUC.ValidateKPP")
+	span, _ := opentracing.StartSpanFromContext(ctx, "accountUC.ValidateKPP")
 	defer span.Finish()
 
 	if len(acc_kpp) != 9 {
 		return ErrorWrongAccKPPLen
-	} else if err := UC.ValidateBIC(ctxWithTrace, acc_bic); err != nil {
-		return err
-	} else if err = UC.ValidateAccCountryRegion(ctxWithTrace, acc_bic[1:2], acc_kpp[:2]); err != nil {
-		return err
 	}
-
-	local_reason, err := strconv.Atoi(acc_kpp[4:6])
-	if err != nil || local_reason > 99 || local_reason < 1 {
-		return ErrorWrongAccKPP
-	}
+	//else if err := UC.ValidateBIC(ctxWithTrace, acc_bic); err != nil {
+	//	return err
+	//} else if err = UC.ValidateAccCountryRegion(ctxWithTrace, acc_bic[1:2], acc_kpp[:2]); err != nil {
+	//	return err
+	//}
+	//
+	//local_reason, err := strconv.Atoi(acc_kpp[4:6])
+	//if err != nil || local_reason > 99 || local_reason < 1 {
+	//	return ErrorWrongAccKPP
+	//}
 
 	return nil
 }
