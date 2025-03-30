@@ -7,7 +7,7 @@ if ! command -v openssl &> /dev/null; then
 fi
 
 # Указываем путь к файлу (можно изменить)
-AUTH_FILE="./mail/auth/auth.txt"
+AUTH_FILE="./mail/mail_auth/auth.txt"
 
 # Проверяем, существует ли файл. Если нет — создаем.
 if [ ! -f "$AUTH_FILE" ]; then

@@ -5,7 +5,9 @@ import (
 	"github.com/GCFactory/dbo-system/platform/pkg/csrf"
 	"github.com/GCFactory/dbo-system/platform/pkg/metric"
 	"github.com/GCFactory/dbo-system/platform/pkg/utils"
-	"github.com/GCFactory/dbo-system/service/totp/docs"
+	"github.com/GCFactory/dbo-system/service/totp/pkg/otp"
+
+	//"github.com/GCFactory/dbo-system/service/totp/docs"
 	apiMiddlewares "github.com/GCFactory/dbo-system/service/totp/internal/middleware"
 	totpHttp "github.com/GCFactory/dbo-system/service/totp/internal/totp/delivery/http"
 	totpRepository "github.com/GCFactory/dbo-system/service/totp/internal/totp/repository"
@@ -34,10 +36,10 @@ func (s *Server) MapHandlers(e *echo.Echo) error {
 	//sRepo := sessionRepository.NewSessionRepository(s.redisClient, s.cfg)
 	//newsRedisRepo := newsRepository.NewNewsRedisRepo(s.redisClient)
 
-	tLogic :=
+	tLogic := otp.NewTOTPStruct(s.cfg, s.logger)
 
 	// Init useCases
-	tUC := totpUsecase.NewTOTPUseCase(s.cfg, tRepo, s.logger)
+	tUC := totpUsecase.NewTOTPUseCase(s.cfg, tRepo, tLogic, s.logger)
 	//authUC := authUseCase.NewAuthUseCase(s.cfg, aRepo, authRedisRepo, s.logger)
 
 	// Init handlers
@@ -49,7 +51,7 @@ func (s *Server) MapHandlers(e *echo.Echo) error {
 	e.Use(mw.RequestLoggerMiddleware)
 
 	if s.cfg.Docs.Enable {
-		docs.SwaggerInfo.Title = s.cfg.Docs.Title
+		//docs.SwaggerInfo.Title = s.cfg.Docs.Title
 		e.GET(fmt.Sprintf("/%s/*", s.cfg.Docs.Prefix), echoSwagger.WrapHandler)
 	}
 

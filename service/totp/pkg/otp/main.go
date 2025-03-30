@@ -3,12 +3,12 @@ package otp
 import (
 	"crypto/rand"
 	platformConfig "github.com/GCFactory/dbo-system/platform/config"
+	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	totpPkg "github.com/GCFactory/dbo-system/service/totp/pkg"
 	"github.com/GCFactory/dbo-system/service/totp/pkg/hotp"
 	hotpConfig "github.com/GCFactory/dbo-system/service/totp/pkg/hotp/config"
 	"github.com/GCFactory/dbo-system/service/totp/pkg/otp/config"
 	totpConfig "github.com/GCFactory/dbo-system/service/totp/pkg/otp/config"
-	"log"
 	"math"
 	"net/url"
 	"sort"
@@ -19,7 +19,7 @@ import (
 
 type TotpStruct struct {
 	cfg *platformConfig.Config
-	log log.Logger
+	log logger.Logger
 }
 
 // ValidateCustom validates a TOTP given a user specified time and custom options.
@@ -186,6 +186,6 @@ func (totp TotpStruct) EncodeQuery(v url.Values) string {
 	return buf.String()
 }
 
-func NewTOTPStruct(cfg *platformConfig.Config, logger log.Logger) totpPkg.Totp {
+func NewTOTPStruct(cfg *platformConfig.Config, logger logger.Logger) totpPkg.Totp {
 	return &TotpStruct{cfg: cfg, log: logger}
 }

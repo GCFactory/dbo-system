@@ -4,8 +4,6 @@ github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161/go.mod h1:xomTg6
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/GCFactory/dbo-system/platform v1.1.1 h1:FJRzLNYpuDGkoQVp2s1w6p2Z/rOU9kwngUxmdrwKy+c=
 github.com/GCFactory/dbo-system/platform v1.1.1/go.mod h1:5MKMnL6hSzfHj91LumTWmgQC7hsAz/huEgv/HQcnWgY=
-github.com/GCFactory/dbo-system/test v1.0.0 h1:sjUuzzjQz570EX1flDIYhsAJGOGPclz9TZ6vc881BbM=
-github.com/GCFactory/dbo-system/test v1.0.0/go.mod h1:q8KYr38laGDJHowdcZPiNuOHgrYA0ZGwyYKSxPIg28Q=
 github.com/HdrHistogram/hdrhistogram-go v1.1.2 h1:5IcZpTvzydCQeHzK4Ef/D5rrSqwxob0t8PQPMybUNFM=
 github.com/HdrHistogram/hdrhistogram-go v1.1.2/go.mod h1:yDgFjdqOqDEKOvasDdhWNXYg9BVp4O+o5f6V/ehm6Oo=
 github.com/KyleBanks/depth v1.2.1 h1:5h8fQADFrWtarTdtDudMmGsC7GPbOAu6RVB3ffsVFHc=

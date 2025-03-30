@@ -59,7 +59,7 @@ func main() {
 
 	// driver объект подключения по типу psql
 	driver, err := migratePostgres.WithInstance(psqlDB.DB, &migratePostgres.Config{
-		MigrationsTable:       "\"totp_service\".\"schema_migration\"",
+		MigrationsTable:       "\"schema_migration\"",
 		MigrationsTableQuoted: true,
 	})
 	if err != nil {

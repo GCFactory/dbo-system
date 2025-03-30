@@ -4,7 +4,6 @@ go 1.21
 
 require (
 	github.com/GCFactory/dbo-system/platform v1.1.1
-	github.com/GCFactory/dbo-system/test v1.0.0
 	github.com/golang-migrate/migrate/v4 v4.16.2
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.4.0

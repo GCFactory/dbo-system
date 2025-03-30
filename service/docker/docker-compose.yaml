@@ -223,6 +223,30 @@ services:
           cpus: '0.1'
           memory: 128M
 
+  postgresql_totp:
+    image: postgres:14-alpine
+    hostname: postgresql_totp
+    container_name: postgresql_totp
+    ports:
+      - "5437:5432"
+    restart: on-failure
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=totp
+    volumes:
+      - ./db/db_totp:/var/lib/postgresql/data
+    networks:
+      - web_api
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
   service_users:
     build:
       context: ./../users
@@ -331,36 +355,6 @@ services:
       timeout: 10s
       retries: 5
 
-  service_api_gateway:
-    build:
-      context: ./../api_gateway
-      dockerfile: ./docker/Dockerfile
-    image: api_gateway_image
-    hostname: service_api_gateway
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: 128M
-        reservations:
-          cpus: '0.1'
-          memory: 128M
-    ports:
-      - "8110-8119:8080"
-    links:
-      - redis_api_gateway
-      - service_registration
-    depends_on:
-      - redis_api_gateway
-      - service_registration
-    cap_add:
-      - SYS_PTRACE
-    restart: always
-    volumes:
-      - ./services/api_gateway/api_gateway_config:/usr/src/app/config
-    networks:
-      - web_api
-
   mailpit:
     container_name: mailpit
     image: axllent/mailpit
@@ -383,8 +377,8 @@ services:
       - MP_UI_AUTH_FILE=/auth/auth.txt    # Аутентификация веб-интерфейса
     volumes:
       - ./mail/mailpit:/data
-      - ./mail/certs:/certs
-      - ./mail/auth:/auth
+      - ./mail/mail_certs:/certs
+      - ./mail/mail_auth:/auth
     deploy:
       resources:
         limits:
@@ -411,7 +405,7 @@ services:
           cpus: '0.1'
           memory: 128M
     ports:
-      - "8120-8129:8080"
+      - "8110-8119:8080"
     links:
       - jaeger
       - postgresql_notification
@@ -447,7 +441,7 @@ services:
           cpus: '0.1'
           memory: 128M
     ports:
-      - "8110-8119:8080"
+      - "8120-8129:8080"
     links:
       - jaeger
       - kafka
@@ -460,7 +454,6 @@ services:
       - postgresql_registration
       - service_accounts
       - service_users
-      - service_notification
     cap_add:
       - SYS_PTRACE
     restart: always
@@ -469,21 +462,89 @@ services:
     networks:
       - web_api
 
+  service_totp:
+    build:
+      context: ./../totp
+      dockerfile: ./docker/Dockerfile
+    image: totp_image
+    hostname: service_totp
+    deploy:
+      mode: replicated
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    links:
+      - postgresql_totp
+    depends_on:
+      - postgresql_totp
+    restart: always
+    ports:
+      - "8130-8139:8080"
+    networks:
+      - web_api
+    volumes:
+      - ./services/totp/totp_config:/usr/src/app/config
+
+  service_api_gateway:
+    build:
+      context: ./../api_gateway
+      dockerfile: ./docker/Dockerfile
+    image: api_gateway_image
+    hostname: service_api_gateway
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    ports:
+      - "8110-8119:8080"
+    links:
+      - redis_api_gateway
+      - service_registration
+      - service_totp
+      - service_notification
+      - rabbitmq
+    depends_on:
+      - redis_api_gateway
+      - service_registration
+      - service_totp
+      - service_notification
+      - rabbitmq
+    cap_add:
+      - SYS_PTRACE
+    restart: always
+    volumes:
+      - ./services/api_gateway/api_gateway_config:/usr/src/app/config
+    networks:
+      - web_api
+
+
 networks:
   web_api:
     driver: bridge
 
 volumes:
   db_users:
-  users_config:
   db_accounts:
-  accounts_config:
   db_registration:
+  db_notification:
+  db_totp:
+  db_api_gateway:
+  users_config:
+  accounts_config:
   registration_config:
   api_gateway_config:
-  db_notification:
+  notification_config:
+  totp_config:
   rabbitmq:
-  notification:
   mailpit:
-  certs:
-  auth:
+  mail_certs:
+  mail_auth:
