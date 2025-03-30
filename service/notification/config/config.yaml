@@ -32,8 +32,14 @@ RabbitMQ:
   User: admin
   Password: admin
   Queue: notification
-#  Exchange string
 
+NotificationSmtp:
+  Host: localhost
+  Port: 1025
+  User: dbo-system
+  Password: admin
+  From: dbo.notification@mail.ru
+  NickName: dbo-system
 
 cookie:
   Name: jwt-token

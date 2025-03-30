@@ -16,6 +16,7 @@ import (
 	jaegerlog "github.com/uber/jaeger-client-go/log"
 	"github.com/uber/jaeger-lib/metrics"
 	"log"
+	"net/smtp"
 	"os"
 )
 
@@ -139,7 +140,24 @@ func main() {
 	appLogger.Info("Register RMQ consumer success")
 
 	appLogger.Info("Log in to SMTP server")
-	//smtpAuth := smtp.PlainAuth(cfg)
+	smtpAuth := smtp.PlainAuth(
+		cfg.NotificationSmtp.NickName,
+		cfg.NotificationSmtp.User,
+		cfg.NotificationSmtp.Password,
+		cfg.NotificationSmtp.Host)
+	err = smtp.SendMail(
+		cfg.NotificationSmtp.Host+":"+cfg.NotificationSmtp.Port,
+		smtpAuth,
+		cfg.NotificationSmtp.NickName,
+		[]string{
+			cfg.NotificationSmtp.NickName,
+		},
+		[]byte("Auth test msg"))
+	if err != nil {
+		appLogger.Fatalf("Log in to SMTP server test msg error: %s", err)
+		return
+	}
+	appLogger.Info("Log in to SMTP server success")
 
 	jaegerCfgInstance := jaegercfg.Configuration{
 		ServiceName: cfg.Jaeger.ServiceName,
@@ -167,7 +185,7 @@ func main() {
 	appLogger.Info("Opentracing connected")
 
 	//Run server
-	s := server.NewServer(cfg, psqlDB, msgChan, appLogger)
+	s := server.NewServer(cfg, psqlDB, msgChan, smtpAuth, appLogger)
 	if err = s.Run(); err != nil {
 		appLogger.Fatal(err)
 	}

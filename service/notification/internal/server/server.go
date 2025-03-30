@@ -9,6 +9,7 @@ import (
 	"github.com/GCFactory/dbo-system/service/notification/internal/notification/usecase"
 	"github.com/labstack/echo/v4"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"net/smtp"
 	"os"
 	"os/signal"
 	"syscall"
@@ -28,27 +29,29 @@ const (
 
 // Server struct
 type Server struct {
-	echo    *echo.Echo
-	cfg     *config.Config
-	db      *sqlx.DB
-	logger  logger.Logger
-	msg     <-chan amqp.Delivery
-	useCase notification.UseCase
+	echo      *echo.Echo
+	cfg       *config.Config
+	db        *sqlx.DB
+	logger    logger.Logger
+	msg       <-chan amqp.Delivery
+	useCase   notification.UseCase
+	emailAuth smtp.Auth
 }
 
-func NewServer(cfg *config.Config, db *sqlx.DB, msgChan <-chan amqp.Delivery, logger logger.Logger) *Server {
+func NewServer(cfg *config.Config, db *sqlx.DB, msgChan <-chan amqp.Delivery, emailAuth smtp.Auth, logger logger.Logger) *Server {
 	server := Server{
-		echo:   echo.New(),
-		cfg:    cfg,
-		db:     db,
-		msg:    msgChan,
-		logger: logger,
+		echo:      echo.New(),
+		cfg:       cfg,
+		db:        db,
+		msg:       msgChan,
+		logger:    logger,
+		emailAuth: emailAuth,
 	}
 	server.echo.HidePort = true
 	server.echo.HideBanner = true
 
 	serverRepo := repo.NewNotificationRepository(server.db)
-	server.useCase = usecase.NewNotificationUseCase(serverRepo)
+	server.useCase = usecase.NewNotificationUseCase(serverRepo, server.emailAuth, server.cfg.NotificationSmtp)
 
 	return &server
 }
