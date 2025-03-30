@@ -19,6 +19,7 @@
 .pgdata
 service/docker/db
 service/docker/services
+service/docker/rabbitmq
 service/api_gateway/graph
 service/api_gateway/app
 

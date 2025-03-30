@@ -6,7 +6,7 @@ import (
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/platform/pkg/utils"
 	"github.com/GCFactory/dbo-system/service/notification/config"
-	"notification/internal/server"
+	"github.com/GCFactory/dbo-system/service/notification/internal/server"
 
 	//"github.com/GCFactory/dbo-system/service/users/internal/server"
 	"github.com/golang-migrate/migrate/v4"
@@ -19,7 +19,6 @@ import (
 	"github.com/uber/jaeger-lib/metrics"
 	"log"
 	"os"
-	"strings"
 )
 
 //	@Title			Users Service

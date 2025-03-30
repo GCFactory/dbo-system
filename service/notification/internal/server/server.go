@@ -2,23 +2,20 @@ package server
 
 import (
 	"context"
-	"errors"
-	platfrom_config "github.com/GCFactory/dbo-system/platform/config"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/service/notification/config"
+	"os"
+	"os/signal"
+	"syscall"
+
 	//"github.com/GCFactory/dbo-system/service/notification/internal/users"
 	//"github.com/GCFactory/dbo-system/service/users/internal/users/repository"
 	//"github.com/GCFactory/dbo-system/service/users/internal/users/usecase"
 	"github.com/labstack/echo/v4"
 
-	"github.com/IBM/sarama"
 	"github.com/jmoiron/sqlx"
 	"net/http"
 	"net/http/pprof"
-	_ "net/http/pprof"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 )
 
@@ -85,4 +82,15 @@ func (s *Server) Run() error {
 	if err := s.MapHandlers(s.echo); err != nil {
 		return err
 	}
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+
+	<-quit
+
+	ctx, shutdown := context.WithTimeout(context.Background(), ctxTimeout*time.Second)
+	defer shutdown()
+
+	s.logger.Info("Server Exited Properly")
+	return s.echo.Server.Shutdown(ctx)
 }

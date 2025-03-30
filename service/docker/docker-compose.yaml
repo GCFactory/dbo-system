@@ -102,6 +102,31 @@ services:
           cpus: '0.1'
           memory: 128M
 
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:3-management
+    hostname: rabbitmq
+    ports:
+      - 15672:15672
+      - 5672:5672
+    restart: always
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit log_levels [{connection,error},{default,error}] disk_free_limit 2147483648
+    networks:
+      - web_api
+    volumes:
+      - ./rabbitmq:/var/lib/rabbitmq
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 128M
+
   postgresql_users:
     image: postgres:14-alpine
     hostname: postgresql_users
@@ -163,6 +188,30 @@ services:
       - POSTGRES_DB=registration
     volumes:
       - ./db/db_registration:/var/lib/postgresql/data
+    networks:
+      - web_api
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+  postgresql_notification:
+    image: postgres:14-alpine
+    hostname: postgresql_notification
+    container_name: postgresql_notification
+    ports:
+      - "5436:5432"
+    restart: on-failure
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=notification
+    volumes:
+      - ./db/db_notification:/var/lib/postgresql/data
     networks:
       - web_api
     deploy:
@@ -351,14 +400,24 @@ services:
     networks:
       - web_api
 
-#  mailhog:
-#    container_name: mailhog
-#    image: mailhog/mailhog
-#    logging:
-#      driver: 'none'  # disable saving logs
-#    ports:
-#      - 1025:1025 # smtp server
-#      - 8025:8025 # web ui
+  mailhog:
+    container_name: mailhog
+    image: mailhog/mailhog
+    hostname: mailhog
+    restart: always
+    networks:
+      - web_api
+    ports:
+      - 1025:1025 # smtp server
+      - 8025:8025 # web ui
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
 
 networks:
   web_api:
@@ -372,3 +431,5 @@ volumes:
   db_registration:
   registration_config:
   api_gateway_config:
+  db_notification:
+  rabbitmq:
