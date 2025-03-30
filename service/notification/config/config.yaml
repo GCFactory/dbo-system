@@ -1,0 +1,42 @@
+version: 1.0.0
+
+jaeger:
+  Host: localhost:6831
+  ServiceName: notification
+  LogSpans: false
+
+docs:
+  Enable: false
+  Prefix: swagger
+  Title: Notification Service REST API
+
+logger:
+  Development: true
+  DisableCaller: false
+  DisableStacktrace: false
+  Encoding: json
+  Level: debug
+
+postgres:
+  PostgresqlHost: localhost
+  PostgresqlPort: 5436
+  PostgresqlUser: postgres
+  PostgresqlPassword: postgres
+  PostgresqlDbname: notification
+  PostgresqlSSLMode: false
+  PgDriver: pgx
+
+cookie:
+  Name: jwt-token
+  MaxAge: 86400
+  Secure: false
+  HttpOnly: true
+
+session:
+  Name: session-id
+  Prefix: api-notification
+  Expire: 3600
+
+metrics:
+  Url: 0.0.0.0:7070
+  ServiceName: notification
