@@ -1,0 +1,17 @@
+meta {
+  name: Delete Settings
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://{{Host}}:{{Port}}/api/v1/notification/delete_user_notification_settings
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "user_id": "c2449a59-bf74-445f-a889-15552c5b1734"
+  }
+}

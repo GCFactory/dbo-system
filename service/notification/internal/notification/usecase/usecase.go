@@ -23,7 +23,12 @@ func (uc NotificationUseCase) AddUserSettings(ctx context.Context, user *models.
 	span, local_ctx := opentracing.StartSpanFromContext(ctx, "NotificationUseCase.AddUserSettings")
 	defer span.Finish()
 
-	err := uc.repo.AddUserNotificationSettings(local_ctx, user)
+	userD, err := uc.repo.GetUserNotificationSettings(local_ctx, user.UserUuid)
+	if err == nil && userD != nil {
+		return ErrorUserSettingsAlreadyExist
+	}
+
+	err = uc.repo.AddUserNotificationSettings(local_ctx, user)
 	if err != nil {
 		return err
 	}
@@ -36,7 +41,12 @@ func (uc NotificationUseCase) UpdateUserSettings(ctx context.Context, user *mode
 	span, local_ctx := opentracing.StartSpanFromContext(ctx, "NotificationUseCase.UpdateUserSettings")
 	defer span.Finish()
 
-	err := uc.repo.UpdateUserNotificationSettings(local_ctx, user)
+	userD, err := uc.repo.GetUserNotificationSettings(local_ctx, user.UserUuid)
+	if err != nil && userD == nil {
+		return ErrorUserNotFound
+	}
+
+	err = uc.repo.UpdateUserNotificationSettings(local_ctx, user)
 	if err != nil {
 		return nil
 	}
@@ -49,7 +59,12 @@ func (uc NotificationUseCase) DeleteUserSettings(ctx context.Context, userId uui
 	span, local_ctx := opentracing.StartSpanFromContext(ctx, "NotificationUseCase.DeleteUserSettings")
 	defer span.Finish()
 
-	err := uc.repo.DeleteUserNotificationSettings(local_ctx, userId)
+	userD, err := uc.repo.GetUserNotificationSettings(local_ctx, userId)
+	if err != nil && userD == nil {
+		return ErrorUserNotFound
+	}
+
+	err = uc.repo.DeleteUserNotificationSettings(local_ctx, userId)
 	if err != nil {
 		return err
 	}

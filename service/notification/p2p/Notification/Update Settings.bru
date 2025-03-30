@@ -1,0 +1,19 @@
+meta {
+  name: Update Settings
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://{{Host}}:{{Port}}/api/v1/notification/update_user_notification_settings
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+      "user_id": "c2449a59-bf74-445f-a889-15552c5b1734",
+      "email_notification": false,
+      "email": "rueie@mail.ru"
+  }
+}
