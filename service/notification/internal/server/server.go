@@ -2,16 +2,16 @@ package server
 
 import (
 	"context"
+	"github.com/GCFactory/dbo-system/platform/config"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
-	"github.com/GCFactory/dbo-system/service/notification/config"
+	"github.com/GCFactory/dbo-system/service/notification/internal/notification"
+	"github.com/GCFactory/dbo-system/service/notification/internal/notification/repo"
+	"github.com/GCFactory/dbo-system/service/notification/internal/notification/usecase"
+	"github.com/labstack/echo/v4"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"os"
 	"os/signal"
 	"syscall"
-
-	//"github.com/GCFactory/dbo-system/service/notification/internal/users"
-	//"github.com/GCFactory/dbo-system/service/users/internal/users/repository"
-	//"github.com/GCFactory/dbo-system/service/users/internal/users/usecase"
-	"github.com/labstack/echo/v4"
 
 	"github.com/jmoiron/sqlx"
 	"net/http"
@@ -28,21 +28,28 @@ const (
 
 // Server struct
 type Server struct {
-	echo   *echo.Echo
-	cfg    *config.Config
-	db     *sqlx.DB
-	logger logger.Logger
+	echo    *echo.Echo
+	cfg     *config.Config
+	db      *sqlx.DB
+	logger  logger.Logger
+	msg     <-chan amqp.Delivery
+	useCase notification.UseCase
 }
 
-func NewServer(cfg *config.Config, db *sqlx.DB, logger logger.Logger) *Server {
+func NewServer(cfg *config.Config, db *sqlx.DB, msgChan <-chan amqp.Delivery, logger logger.Logger) *Server {
 	server := Server{
 		echo:   echo.New(),
 		cfg:    cfg,
 		db:     db,
+		msg:    msgChan,
 		logger: logger,
 	}
 	server.echo.HidePort = true
 	server.echo.HideBanner = true
+
+	serverRepo := repo.NewNotificationRepository(server.db)
+	server.useCase = usecase.NewNotificationUseCase(serverRepo)
+
 	return &server
 }
 
@@ -82,6 +89,15 @@ func (s *Server) Run() error {
 	if err := s.MapHandlers(s.echo); err != nil {
 		return err
 	}
+
+	go func() {
+		for d := range s.msg {
+			err := s.useCase.SendMessage(context.Background(), d)
+			if err != nil {
+				s.logger.Errorf("Error send msg: %s", err)
+			}
+		}
+	}()
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)

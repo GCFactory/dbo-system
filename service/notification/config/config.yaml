@@ -26,6 +26,15 @@ postgres:
   PostgresqlSSLMode: false
   PgDriver: pgx
 
+RabbitMQ:
+  Host: localhost
+  Port: 5672
+  User: admin
+  Password: admin
+  Queue: notification
+#  Exchange string
+
+
 cookie:
   Name: jwt-token
   MaxAge: 86400

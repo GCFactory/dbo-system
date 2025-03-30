@@ -1,18 +1,16 @@
 package main
 
 import (
-	platformConfig "github.com/GCFactory/dbo-system/platform/config"
+	"github.com/GCFactory/dbo-system/platform/config"
 	"github.com/GCFactory/dbo-system/platform/pkg/db/postgres"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/platform/pkg/utils"
-	"github.com/GCFactory/dbo-system/service/notification/config"
 	"github.com/GCFactory/dbo-system/service/notification/internal/server"
-
-	//"github.com/GCFactory/dbo-system/service/users/internal/server"
 	"github.com/golang-migrate/migrate/v4"
 	migratePostgres "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/opentracing/opentracing-go"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
 	jaegerlog "github.com/uber/jaeger-client-go/log"
@@ -47,14 +45,14 @@ func main() {
 		log.Fatalf("ParseConfig: %v", err)
 	}
 
-	appLogger := logger.NewServerLogger(&platformConfig.Config{
+	appLogger := logger.NewServerLogger(&config.Config{
 		Logger: cfg.Logger,
 	})
 
 	appLogger.InitLogger()
 	appLogger.Infof("AppVersion: %s, LogLevel: %s, Env: %s, SSL: %v", cfg.Version, cfg.Logger.Level, cfg.Env, cfg.HTTPServer.SSL)
 
-	psqlDB, err := postgres.NewPsqlDB(&platformConfig.Config{
+	psqlDB, err := postgres.NewPsqlDB(&config.Config{
 		Postgres: cfg.Postgres,
 	})
 	if err != nil {
@@ -86,6 +84,63 @@ func main() {
 	}
 	appLogger.Info("Migration completed")
 
+	appLogger.Info("Connecting to RMQ")
+	rmqUrl := "amqp://" +
+		cfg.RabbitMQ.User + ":" +
+		cfg.RabbitMQ.Password + "@" +
+		cfg.RabbitMQ.Host + ":" +
+		cfg.RabbitMQ.Port
+	rmqConn, err := amqp.Dial(rmqUrl)
+	if err != nil {
+		appLogger.Fatalf("Connecting error to RMQ: %s", err)
+		return
+	}
+	defer rmqConn.Close()
+	appLogger.Info("Connecting to RMQ success")
+
+	appLogger.Info("Open RMQ channel")
+	rmqCh, err := rmqConn.Channel()
+	if err != nil {
+		appLogger.Fatalf("Open RMQ channel error: %s", err)
+		return
+	}
+	defer rmqCh.Close()
+	appLogger.Info("Open RMQ channel success")
+
+	appLogger.Info("Creating RMQ queue")
+	rmqQueue, err := rmqCh.QueueDeclare(
+		cfg.RabbitMQ.Queue, // name
+		false,              // durable
+		false,              // delete when unused
+		false,              // exclusive
+		false,              // no-wait
+		nil,                // arguments
+	)
+	if err != nil {
+		appLogger.Fatalf("Create RMQ queue error: %s", err)
+		return
+	}
+	appLogger.Info("Create RMQ queue success")
+
+	appLogger.Info("Register RMQ consumer")
+	msgChan, err := rmqCh.Consume(
+		rmqQueue.Name, // queue
+		"",            // consumer
+		true,          // auto-ack
+		false,         // exclusive
+		false,         // no-local
+		false,         // no-wait
+		nil,           // args
+	)
+	if err != nil {
+		appLogger.Fatalf("Register RMQ consumer error: %s", err)
+		return
+	}
+	appLogger.Info("Register RMQ consumer success")
+
+	appLogger.Info("Log in to SMTP server")
+	//smtpAuth := smtp.PlainAuth(cfg)
+
 	jaegerCfgInstance := jaegercfg.Configuration{
 		ServiceName: cfg.Jaeger.ServiceName,
 		Sampler: &jaegercfg.SamplerConfig{
@@ -112,7 +167,7 @@ func main() {
 	appLogger.Info("Opentracing connected")
 
 	//Run server
-	s := server.NewServer(cfg, psqlDB, appLogger)
+	s := server.NewServer(cfg, psqlDB, msgChan, appLogger)
 	if err = s.Run(); err != nil {
 		appLogger.Fatal(err)
 	}

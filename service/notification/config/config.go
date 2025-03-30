@@ -1,7 +1,7 @@
 package config
 
 import (
-	platformConfig "github.com/GCFactory/dbo-system/platform/config"
+	"errors"
 	"github.com/spf13/viper"
 	"log"
 	"strings"
@@ -15,16 +15,19 @@ type Config struct {
 	Version    string                      `yaml:"version"`
 	HTTPServer HTTPServerConfig            `yaml:"http-server,omitempty" mapstructure:"http-server"`
 
-	Logger  platformConfig.Logger `yaml:"logger"`
-	Jaeger  Jaeger                `yaml:"jaeger"`
-	Metrics Metrics               `yaml:"metrics"`
+	Logger  Logger  `yaml:"logger"`
+	Jaeger  Jaeger  `yaml:"jaeger"`
+	Metrics Metrics `yaml:"metrics"`
 	Docs    Docs
 
 	KafkaConsumer KafkaConsumer `yaml:"kafkaConsumer"`
 	KafkaProducer KafkaProducer `yaml:"kafkaConsumer"`
 
-	Postgres platformConfig.PostgresConfig `yaml:"postgres,omitempty"`
-	AWS      AWS                           `yaml:"aws,omitempty"`
+	RabbitMQ RabbitMQConfig `yaml:"rabbitmq,omitempty"`
+	Postgres PostgresConfig `yaml:"postgres,omitempty"`
+	Redis    RedisConfig    `yaml:"redis,omitempty"`
+	MongoDB  MongoDB        `yaml:"mongodb,omitempty"`
+	AWS      AWS            `yaml:"aws,omitempty"`
 
 	Cookie  Cookie  `yaml:"cookie,omitempty"`
 	Session Session `yaml:"session,omitempty"`
@@ -89,7 +92,7 @@ func LoadConfig(filename string) (*viper.Viper, error) {
 
 	if err := v.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			return nil, err
+			return nil, errors.New("config file not found")
 		}
 		return nil, err
 	}

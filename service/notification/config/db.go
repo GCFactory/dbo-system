@@ -13,15 +13,13 @@ type PostgresConfig struct {
 
 // Redis config
 type RedisConfig struct {
-	RedisAddr      string
-	RedisPassword  string
-	RedisDB        string
-	RedisDefaultdb string
-	MinIdleConns   int
-	PoolSize       int
-	PoolTimeout    int
-	Password       string
-	DB             int
+	RedisAddr     string `yaml:"Host"`
+	RedisPassword string `yaml:"RedisPassword"`
+	MaxRetries    int    `yaml:"MaxRetries"`
+	User          string `yaml:"User"`
+	DB            int    `yaml:"DbId"`
+	DialTimeout   int    `yaml:"DialTimeout"` // таймаут для установки новых соединений
+	Timeout       int    `yaml:"Timeout"`     // таймаут для чтения и записи
 }
 
 // MongoDB config
