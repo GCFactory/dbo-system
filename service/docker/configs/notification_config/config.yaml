@@ -15,7 +15,7 @@ http-server:
   Debug: false
 
 jaeger:
-  Host: localhost:6831
+  Host: jaeger:6831
   ServiceName: notification
   LogSpans: false
 
@@ -32,8 +32,8 @@ logger:
   Level: debug
 
 postgres:
-  PostgresqlHost: localhost
-  PostgresqlPort: 5436
+  PostgresqlHost: postgresql_notification
+  PostgresqlPort: 5432
   PostgresqlUser: postgres
   PostgresqlPassword: postgres
   PostgresqlDbname: notification
@@ -41,15 +41,15 @@ postgres:
   PgDriver: pgx
 
 RabbitMQ:
-  Host: localhost
+  Host: rabbitmq
   Port: 5672
   User: admin
   Password: admin
   Queue: notification
 
 NotificationSmtp:
-  Host: localhost
-  Port: 10465
+  Host: mailpit
+  Port: 1025
   User: dbo-system
   Password: admin
   From: dbo.notification@mail.ru

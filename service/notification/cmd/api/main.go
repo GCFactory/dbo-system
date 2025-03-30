@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"github.com/GCFactory/dbo-system/platform/config"
 	"github.com/GCFactory/dbo-system/platform/pkg/db/postgres"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
@@ -139,25 +140,40 @@ func main() {
 	}
 	appLogger.Info("Register RMQ consumer success")
 
-	appLogger.Info("Log in to SMTP server")
 	smtpAuth := smtp.PlainAuth(
 		cfg.NotificationSmtp.NickName,
 		cfg.NotificationSmtp.User,
 		cfg.NotificationSmtp.Password,
 		cfg.NotificationSmtp.Host)
-	err = smtp.SendMail(
-		cfg.NotificationSmtp.Host+":"+cfg.NotificationSmtp.Port,
-		smtpAuth,
-		cfg.NotificationSmtp.NickName,
-		[]string{
-			cfg.NotificationSmtp.NickName,
-		},
-		[]byte("Auth test msg"))
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: true, // Проверять сертификат (лучше `false` в продакшене)
+		ServerName:         cfg.NotificationSmtp.Host,
+	}
+
+	appLogger.Info("Open tls connection with smtp")
+	tlsConn, err := tls.Dial("tcp", cfg.NotificationSmtp.Host+":"+cfg.NotificationSmtp.Port, tlsConfig)
 	if err != nil {
-		appLogger.Fatalf("Log in to SMTP server test msg error: %s", err)
+		appLogger.Fatalf("Open tls connection with smtp error: %s", err)
 		return
 	}
-	appLogger.Info("Log in to SMTP server success")
+	defer tlsConn.Close()
+	appLogger.Info("Open tls connection with smtp success")
+
+	appLogger.Info("Create smtp client")
+	smtpClient, err := smtp.NewClient(tlsConn, cfg.NotificationSmtp.Host)
+	if err != nil {
+		appLogger.Fatalf("Create smtp client error: %s", err)
+		return
+	}
+	defer smtpClient.Close()
+	appLogger.Info("Create smtp client success")
+
+	appLogger.Info("Smtp auth")
+	if err = smtpClient.Auth(smtpAuth); err != nil {
+		appLogger.Fatalf("Smtp auth error: %s", err)
+		return
+	}
+	appLogger.Info("Smtp auth success")
 
 	jaegerCfgInstance := jaegercfg.Configuration{
 		ServiceName: cfg.Jaeger.ServiceName,
@@ -185,7 +201,7 @@ func main() {
 	appLogger.Info("Opentracing connected")
 
 	//Run server
-	s := server.NewServer(cfg, psqlDB, msgChan, smtpAuth, appLogger)
+	s := server.NewServer(cfg, psqlDB, msgChan, smtpClient, appLogger)
 	if err = s.Run(); err != nil {
 		appLogger.Fatal(err)
 	}

@@ -29,29 +29,29 @@ const (
 
 // Server struct
 type Server struct {
-	echo      *echo.Echo
-	cfg       *config.Config
-	db        *sqlx.DB
-	logger    logger.Logger
-	msg       <-chan amqp.Delivery
-	useCase   notification.UseCase
-	emailAuth smtp.Auth
+	echo       *echo.Echo
+	cfg        *config.Config
+	db         *sqlx.DB
+	logger     logger.Logger
+	msg        <-chan amqp.Delivery
+	useCase    notification.UseCase
+	smtpClient *smtp.Client
 }
 
-func NewServer(cfg *config.Config, db *sqlx.DB, msgChan <-chan amqp.Delivery, emailAuth smtp.Auth, logger logger.Logger) *Server {
+func NewServer(cfg *config.Config, db *sqlx.DB, msgChan <-chan amqp.Delivery, smtpClient *smtp.Client, logger logger.Logger) *Server {
 	server := Server{
-		echo:      echo.New(),
-		cfg:       cfg,
-		db:        db,
-		msg:       msgChan,
-		logger:    logger,
-		emailAuth: emailAuth,
+		echo:       echo.New(),
+		cfg:        cfg,
+		db:         db,
+		msg:        msgChan,
+		logger:     logger,
+		smtpClient: smtpClient,
 	}
 	server.echo.HidePort = true
 	server.echo.HideBanner = true
 
 	serverRepo := repo.NewNotificationRepository(server.db)
-	server.useCase = usecase.NewNotificationUseCase(serverRepo, server.emailAuth, server.cfg.NotificationSmtp)
+	server.useCase = usecase.NewNotificationUseCase(serverRepo, server.smtpClient, server.cfg.NotificationSmtp)
 
 	return &server
 }

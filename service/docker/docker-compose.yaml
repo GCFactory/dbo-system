@@ -291,44 +291,6 @@ services:
     networks:
       - web_api
 
-  service_registration:
-    build:
-      context: ./../registration
-      dockerfile: ./docker/Dockerfile
-    image: registration_image
-    hostname: service_registration
-    deploy:
-      mode: replicated
-      replicas: 1
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: 128M
-        reservations:
-          cpus: '0.1'
-          memory: 128M
-    ports:
-      - "8110-8119:8080"
-    links:
-      - jaeger
-      - kafka
-      - postgresql_registration
-      - service_accounts
-      - service_users
-    depends_on:
-      - jaeger
-      - kafka
-      - postgresql_registration
-      - service_accounts
-      - service_users
-    cap_add:
-      - SYS_PTRACE
-    restart: always
-    volumes:
-      - ./services/registration/registration_config:/usr/src/app/config
-    networks:
-      - web_api
-
   redis_api_gateway:
     image: redis:7.4
     hostname: redis_api_gateway
@@ -369,7 +331,6 @@ services:
       timeout: 10s
       retries: 5
 
-
   service_api_gateway:
     build:
       context: ./../api_gateway
@@ -385,7 +346,7 @@ services:
           cpus: '0.1'
           memory: 128M
     ports:
-      - "8080:8080"
+      - "8110-8119:8080"
     links:
       - redis_api_gateway
       - service_registration
@@ -400,16 +361,30 @@ services:
     networks:
       - web_api
 
-  mailhog:
-    container_name: mailhog
-    image: mailhog/mailhog
-    hostname: mailhog
-    restart: always
+  mailpit:
+    container_name: mailpit
+    image: axllent/mailpit
+    hostname: mailpit
+    restart: unless-stopped
     networks:
       - web_api
     ports:
-      - 1025:1025 # smtp server
-      - 8025:8025 # web ui
+      - "1025:1025" # smtp server
+      - "8025:8025" # web ui
+      - "10465:1025" # smtp server TLS
+    environment:
+      - MP_MAX_MESSAGES=5000
+      - MP_DATABASE=data/mailpit.db
+      - MP_SMTP_REQUIRE_TLS=true
+      - MP_SMTP_TLS_CERT=/certs/cert.pem     # Путь к сертификату в контейнере
+      - MP_SMTP_TLS_KEY=/certs/key.pem       # Путь к приватному ключу
+      - MP_SMTP_TLS_PORT=10465
+      - MP_SMTP_AUTH_FILE=/auth/auth.txt  # Аутентификация SMTP
+      - MP_UI_AUTH_FILE=/auth/auth.txt    # Аутентификация веб-интерфейса
+    volumes:
+      - ./mail/mailpit:/data
+      - ./mail/certs:/certs
+      - ./mail/auth:/auth
     deploy:
       resources:
         limits:
@@ -418,6 +393,81 @@ services:
         reservations:
           cpus: '0.1'
           memory: 128M
+
+  service_notification:
+    build:
+      context: ./../notification
+      dockerfile: ./docker/Dockerfile
+    image: notification_image
+    hostname: service_notification
+    deploy:
+      mode: replicated
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    ports:
+      - "8120-8129:8080"
+    links:
+      - jaeger
+      - postgresql_notification
+      - rabbitmq
+      - mailpit
+    depends_on:
+      - jaeger
+      - postgresql_notification
+      - rabbitmq
+      - mailpit
+    restart: always
+    cap_add:
+      - SYS_PTRACE
+    volumes:
+      - ./services/notification/notification_config:/usr/src/app/config
+    networks:
+      - web_api
+
+  service_registration:
+    build:
+      context: ./../registration
+      dockerfile: ./docker/Dockerfile
+    image: registration_image
+    hostname: service_registration
+    deploy:
+      mode: replicated
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    ports:
+      - "8110-8119:8080"
+    links:
+      - jaeger
+      - kafka
+      - postgresql_registration
+      - service_accounts
+      - service_users
+    depends_on:
+      - jaeger
+      - kafka
+      - postgresql_registration
+      - service_accounts
+      - service_users
+      - service_notification
+    cap_add:
+      - SYS_PTRACE
+    restart: always
+    volumes:
+      - ./services/registration/registration_config:/usr/src/app/config
+    networks:
+      - web_api
 
 networks:
   web_api:
@@ -433,3 +483,7 @@ volumes:
   api_gateway_config:
   db_notification:
   rabbitmq:
+  notification:
+  mailpit:
+  certs:
+  auth:

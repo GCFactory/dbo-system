@@ -13,9 +13,9 @@ import (
 )
 
 type NotificationUseCase struct {
-	repo      notification.Repository
-	emailAuth smtp.Auth
-	smtpCfg   config.Smtp
+	repo       notification.Repository
+	smtpClient *smtp.Client
+	smtpCfg    config.Smtp
 }
 
 func (uc NotificationUseCase) AddUserSettings(ctx context.Context, user *models.UserNotificationInfo) error {
@@ -109,15 +109,38 @@ func (uc NotificationUseCase) SendMessage(ctx context.Context, message amqp091.D
 	}
 
 	if sendEmail {
-		err = smtp.SendMail(
-			uc.smtpCfg.Host+":"+uc.smtpCfg.Port,
-			uc.emailAuth,
-			uc.smtpCfg.From,
-			[]string{
-				userNotificationSettings.Email,
-			},
-			message.Body,
+		// 1. Указываем отправителя
+		if err = uc.smtpClient.Mail(uc.smtpCfg.From); err != nil {
+			return err
+		}
+
+		// 2. Указываем получателя
+		if err = uc.smtpClient.Rcpt(userNotificationSettings.Email); err != nil {
+			return err
+		}
+
+		// 3. Отправляем тело письма
+		dataWriter, err := uc.smtpClient.Data()
+		if err != nil {
+			return err
+		}
+
+		// Формируем письмо (заголовки + тело)
+		messageBytes := []byte(
+			"Subject: Notification message\r\n" +
+				"From: " + uc.smtpCfg.User + "\r\n" +
+				"To: " + userNotificationSettings.Email + "\r\n" +
+				"\r\n" + // Пустая строка — разделитель заголовков и тела
+				string(message.Body) + "\r\n",
 		)
+
+		_, err = dataWriter.Write(messageBytes)
+		if err != nil {
+			return err
+		}
+
+		// Закрываем writer
+		err = dataWriter.Close()
 		if err != nil {
 			return err
 		}
@@ -157,6 +180,6 @@ func (uc NotificationUseCase) validateNotificationLvl(ctx context.Context, notif
 
 }
 
-func NewNotificationUseCase(repo notification.Repository, emailAuth smtp.Auth, smtpCfg config.Smtp) notification.UseCase {
-	return &NotificationUseCase{repo: repo, emailAuth: emailAuth, smtpCfg: smtpCfg}
+func NewNotificationUseCase(repo notification.Repository, smtpClient *smtp.Client, smtpCfg config.Smtp) notification.UseCase {
+	return &NotificationUseCase{repo: repo, smtpClient: smtpClient, smtpCfg: smtpCfg}
 }
