@@ -2,8 +2,8 @@ package grpc_handlers
 
 import (
 	"context"
+	"github.com/GCFactory/dbo-system/platform/config"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
-	"github.com/GCFactory/dbo-system/service/users/config"
 	"github.com/GCFactory/dbo-system/service/users/gen_proto/proto/platform"
 	api "github.com/GCFactory/dbo-system/service/users/gen_proto/proto/user_api"
 	"github.com/GCFactory/dbo-system/service/users/internal/models"

@@ -1,11 +1,10 @@
 package main
 
 import (
-	platformConfig "github.com/GCFactory/dbo-system/platform/config"
+	"github.com/GCFactory/dbo-system/platform/config"
 	"github.com/GCFactory/dbo-system/platform/pkg/db/postgres"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/platform/pkg/utils"
-	"github.com/GCFactory/dbo-system/service/users/config"
 	"github.com/GCFactory/dbo-system/service/users/internal/server"
 	"github.com/GCFactory/dbo-system/service/users/pkg/kafka"
 	"github.com/golang-migrate/migrate/v4"
@@ -47,14 +46,14 @@ func main() {
 		log.Fatalf("ParseConfig: %v", err)
 	}
 
-	appLogger := logger.NewServerLogger(&platformConfig.Config{
+	appLogger := logger.NewServerLogger(&config.Config{
 		Logger: cfg.Logger,
 	})
 
 	appLogger.InitLogger()
 	appLogger.Infof("AppVersion: %s, LogLevel: %s, Env: %s, SSL: %v", cfg.Version, cfg.Logger.Level, cfg.Env, cfg.HTTPServer.SSL)
 
-	psqlDB, err := postgres.NewPsqlDB(&platformConfig.Config{
+	psqlDB, err := postgres.NewPsqlDB(&config.Config{
 		Postgres: cfg.Postgres,
 	})
 	if err != nil {

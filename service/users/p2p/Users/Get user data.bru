@@ -1,0 +1,15 @@
+meta {
+  name: Get user data
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://{{Host}}:{{Port}}/api/v1/users/get_user_data?user_id=3fac6f8c-cee5-46de-92ba-8b84bc57b54d
+  body: none
+  auth: none
+}
+
+params:query {
+  user_id: 3fac6f8c-cee5-46de-92ba-8b84bc57b54d
+}

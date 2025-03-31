@@ -3,9 +3,8 @@ package server
 import (
 	"context"
 	"errors"
-	platfrom_config "github.com/GCFactory/dbo-system/platform/config"
+	"github.com/GCFactory/dbo-system/platform/config"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
-	"github.com/GCFactory/dbo-system/service/users/config"
 	"github.com/GCFactory/dbo-system/service/users/internal/users"
 	"github.com/GCFactory/dbo-system/service/users/internal/users/repository"
 	"github.com/GCFactory/dbo-system/service/users/internal/users/usecase"
@@ -59,7 +58,7 @@ func NewServer(cfg *config.Config, kConsumer *kafka.ConsumerGroup, kProducer *ka
 	server.echo.HidePort = true
 	server.echo.HideBanner = true
 	usersRepo := repository.NewUserRepository(db)
-	usersUC := usecase.NewUsersUseCase(&platfrom_config.Config{
+	usersUC := usecase.NewUsersUseCase(&config.Config{
 		Env:      cfg.Env,
 		Logger:   cfg.Logger,
 		App:      cfg.App,
