@@ -7,5 +7,5 @@ import (
 )
 
 func MapACCRoutes(accountGroup *echo.Group, h account.Handlers, mw *middleware.MiddlewareManager) {
-	accountGroup.POST("/test_func", h.TestFunc())
+	accountGroup.GET("/get_account_data", h.GetAccountData())
 }

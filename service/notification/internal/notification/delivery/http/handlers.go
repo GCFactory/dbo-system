@@ -9,6 +9,7 @@ import (
 	"github.com/GCFactory/dbo-system/service/notification/internal/models"
 	"github.com/GCFactory/dbo-system/service/notification/internal/notification"
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"reflect"
@@ -147,7 +148,7 @@ func (h ApiGatewayHandlers) GetUserSettings() echo.HandlerFunc {
 		}
 
 		operationInfo := &models.GetUserSettings{}
-		err := h.safeReadBodyRequest(c, operationInfo)
+		err := h.safeReadQueryParamsRequest(c, operationInfo)
 		if err != nil {
 			utils.LogResponseError(c, h.logger, err)
 			result.Status = http.StatusBadRequest
@@ -155,7 +156,15 @@ func (h ApiGatewayHandlers) GetUserSettings() echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, result)
 		}
 
-		userSettings, err := h.useCase.GetUserSettings(context.Background(), operationInfo.UserId)
+		userId, err := uuid.Parse(operationInfo.UserId)
+		if err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			result.Status = http.StatusBadRequest
+			result.Info = err.Error()
+			return c.JSON(http.StatusBadRequest, result)
+		}
+
+		userSettings, err := h.useCase.GetUserSettings(context.Background(), userId)
 		if err != nil {
 			utils.LogResponseError(c, h.logger, err)
 			result.Status = http.StatusNotFound

@@ -14,5 +14,5 @@ type UpdateUserSettings struct {
 }
 
 type GetUserSettings struct {
-	UserId uuid.UUID `json:"user_id" validate:"required"`
+	UserId string `json:"user_id" validate:"required"`
 }

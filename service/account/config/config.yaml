@@ -1,18 +1,18 @@
 version: 1.0.0
-#http-server:
-#  AppVersion: 1.0.0
-#  Env: Development
-#  Port: :8080
-#  PprofPort: :5555
-#  Mode: Development
-#  JwtSecretKey: secretkey
-#  CookieName: jwt-token
-#  ReadTimeout: 5
-#  WriteTimeout: 5
-#  SSL: false
-#  CtxDefaultTimeout: 12
-#  CSRF: true
-#  Debug: false
+http-server:
+  AppVersion: 1.0.0
+  Env: Development
+  Port: :8080
+  PprofPort: :5555
+  Mode: Development
+  JwtSecretKey: secretkey
+  CookieName: jwt-token
+  ReadTimeout: 5
+  WriteTimeout: 5
+  SSL: false
+  CtxDefaultTimeout: 12
+  CSRF: true
+  Debug: false
 
 kafkaConsumer:
   #brokers: localhost:9092;locahost:9091

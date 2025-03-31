@@ -1,0 +1,15 @@
+meta {
+  name: Get account data
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://{{Host}}:{{Port}}/api/v1/account/get_account_data?acc_id=a01db0e7-7e72-4424-a0cf-111f53a6258c
+  body: none
+  auth: none
+}
+
+params:query {
+  acc_id: a01db0e7-7e72-4424-a0cf-111f53a6258c
+}

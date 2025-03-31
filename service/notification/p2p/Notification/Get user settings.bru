@@ -5,13 +5,11 @@ meta {
 }
 
 get {
-  url: http://{{Host}}:{{Port}}/api/v1/notification/get_user_notification_settings
-  body: json
+  url: http://{{Host}}:{{Port}}/api/v1/notification/get_user_notification_settings?user_id=c2449a59-bf74-445f-a889-15552c5b1734
+  body: none
   auth: none
 }
 
-body:json {
-  {
-      "user_id": "c2449a59-bf74-445f-a889-15552c5b1734"
-  }
+params:query {
+  user_id: c2449a59-bf74-445f-a889-15552c5b1734
 }

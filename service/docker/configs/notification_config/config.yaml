@@ -56,13 +56,13 @@ NotificationSmtp:
   NickName: dbo-system
 
 kafkaConsumer:
-  brokers: localhost:9092
+  brokers: kafka:9092
   groupID: notification-group
   topics:
     - notification_cons
 
 kafkaProducer:
-  brokers: localhost:9092
+  brokers: kafka:9092
   topics:
     - notification_res
     - notification_err
