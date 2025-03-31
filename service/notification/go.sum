@@ -4,8 +4,8 @@ filippo.io/edwards25519 v1.1.0/go.mod h1:BxyFTGdWcka3PhytdK4V28tE5sGfRvvvRV7EaN4
 github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 h1:L/gRVlceqvL25UVaW/CKtUDjefjrs0SPonmDGUVOYP0=
 github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161/go.mod h1:xomTg63KZ2rFqZQzSB4Vz2SUXa1BpHTVz9L5PTmPC4E=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
-github.com/GCFactory/dbo-system/platform v1.4.1 h1:EnzOUFRQ5+ob1B4PMZ5FN+rl2FS6GKpStABKTD42P9g=
-github.com/GCFactory/dbo-system/platform v1.4.1/go.mod h1:yplXoSDzp1bYJUVAH+0rab+molCRGzq+WtnB9IGc2ZU=
+github.com/GCFactory/dbo-system/platform v1.4.2 h1:0aM0DCPEJSMqDAMDyTKup0BRrZaPTvDrP5tcQ8A2lx8=
+github.com/GCFactory/dbo-system/platform v1.4.2/go.mod h1:yplXoSDzp1bYJUVAH+0rab+molCRGzq+WtnB9IGc2ZU=
 github.com/HdrHistogram/hdrhistogram-go v1.1.2 h1:5IcZpTvzydCQeHzK4Ef/D5rrSqwxob0t8PQPMybUNFM=
 github.com/HdrHistogram/hdrhistogram-go v1.1.2/go.mod h1:yDgFjdqOqDEKOvasDdhWNXYg9BVp4O+o5f6V/ehm6Oo=
 github.com/IBM/sarama v1.45.1 h1:nY30XqYpqyXOXSNoe2XCgjj9jklGM1Ye94ierUb1jQ0=

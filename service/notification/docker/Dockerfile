@@ -11,6 +11,8 @@ COPY ../cmd ./cmd
 COPY ../config ./config
 COPY ../internal ./internal
 COPY ../migration ./migration
+COPY ../pkg ./pkg
+COPY ../gen_proto ./gen_proto
 
 RUN go build -v -o /usr/local/bin/app ./cmd/api/main.go
 

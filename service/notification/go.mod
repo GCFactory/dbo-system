@@ -3,7 +3,7 @@ module github.com/GCFactory/dbo-system/service/notification
 go 1.23.5
 
 require (
-	github.com/GCFactory/dbo-system/platform v1.4.1
+	github.com/GCFactory/dbo-system/platform v1.4.2
 	github.com/IBM/sarama v1.45.1
 	github.com/go-playground/validator/v10 v10.26.0
 	github.com/golang-migrate/migrate/v4 v4.18.2
