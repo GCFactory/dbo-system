@@ -50,25 +50,37 @@ func (t totpHandlers) Enroll() echo.HandlerFunc {
 		defer span.Finish()
 
 		user := &User{}
+		result := &models.DefaultHttpRequest{
+			Info:   "",
+			Status: http.StatusCreated,
+		}
 		if err := utils.ReadRequest(c, user); err != nil {
 			utils.LogResponseError(c, t.logger, err)
-			return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.Enroll.utils.ReadRequest")))
+			result.Status = http.StatusBadRequest
+			result.Info = err.Error()
+			return c.JSON(http.StatusBadRequest, result)
 		}
 
 		if user.UserId == "" {
 			utils.LogResponseError(c, t.logger, errors.New("No user_id field"))
-			return c.JSON(httpErrors.ErrorResponse(ErrorNoUserId))
+			result.Status = http.StatusBadRequest
+			result.Info = "No user_id field"
+			return c.JSON(http.StatusBadRequest, result)
 		}
 
 		if user.UserName == "" {
 			utils.LogResponseError(c, t.logger, errors.New("No user_name field"))
-			return c.JSON(httpErrors.ErrorResponse(ErrorNoUserName))
+			result.Status = http.StatusBadRequest
+			result.Info = "No user_name field"
+			return c.JSON(http.StatusBadRequest, result)
 		}
 
 		userId, err := uuid.Parse(user.UserId)
 		if err != nil {
 			utils.LogResponseError(c, t.logger, err)
-			return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.Enroll.uuid.Parse")))
+			result.Status = http.StatusInternalServerError
+			result.Info = err.Error()
+			return c.JSON(http.StatusInternalServerError, result)
 		}
 
 		totpEnroll, err := t.totpUC.Enroll(ctx, models.TOTPConfig{
@@ -77,14 +89,19 @@ func (t totpHandlers) Enroll() echo.HandlerFunc {
 		})
 		if err != nil {
 			utils.LogResponseError(c, t.logger, err)
+
 			if errors.Is(err, totpErrors.ActiveTotp) {
-				return c.JSON(http.StatusForbidden, httpErrors.NewRestError(http.StatusForbidden, err.Error(), nil))
+				result.Status = http.StatusForbidden
+				result.Info = err.Error()
 			} else if errors.Is(err, totpErrors.NoUserName) ||
 				errors.Is(err, totpErrors.NoUserId) {
-				return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, err.Error(), nil))
+				result.Status = http.StatusBadRequest
+				result.Info = err.Error()
 			} else {
-				return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, err.Error())))
+				result.Status = http.StatusInternalServerError
+				result.Info = err.Error()
 			}
+			return c.JSON(result.Status, result)
 		}
 
 		return c.JSON(http.StatusCreated, totpEnroll)
@@ -110,14 +127,22 @@ func (t totpHandlers) Verify() echo.HandlerFunc {
 		defer span.Finish()
 
 		input := &Url{}
+		result := &models.DefaultHttpRequest{
+			Info:   "",
+			Status: http.StatusOK,
+		}
 		if err := utils.ReadRequest(c, input); err != nil {
 			utils.LogResponseError(c, t.logger, err)
-			return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.Verify.utils.ReadRequest")))
+			result.Status = http.StatusInternalServerError
+			result.Info = err.Error()
+			return c.JSON(http.StatusInternalServerError, result)
 		}
 
 		if input.TotpUrl == "" {
 			utils.LogResponseError(c, t.logger, errors.New("No totp_url field"))
-			return c.JSON(httpErrors.ErrorResponse(ErrorNoUrl))
+			result.Status = http.StatusBadRequest
+			result.Info = "No totp_url field"
+			return c.JSON(http.StatusInternalServerError, result)
 		}
 
 		url := input.TotpUrl
@@ -129,12 +154,17 @@ func (t totpHandlers) Verify() echo.HandlerFunc {
 				errors.Is(err, totpErrors.NoIssuerField) ||
 				errors.Is(err, totpErrors.NoPeriodField) ||
 				errors.Is(err, totpErrors.NoSecretField) {
-				return c.JSON(http.StatusBadRequest, totpVerify)
+				result.Status = http.StatusBadRequest
+				result.Info = totpVerify.Status
 			} else {
-				return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.Verify.utils.ReadRequest")))
+				result.Status = http.StatusInternalServerError
+				result.Info = err.Error()
 			}
+			return c.JSON(result.Status, result)
 		}
-		return c.JSON(http.StatusOK, totpVerify)
+
+		result.Info = totpVerify.Status
+		return c.JSON(http.StatusOK, result)
 	}
 }
 
@@ -159,39 +189,56 @@ func (t totpHandlers) Validate() echo.HandlerFunc {
 		defer span.Finish()
 
 		input := &Input{}
+		result := &models.DefaultHttpRequest{
+			Info:   "",
+			Status: http.StatusOK,
+		}
 		if err := utils.ReadRequest(c, input); err != nil {
 			utils.LogResponseError(c, t.logger, err)
-			return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.Validate.utils.ReadRequest")))
+			result.Status = http.StatusInternalServerError
+			result.Info = err.Error()
+			return c.JSON(http.StatusInternalServerError, result)
 		}
 
 		if input.UserId == "" {
 			utils.LogResponseError(c, t.logger, errors.New("No user_id field"))
-			return c.JSON(httpErrors.ErrorResponse(ErrorNoUserId))
+			result.Status = http.StatusBadRequest
+			result.Info = "No user_id field"
+			return c.JSON(http.StatusBadRequest, result)
 		}
 
 		if input.TotpCode == "" {
 			utils.LogResponseError(c, t.logger, errors.New("No totp_code field"))
-			return c.JSON(httpErrors.ErrorResponse(ErrorNoTotpCode))
+			result.Status = http.StatusBadRequest
+			result.Info = "No totp_code field"
+			return c.JSON(http.StatusBadRequest, result)
 		}
 
 		userId, err := uuid.Parse(input.UserId)
 		if err != nil {
 			utils.LogResponseError(c, t.logger, err)
-			return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.Validate.uuid.Parse")))
+			result.Status = http.StatusInternalServerError
+			result.Info = err.Error()
+			return c.JSON(http.StatusInternalServerError, result)
 		}
 
 		totpValidate, err := t.totpUC.Validate(ctx, userId, input.TotpCode, time.Now())
 		if err != nil {
 			if errors.Is(err, totpErrors.NoUserId) {
-				return c.JSON(http.StatusNotFound, totpValidate)
+				result.Status = http.StatusNotFound
+				result.Info = totpValidate.Status
 			} else if errors.Is(err, totpErrors.WrongTotpCode) {
-				return c.JSON(http.StatusBadRequest, totpValidate)
+				result.Status = http.StatusBadRequest
+				result.Info = totpValidate.Status
 			} else {
-				return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, err.Error())))
+				result.Status = http.StatusInternalServerError
+				result.Info = err.Error()
 			}
+			return c.JSON(result.Status, result)
 		}
 
-		return c.JSON(http.StatusOK, totpValidate)
+		result.Info = totpValidate.Status
+		return c.JSON(http.StatusOK, result)
 	}
 }
 
@@ -216,14 +263,22 @@ func (t totpHandlers) Enable() echo.HandlerFunc {
 		defer span.Finish()
 
 		input := &Input{}
+		result := &models.DefaultHttpRequest{
+			Info:   "",
+			Status: http.StatusOK,
+		}
 		if err := utils.ReadRequest(c, input); err != nil {
 			utils.LogResponseError(c, t.logger, err)
-			return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.Enable.utils.ReadRequest")))
+			result.Status = http.StatusInternalServerError
+			result.Info = err.Error()
+			return c.JSON(http.StatusInternalServerError, result)
 		}
 
 		if input.TotpId == "" && input.UserId == "" {
 			utils.LogResponseError(c, t.logger, errors.New("No user_id and totp_id fields"))
-			return c.JSON(httpErrors.ErrorResponse(ErrorNoBothId))
+			result.Status = http.StatusBadRequest
+			result.Info = "No user_id and totp_id fields"
+			return c.JSON(http.StatusBadRequest, result)
 		}
 
 		var userId uuid.UUID = uuid.Nil
@@ -235,14 +290,18 @@ func (t totpHandlers) Enable() echo.HandlerFunc {
 			totpId, err = uuid.Parse(input.TotpId)
 			if err != nil {
 				utils.LogResponseError(c, t.logger, err)
-				return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.Enable.uuid(totp_id).Parse")))
+				result.Status = http.StatusInternalServerError
+				result.Info = err.Error()
+				return c.JSON(http.StatusInternalServerError, result)
 			}
 		}
 		if input.UserId != "" {
 			userId, err = uuid.Parse(input.UserId)
 			if err != nil {
 				utils.LogResponseError(c, t.logger, err)
-				return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.Enable.uuid(user_id).Parse")))
+				result.Status = http.StatusInternalServerError
+				result.Info = err.Error()
+				return c.JSON(http.StatusInternalServerError, result)
 			}
 		}
 
@@ -250,14 +309,19 @@ func (t totpHandlers) Enable() echo.HandlerFunc {
 		if err != nil {
 			if errors.Is(err, totpErrors.NoTotpId) ||
 				errors.Is(err, totpErrors.NoId) {
-				return c.JSON(http.StatusNotFound, totpEnable)
+				result.Status = http.StatusNotFound
+				result.Info = totpEnable.Status
 			} else if errors.Is(err, totpErrors.TotpIsActive) {
-				return c.JSON(http.StatusBadRequest, totpEnable)
+				result.Status = http.StatusBadRequest
+				result.Info = totpEnable.Status
 			} else {
-				return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, err.Error())))
+				result.Status = http.StatusInternalServerError
+				result.Info = err.Error()
 			}
+			return c.JSON(result.Status, result)
 		}
-		return c.JSON(http.StatusOK, totpEnable)
+		result.Info = totpEnable.Status
+		return c.JSON(http.StatusOK, result)
 	}
 }
 
@@ -282,14 +346,22 @@ func (t totpHandlers) Disable() echo.HandlerFunc {
 		defer span.Finish()
 
 		input := &Input{}
+		result := &models.DefaultHttpRequest{
+			Info:   "",
+			Status: http.StatusOK,
+		}
 		if err := utils.ReadRequest(c, input); err != nil {
 			utils.LogResponseError(c, t.logger, err)
-			return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.Disable.utils.ReadRequest")))
+			result.Status = http.StatusInternalServerError
+			result.Info = err.Error()
+			return c.JSON(http.StatusInternalServerError, result)
 		}
 
 		if input.TotpId == "" && input.UserId == "" {
 			utils.LogResponseError(c, t.logger, errors.New("No user_id and totp_id fields"))
-			return c.JSON(http.StatusBadRequest, httpErrors.NewRestError(http.StatusBadRequest, "No user_id and totp_id fields", nil))
+			result.Status = http.StatusBadRequest
+			result.Info = "No user_id and totp_id fields"
+			return c.JSON(http.StatusBadRequest, result)
 		}
 
 		var userId uuid.UUID = uuid.Nil
@@ -301,14 +373,18 @@ func (t totpHandlers) Disable() echo.HandlerFunc {
 			totpId, err = uuid.Parse(input.TotpId)
 			if err != nil {
 				utils.LogResponseError(c, t.logger, err)
-				return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.Disable.uuid(totp_id).Parse")))
+				result.Status = http.StatusInternalServerError
+				result.Info = err.Error()
+				return c.JSON(http.StatusInternalServerError, result)
 			}
 		}
 		if input.UserId != "" {
 			userId, err = uuid.Parse(input.UserId)
 			if err != nil {
 				utils.LogResponseError(c, t.logger, err)
-				return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, "totpH.Disable.uuid(user_id).Parse")))
+				result.Status = http.StatusInternalServerError
+				result.Info = err.Error()
+				return c.JSON(http.StatusInternalServerError, result)
 			}
 		}
 
@@ -316,13 +392,19 @@ func (t totpHandlers) Disable() echo.HandlerFunc {
 		if err != nil {
 			if errors.Is(err, totpErrors.NoTotpId) ||
 				errors.Is(err, totpErrors.NoId) {
-				return c.JSON(http.StatusNotFound, totpDisable)
+				result.Status = http.StatusNotFound
+				result.Info = totpDisable.Status
 			} else if errors.Is(err, totpErrors.TotpIsDisabled) {
-				return c.JSON(http.StatusBadRequest, totpDisable)
+				result.Status = http.StatusBadRequest
+				result.Info = totpDisable.Status
 			} else {
-				return c.JSON(http.StatusInternalServerError, httpErrors.NewInternalServerError(errors.Wrap(err, err.Error())))
+				result.Status = http.StatusInternalServerError
+				result.Info = err.Error()
 			}
+			return c.JSON(result.Status, result)
 		}
-		return c.JSON(http.StatusOK, totpDisable)
+
+		result.Info = totpDisable.Status
+		return c.JSON(http.StatusOK, result)
 	}
 }

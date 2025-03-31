@@ -8,6 +8,11 @@ type TOTPEnroll struct {
 	TotpUrl    string `json:"totp_url"`
 }
 
+type DefaultHttpRequest struct {
+	Status int    `json:"status"`
+	Info   string `json:"info"`
+}
+
 type TOTPVerify struct {
 	Status string `json:"status" validate:"omitempty"`
 }

@@ -1,0 +1,18 @@
+meta {
+  name: Check totp code
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://{{Host}}:{{Port}}/api/v1/totp/validate
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "user_id": "a599f853-d607-4f66-b951-d36fac1288b4",
+    "totp_code": "247651"
+  }
+}

@@ -1,0 +1,18 @@
+meta {
+  name: Disable totp
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://{{Host}}:{{Port}}/api/v1/totp/disable
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "user_id": "a599f853-d607-4f66-b951-d36fac1288b4",
+    "totp_id": "d83f0cd6-63d7-4811-9f05-6d8fa81a4804"
+  }
+}
