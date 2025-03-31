@@ -36,6 +36,18 @@ func (uc NotificationUseCase) AddUserSettings(ctx context.Context, user *models.
 	return nil
 }
 
+func (uc NotificationUseCase) GetUserSettings(ctx context.Context, userId uuid.UUID) (*models.UserNotificationInfo, error) {
+	span, local_ctx := opentracing.StartSpanFromContext(ctx, "NotificationUseCase.GetUserSettings")
+	defer span.Finish()
+
+	result, err := uc.repo.GetUserNotificationSettings(local_ctx, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 func (uc NotificationUseCase) UpdateUserSettings(ctx context.Context, user *models.UserNotificationInfo) error {
 
 	span, local_ctx := opentracing.StartSpanFromContext(ctx, "NotificationUseCase.UpdateUserSettings")

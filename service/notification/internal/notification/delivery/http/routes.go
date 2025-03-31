@@ -8,4 +8,5 @@ import (
 
 func MapNotificationRoutes(notificationGroup *echo.Group, h notification.HttpHandlers, mw *middleware.MiddlewareManager) {
 	notificationGroup.POST("/update_user_notification_settings", h.UpdateUserSettings())
+	notificationGroup.GET("/get_user_notification_settings", h.GetUserSettings())
 }

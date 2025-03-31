@@ -9,6 +9,7 @@ import (
 
 type UseCase interface {
 	AddUserSettings(ctx context.Context, user *models.UserNotificationInfo) error
+	GetUserSettings(ctx context.Context, userId uuid.UUID) (*models.UserNotificationInfo, error)
 	UpdateUserSettings(ctx context.Context, user *models.UserNotificationInfo) error
 	DeleteUserSettings(ctx context.Context, userId uuid.UUID) error
 	SendMessage(ctx context.Context, message amqp091.Delivery) error

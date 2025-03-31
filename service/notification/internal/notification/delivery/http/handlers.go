@@ -138,6 +138,35 @@ func (h ApiGatewayHandlers) UpdateUserSettings() echo.HandlerFunc {
 	}
 }
 
+func (h ApiGatewayHandlers) GetUserSettings() echo.HandlerFunc {
+	return func(c echo.Context) error {
+
+		result := &models.DefaultHttpResponse{
+			Status: http.StatusOK,
+			Info:   "",
+		}
+
+		operationInfo := &models.GetUserSettings{}
+		err := h.safeReadBodyRequest(c, operationInfo)
+		if err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			result.Status = http.StatusBadRequest
+			result.Info = err.Error()
+			return c.JSON(http.StatusBadRequest, result)
+		}
+
+		userSettings, err := h.useCase.GetUserSettings(context.Background(), operationInfo.UserId)
+		if err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			result.Status = http.StatusNotFound
+			result.Info = err.Error()
+			return c.JSON(http.StatusNotFound, result)
+		}
+
+		return c.JSON(http.StatusOK, userSettings)
+	}
+}
+
 func NewNotificationHandlers(cfg *config.Config, useCase notification.UseCase, logger logger.Logger) notification.HttpHandlers {
 	return &ApiGatewayHandlers{cfg: cfg, logger: logger, useCase: useCase}
 }

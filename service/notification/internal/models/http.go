@@ -6,11 +6,6 @@ type DefaultHttpResponse struct {
 	Status int    `json:"status"`
 	Info   string `json:"info"`
 }
-type AddUserSettings struct {
-	UserId            uuid.UUID `json:"user_id" validate:"required"`
-	EmailNotification bool      `json:"email_notification" validate:"required"`
-	Email             string    `json:"email" validate:"required,email"`
-}
 
 type UpdateUserSettings struct {
 	UserId            uuid.UUID `json:"user_id" validate:"required"`
@@ -18,6 +13,6 @@ type UpdateUserSettings struct {
 	Email             string    `json:"email" validate:"required,email"`
 }
 
-type DeleteUserSettings struct {
+type GetUserSettings struct {
 	UserId uuid.UUID `json:"user_id" validate:"required"`
 }
