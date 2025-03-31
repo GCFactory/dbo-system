@@ -6,6 +6,7 @@ import (
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/service/registration/config"
 	accounts_api "github.com/GCFactory/dbo-system/service/registration/gen_proto/proto/api/account"
+	"github.com/GCFactory/dbo-system/service/registration/gen_proto/proto/api/notification_api"
 	users_api "github.com/GCFactory/dbo-system/service/registration/gen_proto/proto/api/users"
 	"github.com/GCFactory/dbo-system/service/registration/internal/registration"
 	"github.com/GCFactory/dbo-system/service/registration/internal/registration/grpc"
@@ -262,7 +263,8 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) (err error) {
 				}
 			case grpc.OperationAddAccountToUser,
 				grpc.OperationRemoveUserAccount,
-				grpc.OperationCheckUSerPassword:
+				grpc.OperationCheckUSerPassword,
+				grpc.OperationDeleteUser:
 				{
 					break
 				}
@@ -375,6 +377,67 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) (err error) {
 	case grpc.ServerTopicAccountsProducerErr:
 		{
 			event_error := &accounts_api.EventError{}
+			err := proto.Unmarshal(message.Value, event_error)
+			if err != nil {
+				s.logger.Errorf("Error unmarshalling event error: %v", err)
+			}
+
+			saga_uuid, err = uuid.Parse(event_error.SagaUuid)
+			if err != nil {
+				s.logger.Errorf("Error parsing saga uuid: %v", err)
+			}
+			event_uuid, err = uuid.Parse(event_error.EventUuid)
+			if err != nil {
+				s.logger.Errorf("Error parsing event uuid: %v", err)
+			}
+
+			data["info"] = event_error.Info
+			data["operation_name"] = event_error.OperationName
+			data["status"] = event_error.Status
+
+			success = false
+
+			break
+		}
+	case grpc.ServerTopicNotificationRes:
+		{
+			event_success := &notification_api.EventSuccess{}
+			err := proto.Unmarshal(message.Value, event_success)
+			if err != nil {
+				s.logger.Errorf("Error unmarshalling event error: %v", err)
+			}
+
+			operation_name := event_success.OperationName
+
+			saga_uuid, err = uuid.Parse(event_success.SagaUuid)
+			if err != nil {
+				s.logger.Errorf("Error parsing saga uuid: %v", err)
+			}
+			event_uuid, err = uuid.Parse(event_success.EventUuid)
+			if err != nil {
+				s.logger.Errorf("Error parsing event uuid: %v", err)
+			}
+
+			switch operation_name {
+			case grpc.OperationCreateUserNotificationSettings,
+				grpc.OperationDeleteUserNotificationSettings:
+				{
+
+				}
+			default:
+				{
+					s.logger.Errorf("Message was gotten from <%v> topic with unknown operation <%v>!", message.Topic, operation_name)
+				}
+			}
+
+			success = true
+
+			break
+
+		}
+	case grpc.ServerTopicNotificationErr:
+		{
+			event_error := &notification_api.EventError{}
 			err := proto.Unmarshal(message.Value, event_error)
 			if err != nil {
 				s.logger.Errorf("Error unmarshalling event error: %v", err)

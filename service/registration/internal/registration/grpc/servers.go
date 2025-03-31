@@ -88,6 +88,7 @@ const (
 	OperationCheckUSerPassword              string = "check_user_password"
 	OperationCreateUserNotificationSettings string = "add_user_notification_settings"
 	OperationDeleteUserNotificationSettings string = "remove_user_notification_settings"
+	OperationDeleteUser                     string = "remove_user"
 )
 
 var PossibleServersOperations = map[uint8][]string{
@@ -99,6 +100,7 @@ var PossibleServersOperations = map[uint8][]string{
 		OperationUpdateUserPassword,
 		OperationGetUserDataByLogin,
 		OperationCheckUSerPassword,
+		OperationDeleteUser,
 	},
 	ServerTypeAccounts: {
 		OperationReserveAcc,
@@ -222,6 +224,9 @@ var RequiredOperationsFields = map[string][]string{
 		"email",
 	},
 	OperationDeleteUserNotificationSettings: {
+		"user_id",
+	},
+	OperationDeleteUser: {
 		"user_id",
 	},
 }

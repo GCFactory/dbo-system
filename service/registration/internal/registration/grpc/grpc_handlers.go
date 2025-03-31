@@ -212,7 +212,8 @@ func (h *GRPCRegistrationHandlers) SendRequest(ctx context.Context, server uint8
 					}
 					break
 				}
-			case OperationGetUserData:
+			case OperationGetUserData,
+				OperationDeleteUser:
 				{
 
 					if !ValidateOperationsData(operation_name, data) {

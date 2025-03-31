@@ -18,6 +18,7 @@ const (
 	EventTypeCheckUserPassword              string = "check_user_password"
 	EventTypeCreateUserNotificationSettings string = "add_user_notification_settings"
 	EventTypeDeleteUserNotificationSettings string = "remove_user_notification_settings"
+	EventTypeRemoveUser                     string = "remove_user"
 )
 
 var PossibleEventsList = [...]string{
@@ -38,6 +39,7 @@ var PossibleEventsList = [...]string{
 	EventTypeCheckUserPassword,
 	EventTypeCreateUserNotificationSettings,
 	EventTypeDeleteUserNotificationSettings,
+	EventTypeRemoveUser,
 }
 
 func ValidateEventType(eventType string) bool {
@@ -163,6 +165,9 @@ var RequiredEventListOfData = map[string][]string{
 	EventTypeDeleteUserNotificationSettings: {
 		"user_id",
 	},
+	EventTypeRemoveUser: {
+		"user_id",
+	},
 }
 
 // Обратные события
@@ -173,6 +178,11 @@ var RevertEvent = map[uint8]map[string]map[string]string{
 		},
 		SagaTypeReserveAccount: map[string]string{
 			EventTypeReserveAccount: EventTypeRemoveAccount,
+		},
+	},
+	SagaGroupCreateUser: map[string]map[string]string{
+		SagaTypeCreateUser: map[string]string{
+			EventTypeCreateUser: EventTypeRemoveUser,
 		},
 	},
 }
