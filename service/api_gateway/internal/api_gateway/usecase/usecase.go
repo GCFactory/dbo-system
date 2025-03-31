@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/rabbitmq/amqp091-go"
 	"strconv"
 
 	//"errors"
@@ -15,6 +16,7 @@ import (
 	"github.com/GCFactory/dbo-system/service/api_gateway/internal/models"
 	"github.com/google/uuid"
 	"github.com/opentracing/opentracing-go"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"io"
 	"net/http"
 	"text/template"
@@ -26,6 +28,8 @@ type apiGateWayUseCase struct {
 	repo                   api_gateway.Repository
 	registrationServerInfo *models.RegistrationServerInfo
 	imagesPath             string
+	rmqChan                *amqp091.Channel
+	rmqQueue               amqp091.Queue
 }
 
 var TokenLiveTime = time.Minute
@@ -2210,6 +2214,33 @@ func (uc *apiGateWayUseCase) GetOperationDataRequest(operation_id uuid.UUID) (*m
 	return resp_data, nil
 }
 
-func NewApiGatewayUseCase(cfg *config.Config, repo api_gateway.Repository, registration_server_info *models.RegistrationServerInfo, images_path string) api_gateway.UseCase {
-	return &apiGateWayUseCase{cfg: cfg, repo: repo, registrationServerInfo: registration_server_info, imagesPath: images_path}
+func (uc *apiGateWayUseCase) CreateNotification(ctx context.Context, userId uuid.UUID, notificationLvl string, message string) error {
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "apiGateWayUseCase.CreateNotification")
+	defer span.Finish()
+
+	headers := make(amqp.Table)
+	headers[HeaderUserId] = userId.String()
+	headers[HeaderNotificationLvl] = notificationLvl
+	err := uc.rmqChan.PublishWithContext(ctxWithTrace,
+		"",               // exchange
+		uc.rmqQueue.Name, // routing key
+		false,            // mandatory
+		false,            // immediate
+		amqp.Publishing{
+			ContentType: "text/plain",
+			Body:        []byte(message),
+			Headers:     headers,
+		})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func NewApiGatewayUseCase(cfg *config.Config, repo api_gateway.Repository, registration_server_info *models.RegistrationServerInfo,
+	images_path string, rmqChan *amqp091.Channel, rmqQueue amqp091.Queue) api_gateway.UseCase {
+	return &apiGateWayUseCase{cfg: cfg, repo: repo, registrationServerInfo: registration_server_info, imagesPath: images_path,
+		rmqQueue: rmqQueue, rmqChan: rmqChan}
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/service/api_gateway/config"
 	"github.com/labstack/echo/v4"
+	"github.com/rabbitmq/amqp091-go"
 	"github.com/redis/go-redis/v9"
 	"net/http"
 	"os"
@@ -15,15 +16,17 @@ import (
 
 // Server struct
 type Server struct {
-	echo   *echo.Echo
-	cfg    *config.Config
-	redis  *redis.Client
-	logger logger.Logger
+	echo     *echo.Echo
+	cfg      *config.Config
+	redis    *redis.Client
+	logger   logger.Logger
+	rmqChan  *amqp091.Channel
+	rmqQueue amqp091.Queue
 }
 
 // NewServer New Server constructor
-func NewServer(cfg *config.Config, redis *redis.Client, logger logger.Logger) *Server {
-	return &Server{echo: echo.New(), cfg: cfg, redis: redis, logger: logger}
+func NewServer(cfg *config.Config, redis *redis.Client, rmqChan *amqp091.Channel, rmqQueue amqp091.Queue, logger logger.Logger) *Server {
+	return &Server{echo: echo.New(), cfg: cfg, redis: redis, logger: logger, rmqChan: rmqChan, rmqQueue: rmqQueue}
 }
 
 const (

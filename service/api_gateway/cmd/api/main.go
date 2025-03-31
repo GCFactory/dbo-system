@@ -9,6 +9,7 @@ import (
 	"github.com/GCFactory/dbo-system/service/api_gateway/config"
 	"github.com/GCFactory/dbo-system/service/api_gateway/internal/server"
 	"github.com/opentracing/opentracing-go"
+	amqp "github.com/rabbitmq/amqp091-go"
 	redis "github.com/redis/go-redis/v9"
 	"github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
@@ -69,6 +70,44 @@ func main() {
 		return
 	}
 
+	appLogger.Info("Connecting to RMQ")
+	rmqUrl := "amqp://" +
+		cfg.RabbitMQ.User + ":" +
+		cfg.RabbitMQ.Password + "@" +
+		cfg.RabbitMQ.Host + ":" +
+		cfg.RabbitMQ.Port
+	rmqConn, err := amqp.Dial(rmqUrl)
+	if err != nil {
+		appLogger.Fatalf("Connecting error to RMQ: %s", err)
+		return
+	}
+	defer rmqConn.Close()
+	appLogger.Info("Connecting to RMQ success")
+
+	appLogger.Info("Open RMQ channel")
+	rmqCh, err := rmqConn.Channel()
+	if err != nil {
+		appLogger.Fatalf("Open RMQ channel error: %s", err)
+		return
+	}
+	defer rmqCh.Close()
+	appLogger.Info("Open RMQ channel success")
+
+	appLogger.Info("Creating RMQ queue")
+	rmqQueue, err := rmqCh.QueueDeclare(
+		cfg.RabbitMQ.Queue, // name
+		false,              // durable
+		false,              // delete when unused
+		false,              // exclusive
+		false,              // no-wait
+		nil,                // arguments
+	)
+	if err != nil {
+		appLogger.Fatalf("Create RMQ queue error: %s", err)
+		return
+	}
+	appLogger.Info("Create RMQ queue success")
+
 	jaegerCfgInstance := jaegercfg.Configuration{
 		ServiceName: cfg.Jaeger.ServiceName,
 		Sampler: &jaegercfg.SamplerConfig{
@@ -95,7 +134,7 @@ func main() {
 	appLogger.Info("Opentracing connected")
 
 	//Run server
-	s := server.NewServer(cfg, redis, appLogger)
+	s := server.NewServer(cfg, redis, rmqCh, rmqQueue, appLogger)
 	if err = s.Run(); err != nil {
 		appLogger.Fatal(err)
 	}

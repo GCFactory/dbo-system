@@ -411,11 +411,13 @@ services:
       - postgresql_notification
       - rabbitmq
       - mailpit
+      - kafka
     depends_on:
       - jaeger
       - postgresql_notification
       - rabbitmq
       - mailpit
+      - kafka
     restart: always
     cap_add:
       - SYS_PTRACE

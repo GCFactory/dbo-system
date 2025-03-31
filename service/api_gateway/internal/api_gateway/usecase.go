@@ -31,4 +31,6 @@ type UseCase interface {
 	CloseAccount(user_id uuid.UUID, account_id uuid.UUID) error
 	AddAccountCache(user_id uuid.UUID, account_id uuid.UUID, money float64) error
 	WidthAccountCache(user_id uuid.UUID, account_id uuid.UUID, money float64) error
+	//
+	CreateNotification(ctx context.Context, userId uuid.UUID, notificationLvl string, message string) error
 }

@@ -25,10 +25,17 @@ redis:
 
 registration:
   Host: localhost
-  Port: 8117
+  Port: 8127
   Retry: 10
   TimeWaitRetry: 100
   TimeWaitResponse: 5000
+
+RabbitMQ:
+  Host: localhost
+  Port: 5672
+  User: admin
+  Password: admin
+  Queue: notification
 
 jaeger:
   Host: localhost:6831

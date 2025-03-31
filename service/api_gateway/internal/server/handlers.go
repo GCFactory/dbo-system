@@ -69,7 +69,8 @@ func (s *Server) MapHandlers(e *echo.Echo) error {
 	}
 	fmt.Println(filepath.Abs(folder_images_path))
 
-	apiGatewayUsecase := usecase.NewApiGatewayUseCase(s.cfg, apiGatewayRepo, registrationServerInfo, folder_images_path)
+	apiGatewayUsecase := usecase.NewApiGatewayUseCase(s.cfg, apiGatewayRepo, registrationServerInfo, folder_images_path,
+		s.rmqChan, s.rmqQueue)
 	// Init handlers
 	apiGatewayHalndlers := delivery.NewApiGatewayHandlers(s.cfg, s.logger, folder_images_path, apiGatewayUsecase)
 

@@ -21,6 +21,7 @@ type Config struct {
 	Docs    Docs
 
 	Registration RegistrationOrch `yaml:"registration"`
+	RabbitMQ     RabbitMQConfig   `yaml:"rabbitmq,omitempty"`
 
 	Postgres platformConfig.PostgresConfig `yaml:"postgres,omitempty"`
 	AWS      AWS                           `yaml:"aws,omitempty"`
