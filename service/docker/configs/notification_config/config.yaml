@@ -55,6 +55,18 @@ NotificationSmtp:
   From: dbo.notification@mail.ru
   NickName: dbo-system
 
+kafkaConsumer:
+  brokers: localhost:9092
+  groupID: notification-group
+  topics:
+    - notification_cons
+
+kafkaProducer:
+  brokers: localhost:9092
+  topics:
+    - notification_res
+    - notification_err
+
 cookie:
   Name: jwt-token
   MaxAge: 86400
