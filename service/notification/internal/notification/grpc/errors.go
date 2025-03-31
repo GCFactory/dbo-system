@@ -2,6 +2,8 @@ package grpc
 
 import (
 	"errors"
+	"github.com/GCFactory/dbo-system/service/notification/internal/notification/repo"
+	"github.com/GCFactory/dbo-system/service/notification/internal/notification/usecase"
 )
 
 var (
@@ -12,23 +14,15 @@ var (
 
 var GRPCErrors = map[error]uint32{
 
-	//repository.ErrorGetUsersAccounts: 10,
-	//repository.ErrorUpdateAccounts:   20,
-	//repository.ErrorUpdatePassport:   30,
-	//repository.ErrorGetUser:          40,
-	//repository.ErrorGetPassport:      50,
-	//repository.ErrorAddUser:          60,
-	//repository.ErrorAddPassport:      70,
-	//repository.ErrorUpdatePassword:   80,
-	//
-	//usecase.ErrorAccountAlreadyExists: 200,
-	//usecase.ErrorUserExists:           210,
-	//usecase.ErrorUserNotFound:         220,
-	//usecase.ErrorMarshal:              300,
-	//usecase.ErrorUnMarshal:            310,
-	//
-	//ErrorInvalidInputData:     400,
-	//ErrorUnkonwnOperationType: 410,
+	repo.ErrorNoUserSettingsFound:         001,
+	usecase.ErrorUserNotFound:             101,
+	usecase.ErrorUserSettingsAlreadyExist: 110,
+	usecase.ErrorNoUserIdHeader:           120,
+	usecase.ErrorNoNotificationLvlHeader:  130,
+	usecase.ErrorInvalidNotificationLvl:   140,
+	ErrorNoUserEmail:                      201,
+	ErrorUnknownOperationType:             210,
+	ErrorInvalidInputData:                 220,
 }
 
 func GetErrorCode(err error) uint32 {

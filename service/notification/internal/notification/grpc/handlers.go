@@ -66,6 +66,7 @@ func (gh NotificationGrpcHandlers) AddUserSettings(ctx context.Context, saga_uui
 		error_answer.Info = err.Error()
 		error_answer.Status = GetErrorCode(err)
 		flag_error = true
+		answer_topic = TopicError
 	} else {
 		answer.Info = "Ok"
 	}
@@ -123,6 +124,7 @@ func (gh NotificationGrpcHandlers) RemoveUserSettings(ctx context.Context, saga_
 		error_answer.Info = err.Error()
 		error_answer.Status = GetErrorCode(err)
 		flag_error = true
+		answer_topic = TopicError
 	} else {
 		answer.Info = "Ok"
 	}

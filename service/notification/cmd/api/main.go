@@ -7,6 +7,7 @@ import (
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/platform/pkg/utils"
 	"github.com/GCFactory/dbo-system/service/notification/internal/server"
+	"github.com/GCFactory/dbo-system/service/notification/pkg/kafka"
 	"github.com/golang-migrate/migrate/v4"
 	migratePostgres "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -19,6 +20,7 @@ import (
 	"log"
 	"net/smtp"
 	"os"
+	"strings"
 )
 
 //	@Title			Users Service
@@ -175,6 +177,14 @@ func main() {
 	}
 	appLogger.Info("Smtp auth success")
 
+	kc, err := kafka.NewKafkaConsumer(strings.Split(cfg.KafkaConsumer.Brokers, ";"), cfg.KafkaConsumer.GroupID)
+	if err != nil {
+		appLogger.Fatal(err)
+	}
+	appLogger.Infof("Kafka consumer with group '%s' connected", cfg.KafkaConsumer.GroupID)
+
+	kp := kafka.NewKafkaProducer(cfg, appLogger)
+
 	jaegerCfgInstance := jaegercfg.Configuration{
 		ServiceName: cfg.Jaeger.ServiceName,
 		Sampler: &jaegercfg.SamplerConfig{
@@ -201,7 +211,7 @@ func main() {
 	appLogger.Info("Opentracing connected")
 
 	//Run server
-	s := server.NewServer(cfg, psqlDB, msgChan, smtpClient, appLogger)
+	s := server.NewServer(cfg, kc, kp, psqlDB, msgChan, smtpClient, appLogger)
 	if err = s.Run(); err != nil {
 		appLogger.Fatal(err)
 	}

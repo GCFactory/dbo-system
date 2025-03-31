@@ -103,41 +103,6 @@ func (h ApiGatewayHandlers) safeReadQueryParamsRequest(c echo.Context, v interfa
 	return nil
 }
 
-func (h ApiGatewayHandlers) AddUserSettings() echo.HandlerFunc {
-	return func(c echo.Context) error {
-
-		result := &models.DefaultHttpResponse{
-			Status: http.StatusCreated,
-			Info:   "",
-		}
-
-		operationInfo := &models.AddUserSettings{}
-		err := h.safeReadBodyRequest(c, operationInfo)
-		if err != nil {
-			utils.LogResponseError(c, h.logger, err)
-			result.Status = http.StatusBadRequest
-			result.Info = err.Error()
-			return c.JSON(http.StatusBadRequest, result)
-		}
-
-		userSettings := &models.UserNotificationInfo{
-			UserUuid:   operationInfo.UserId,
-			EmailUsage: operationInfo.EmailNotification,
-			Email:      operationInfo.Email,
-		}
-		err = h.useCase.AddUserSettings(context.Background(), userSettings)
-		if err != nil {
-			utils.LogResponseError(c, h.logger, err)
-			result.Status = http.StatusBadRequest
-			result.Info = err.Error()
-			return c.JSON(http.StatusBadRequest, result)
-		}
-
-		result.Info = "Success"
-		return c.JSON(http.StatusCreated, result)
-	}
-}
-
 func (h ApiGatewayHandlers) UpdateUserSettings() echo.HandlerFunc {
 	return func(c echo.Context) error {
 
@@ -161,36 +126,6 @@ func (h ApiGatewayHandlers) UpdateUserSettings() echo.HandlerFunc {
 			Email:      operationInfo.Email,
 		}
 		err = h.useCase.UpdateUserSettings(context.Background(), userSettings)
-		if err != nil {
-			utils.LogResponseError(c, h.logger, err)
-			result.Status = http.StatusBadRequest
-			result.Info = err.Error()
-			return c.JSON(http.StatusBadRequest, result)
-		}
-
-		result.Info = "Success"
-		return c.JSON(http.StatusOK, result)
-	}
-}
-
-func (h ApiGatewayHandlers) DeleteUserSettings() echo.HandlerFunc {
-	return func(c echo.Context) error {
-
-		result := &models.DefaultHttpResponse{
-			Status: http.StatusOK,
-			Info:   "",
-		}
-
-		operationInfo := &models.DeleteUserSettings{}
-		err := h.safeReadBodyRequest(c, operationInfo)
-		if err != nil {
-			utils.LogResponseError(c, h.logger, err)
-			result.Status = http.StatusBadRequest
-			result.Info = err.Error()
-			return c.JSON(http.StatusBadRequest, result)
-		}
-
-		err = h.useCase.DeleteUserSettings(context.Background(), operationInfo.UserId)
 		if err != nil {
 			utils.LogResponseError(c, h.logger, err)
 			result.Status = http.StatusBadRequest

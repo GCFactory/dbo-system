@@ -2,11 +2,17 @@ package server
 
 import (
 	"context"
+	"errors"
 	"github.com/GCFactory/dbo-system/platform/config"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
+	api "github.com/GCFactory/dbo-system/service/notification/gen_proto/proto/notification_api"
 	"github.com/GCFactory/dbo-system/service/notification/internal/notification"
+	"github.com/GCFactory/dbo-system/service/notification/internal/notification/grpc"
 	"github.com/GCFactory/dbo-system/service/notification/internal/notification/repo"
 	"github.com/GCFactory/dbo-system/service/notification/internal/notification/usecase"
+	"github.com/GCFactory/dbo-system/service/notification/pkg/kafka"
+	"github.com/IBM/sarama"
+	"github.com/golang/protobuf/proto"
 	"github.com/labstack/echo/v4"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"net/smtp"
@@ -29,35 +35,44 @@ const (
 
 // Server struct
 type Server struct {
-	echo       *echo.Echo
-	cfg        *config.Config
-	db         *sqlx.DB
-	logger     logger.Logger
-	msg        <-chan amqp.Delivery
-	useCase    notification.UseCase
-	smtpClient *smtp.Client
+	echo          *echo.Echo
+	cfg           *config.Config
+	db            *sqlx.DB
+	logger        logger.Logger
+	msg           <-chan amqp.Delivery
+	useCase       notification.UseCase
+	smtpClient    *smtp.Client
+	kafkaProducer *kafka.ProducerProvider
+	kafkaConsumer *kafka.ConsumerGroup
+	// Channel to control goroutines
+	kafkaConsumerChan chan int
+	grpcHandlers      notification.GRPCHandlers
 }
 
-func NewServer(cfg *config.Config, db *sqlx.DB, msgChan <-chan amqp.Delivery, smtpClient *smtp.Client, logger logger.Logger) *Server {
+func NewServer(cfg *config.Config, kConsumer *kafka.ConsumerGroup, kProducer *kafka.ProducerProvider, db *sqlx.DB, msgChan <-chan amqp.Delivery, smtpClient *smtp.Client, logger logger.Logger) *Server {
 	server := Server{
-		echo:       echo.New(),
-		cfg:        cfg,
-		db:         db,
-		msg:        msgChan,
-		logger:     logger,
-		smtpClient: smtpClient,
+		echo:              echo.New(),
+		cfg:               cfg,
+		db:                db,
+		msg:               msgChan,
+		logger:            logger,
+		smtpClient:        smtpClient,
+		kafkaConsumer:     kConsumer,
+		kafkaProducer:     kProducer,
+		kafkaConsumerChan: make(chan int, 3),
 	}
 	server.echo.HidePort = true
 	server.echo.HideBanner = true
 
 	serverRepo := repo.NewNotificationRepository(server.db)
 	server.useCase = usecase.NewNotificationUseCase(serverRepo, server.smtpClient, server.cfg.NotificationSmtp)
+	server.grpcHandlers = grpc.NewNotificationGRPCHandlers(cfg, kProducer, server.useCase, server.logger)
 
 	return &server
 }
 
 func (s *Server) Run() error {
-	_, cancel := context.WithCancel(context.Background())
+	ctxWithCancel, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	server := &http.Server{
@@ -104,12 +119,128 @@ func (s *Server) Run() error {
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+	go s.RunKafkaConsumer(ctxWithCancel, s.kafkaConsumerChan)
 
-	<-quit
+	for {
+		select {
+		// If goroutine exit for any reason - restart
+		case <-s.kafkaConsumerChan:
+			s.logger.Warn("Received end of kafka consumer goroutine")
+			go s.RunKafkaConsumer(ctxWithCancel, s.kafkaConsumerChan)
+		// Handle system interrupts
+		case <-quit:
+			ctx, shutdown := context.WithTimeout(context.Background(), ctxTimeout*time.Second)
+			s.kafkaConsumer.Consumer.PauseAll()
+			s.kafkaConsumer.Consumer.Close()
+			time.Sleep(time.Second * 5)
+			close(quit)
+			close(s.kafkaConsumerChan)
+			defer shutdown()
+			defer cancel()
 
-	ctx, shutdown := context.WithTimeout(context.Background(), ctxTimeout*time.Second)
-	defer shutdown()
+			s.logger.Info("Server Exited Properly")
+			return s.echo.Server.Shutdown(ctx)
+		}
+	}
+}
 
-	s.logger.Info("Server Exited Properly")
-	return s.echo.Server.Shutdown(ctx)
+func (s *Server) RunKafkaConsumer(ctx context.Context, quitChan chan<- int) {
+	consumer := kafka.Consumer{
+		Ready:       make(chan bool),
+		HandlerFunc: s.handleData,
+	}
+	for {
+		if err := s.kafkaConsumer.Consumer.Consume(ctx, s.cfg.KafkaConsumer.Topics, &consumer); err != nil {
+			if errors.Is(err, sarama.ErrClosedConsumerGroup) {
+				return
+			}
+			quitChan <- 1
+			s.logger.Errorf("Error from consumer: %v", err)
+		}
+		// check if context was cancelled, signaling that the consumer should stop
+		if ctx.Err() != nil {
+			s.logger.Infof("Stopping kafka consumer: context close: %v", ctx.Err())
+			return
+		}
+		s.logger.Info("Stopping kafka consumer...")
+		consumer.Ready = make(chan bool)
+	}
+}
+
+func (s *Server) handleData(message *sarama.ConsumerMessage) error {
+
+	data := &api.EventData{}
+	err := proto.Unmarshal(message.Value, data)
+
+	if err != nil {
+
+		s.logger.Error(grpc.ErrorInvalidInputData.Error())
+
+		answer := &api.EventError{
+			Info:   grpc.ErrorInvalidInputData.Error(),
+			Status: grpc.GetErrorCode(grpc.ErrorInvalidInputData),
+		}
+		answer_data, err := proto.Marshal(answer)
+		if err != nil {
+			s.logger.Error(err)
+			return err
+		}
+		err = s.kafkaProducer.ProduceRecord(grpc.TopicError, sarama.ByteEncoder(answer_data))
+		if err != nil {
+			s.logger.Error(err)
+			return err
+		}
+		return nil
+	}
+
+	//
+	switch data.GetOperationName() {
+	case grpc.OperationAddUserSettings:
+		{
+			// Unpack data and handle func
+			if extracted_data := data.GetAdditionalInfo(); extracted_data != nil {
+				if err = s.grpcHandlers.AddUserSettings(context.Background(), data.GetSagaUuid(), data.GetEventUuid(), extracted_data, s.kafkaProducer); err != nil {
+					return err
+				}
+			} else {
+				err = grpc.ErrorUnknownOperationType
+			}
+		}
+
+	case grpc.OperationRemoveUserSettings:
+		{
+			// Unpack data and handle func
+			if extracted_data := data.GetAdditionalInfo(); extracted_data != nil {
+				if err = s.grpcHandlers.RemoveUserSettings(context.Background(), data.GetSagaUuid(), data.GetEventUuid(), extracted_data, s.kafkaProducer); err != nil {
+					return err
+				}
+			} else {
+				err = grpc.ErrorUnknownOperationType
+			}
+		}
+
+	}
+
+	if err != nil {
+
+		s.logger.Error(err)
+
+		answer := &api.EventError{
+			Info:   err.Error(),
+			Status: grpc.GetErrorCode(grpc.ErrorInvalidInputData),
+		}
+		answer_data, err := proto.Marshal(answer)
+		if err != nil {
+			s.logger.Error(err)
+			return err
+		}
+		err = s.kafkaProducer.ProduceRecord(grpc.TopicError, sarama.ByteEncoder(answer_data))
+		if err != nil {
+			s.logger.Error(err)
+			return err
+		}
+		return nil
+	}
+
+	return nil
 }
