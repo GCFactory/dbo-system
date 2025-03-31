@@ -305,6 +305,70 @@ func (usersGRPC UsersGrpcHandlers) UpdateUsersPassport(ctx context.Context, saga
 	return nil
 }
 
+func (usersGRPC UsersGrpcHandlers) DeleteUser(ctx context.Context, saga_uuid string, event_uuid string, operation_details *api.OperationDetails, kProducer *kafka.ProducerProvider) error {
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "usersGRPC.DeleteUser")
+	defer span.Finish()
+
+	var answer_data []byte
+	flag_error := false
+	var err error
+	answer_topic := TopicResult
+
+	answer := &api.EventSuccess{
+		SagaUuid:      saga_uuid,
+		EventUuid:     event_uuid,
+		OperationName: DeleteUser,
+	}
+
+	error_answer := &api.EventError{
+		SagaUuid:      saga_uuid,
+		EventUuid:     event_uuid,
+		OperationName: DeleteUser,
+	}
+
+	userIdStr := operation_details.UserUuid
+	userId, err := uuid.Parse(userIdStr)
+	if err != nil {
+		error_answer.Info = err.Error()
+		error_answer.Status = GetErrorCode(ErrorInvalidInputData)
+
+		flag_error = true
+	}
+
+	if !flag_error {
+		err = usersGRPC.usersUC.RemoveUser(ctxWithTrace, userId)
+		if err != nil {
+			error_answer.Info = err.Error()
+			error_answer.Status = GetErrorCode(ErrorInvalidInputData)
+
+			flag_error = true
+		} else {
+			answer.Result = &api.EventSuccess_Info{"Success"}
+		}
+	}
+
+	if flag_error {
+		answer_data, err = proto.Marshal(error_answer)
+		answer_topic = TopicError
+	} else {
+		answer_data, err = proto.Marshal(answer)
+	}
+
+	if err != nil {
+		usersGRPC.accLog.Error(err)
+		return err
+	}
+
+	err = kProducer.ProduceRecord(answer_topic, sarama.ByteEncoder(answer_data))
+	if err != nil {
+		usersGRPC.accLog.Error(err)
+		return err
+	}
+	usersGRPC.accLog.Info("Success to send answer!")
+
+	return nil
+}
+
 func (usersGRPC UsersGrpcHandlers) AddUserAccount(ctx context.Context, saga_uuid string, event_uuid string, operation_details *api.OperationDetails, kProducer *kafka.ProducerProvider) error {
 
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "usersGRPC.AddUserAccount")

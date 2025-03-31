@@ -72,6 +72,19 @@ func (uc userUsecase) UpdateUsersPassport(ctx context.Context, user_uuid uuid.UU
 	return nil
 }
 
+func (uc userUsecase) RemoveUser(ctx context.Context, userId uuid.UUID) error {
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "userUsecase.RemoveUser")
+	defer span.Finish()
+
+	err := uc.usersRepo.DeleteUser(ctxWithTrace, userId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (uc userUsecase) AddUserAccount(ctx context.Context, user_uuid uuid.UUID, account uuid.UUID) error {
 
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "userUsecase.AddUserAccount")

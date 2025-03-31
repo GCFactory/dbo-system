@@ -272,6 +272,25 @@ func (repo UserRepository) GetUserByLogin(ctx context.Context, login string) (*m
 	return result, nil
 }
 
+func (repo UserRepository) DeleteUser(ctx context.Context, userId uuid.UUID) error {
+
+	span, local_ctx := opentracing.StartSpanFromContext(ctx, "UserRepository.DeleteUser")
+	defer span.Finish()
+
+	res, err := repo.db.ExecContext(local_ctx,
+		DeleteUser,
+		userId,
+	)
+
+	if err != nil {
+		return err
+	} else if count, err := res.RowsAffected(); err != nil || count == 0 {
+		return ErrorNoUserFound
+	}
+
+	return nil
+}
+
 func NewUserRepository(db *sqlx.DB) users.Repository {
 	return &UserRepository{db: db}
 }

@@ -11,4 +11,5 @@ var (
 	ErrorUpdateAccounts   = errors.New("Error updating accounts")
 	ErrorGetUsersAccounts = errors.New("Error getting users accounts")
 	ErrorUpdatePassword   = errors.New("Error update password")
+	ErrorNoUserFound      = errors.New("No user found")
 )

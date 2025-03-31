@@ -29,6 +29,13 @@ const (
 		)
 		values ($1, $2, $3, $4, $5, $6);`
 
+	DeleteUser = `DELETE FROM ONLY passport
+					WHERE passport_uuid = 
+					      (SELECT passport_uuid
+					       FROM users
+					       WHERE user_uuid = $1
+					       LIMIT 1);`
+
 	GetPassportData = `select * 
 		from only passport 
 		where passport_uuid = $1;`
