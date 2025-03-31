@@ -3,14 +3,16 @@ package grpc
 import "slices"
 
 const (
-	ServerTypeUnknown  uint8 = 0
-	ServerTypeUsers    uint8 = 1
-	ServerTypeAccounts uint8 = 2
+	ServerTypeUnknown      uint8 = 0
+	ServerTypeUsers        uint8 = 1
+	ServerTypeAccounts     uint8 = 2
+	ServerTypeNotification uint8 = 3
 )
 
 var PossibleServerTypes = []uint8{
 	ServerTypeUsers,
 	ServerTypeAccounts,
+	ServerTypeNotification,
 }
 
 func ValidateServer(serverType uint8) (res bool) {
@@ -24,12 +26,15 @@ func ValidateServer(serverType uint8) (res bool) {
 }
 
 const (
-	ServerTopicUsersConsumer       string = "users_cons"
-	ServerTopicUsersProducerRes    string = "users_res"
-	ServerTopicUsersProducerErr    string = "users_err"
-	ServerTopicAccountsConsumer    string = "account_cons"
-	ServerTopicAccountsProducerRes string = "account_res"
-	ServerTopicAccountsProducerErr string = "account_err"
+	ServerTopicUsersConsumer        string = "users_cons"
+	ServerTopicUsersProducerRes     string = "users_res"
+	ServerTopicUsersProducerErr     string = "users_err"
+	ServerTopicAccountsConsumer     string = "account_cons"
+	ServerTopicAccountsProducerRes  string = "account_res"
+	ServerTopicAccountsProducerErr  string = "account_err"
+	ServerTopicNotificationConsumer string = "notification_cons"
+	ServerTopicNotificationRes      string = "notification_res"
+	ServerTopicNotificationErr      string = "notification_err"
 )
 
 var PosiibleServerTopics = map[uint8][]string{
@@ -42,6 +47,11 @@ var PosiibleServerTopics = map[uint8][]string{
 		ServerTopicAccountsConsumer,
 		ServerTopicAccountsProducerRes,
 		ServerTopicAccountsProducerErr,
+	},
+	ServerTypeNotification: {
+		ServerTopicNotificationConsumer,
+		ServerTopicNotificationRes,
+		ServerTopicNotificationErr,
 	},
 }
 
@@ -61,21 +71,23 @@ func ValidateServerTopic(serverType uint8, topic string) (res bool) {
 }
 
 const (
-	OperationGetUserData        string = "get_user_data"
-	OperationCreateUser         string = "add_user"
-	OperationAddAccountToUser   string = "add_user_account"
-	OperationReserveAcc         string = "reserve_acc"
-	OperationCreateAcc          string = "create_acc"
-	OperationOpenAcc            string = "open_acc"
-	OperationGetAccountData     string = "get_acc_data"
-	OperationAddAccountCache    string = "adding_acc"
-	OperationWidthAccountCache  string = "width_acc"
-	OperationCloseAccount       string = "close_acc"
-	OperationRemoveAccount      string = "remove_acc"
-	OperationRemoveUserAccount  string = "remove_user_account"
-	OperationUpdateUserPassword string = "update_user_password"
-	OperationGetUserDataByLogin string = "get_user_data_by_login"
-	OperationCheckUSerPassword  string = "check_user_password"
+	OperationGetUserData                    string = "get_user_data"
+	OperationCreateUser                     string = "add_user"
+	OperationAddAccountToUser               string = "add_user_account"
+	OperationReserveAcc                     string = "reserve_acc"
+	OperationCreateAcc                      string = "create_acc"
+	OperationOpenAcc                        string = "open_acc"
+	OperationGetAccountData                 string = "get_acc_data"
+	OperationAddAccountCache                string = "adding_acc"
+	OperationWidthAccountCache              string = "width_acc"
+	OperationCloseAccount                   string = "close_acc"
+	OperationRemoveAccount                  string = "remove_acc"
+	OperationRemoveUserAccount              string = "remove_user_account"
+	OperationUpdateUserPassword             string = "update_user_password"
+	OperationGetUserDataByLogin             string = "get_user_data_by_login"
+	OperationCheckUSerPassword              string = "check_user_password"
+	OperationCreateUserNotificationSettings string = "add_user_notification_settings"
+	OperationDeleteUserNotificationSettings string = "remove_user_notification_settings"
 )
 
 var PossibleServersOperations = map[uint8][]string{
@@ -97,6 +109,10 @@ var PossibleServersOperations = map[uint8][]string{
 		OperationWidthAccountCache,
 		OperationCloseAccount,
 		OperationRemoveAccount,
+	},
+	ServerTypeNotification: {
+		OperationCreateUserNotificationSettings,
+		OperationDeleteUserNotificationSettings,
 	},
 }
 
@@ -199,6 +215,14 @@ var RequiredOperationsFields = map[string][]string{
 	OperationCheckUSerPassword: {
 		"user_id",
 		"password",
+	},
+	OperationCreateUserNotificationSettings: {
+		"user_id",
+		"email_notification",
+		"email",
+	},
+	OperationDeleteUserNotificationSettings: {
+		"user_id",
 	},
 }
 

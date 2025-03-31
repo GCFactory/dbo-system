@@ -14,18 +14,19 @@ const (
 )
 
 const (
-	SagaTypeCreateUser              string = "create_user"
-	SagaTypeCheckUser               string = "check_user"
-	SagaTypeReserveAccount          string = "reserve_account"
-	SagaTypeCreateAccount           string = "create_account"
-	SagaTypeOpenAccountAndAddToUser string = "open_account_and_add_to_user"
-	SagaTypeGetAccountData          string = "get_account_data"
-	SagaTypeAddAccountCache         string = "add_account_cache"
-	SagaTypeWidthAccountCache       string = "width_account_cache"
-	SagaTypeCloseAccount            string = "close_account"
-	SagaTypeUpdateUserPassword      string = "update_user_password"
-	SagaTypeGetUserDataByLogin      string = "get_user_data_by_login"
-	SagaTypeCheckUserPassword       string = "check_user_password"
+	SagaTypeCreateUser                     string = "create_user"
+	SagaTypeCheckUser                      string = "check_user"
+	SagaTypeReserveAccount                 string = "reserve_account"
+	SagaTypeCreateAccount                  string = "create_account"
+	SagaTypeOpenAccountAndAddToUser        string = "open_account_and_add_to_user"
+	SagaTypeGetAccountData                 string = "get_account_data"
+	SagaTypeAddAccountCache                string = "add_account_cache"
+	SagaTypeWidthAccountCache              string = "width_account_cache"
+	SagaTypeCloseAccount                   string = "close_account"
+	SagaTypeUpdateUserPassword             string = "update_user_password"
+	SagaTypeGetUserDataByLogin             string = "get_user_data_by_login"
+	SagaTypeCheckUserPassword              string = "check_user_password"
+	SagaTypeCreateUserNotificationSettings string = "add_user_notification_settings"
 )
 
 var PossibleSagaTypes = []string{
@@ -41,6 +42,7 @@ var PossibleSagaTypes = []string{
 	SagaTypeUpdateUserPassword,
 	SagaTypeGetUserDataByLogin,
 	SagaTypeCheckUserPassword,
+	SagaTypeCreateUserNotificationSettings,
 }
 
 func ValidateSagaType(saga_type string) bool {
@@ -98,6 +100,10 @@ var PossibleEventsListForSagaType = map[string][]string{
 	SagaTypeCheckUserPassword: {
 		EventTypeCheckUserPassword,
 	},
+	SagaTypeCreateUserNotificationSettings: {
+		EventTypeCreateUserNotificationSettings,
+		EventTypeDeleteUserNotificationSettings,
+	},
 }
 
 // Список операций, входящих в SAG-у
@@ -138,6 +144,9 @@ var StartEventsListForSagaType = map[string][]string{
 	},
 	SagaTypeCheckUserPassword: {
 		EventTypeCheckUserPassword,
+	},
+	SagaTypeCreateUserNotificationSettings: {
+		EventTypeCreateUserNotificationSettings,
 	},
 }
 
@@ -208,7 +217,15 @@ func ValidateSagaGroup(saga_group uint8) bool {
 var ListOfSagaDepend = map[uint8]map[string]models.SagaDepend{
 	SagaGroupCreateUser: map[string]models.SagaDepend{
 		SagaTypeCreateUser: {
-			Parents:  nil,
+			Parents: nil,
+			Children: []string{
+				SagaTypeCreateUserNotificationSettings,
+			},
+		},
+		SagaTypeCreateUserNotificationSettings: {
+			Parents: []string{
+				SagaTypeCreateUser,
+			},
 			Children: nil,
 		},
 	},

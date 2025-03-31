@@ -5,6 +5,7 @@ import (
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
 	"github.com/GCFactory/dbo-system/service/registration/config"
 	accounts_api "github.com/GCFactory/dbo-system/service/registration/gen_proto/proto/api/account"
+	notification_api "github.com/GCFactory/dbo-system/service/registration/gen_proto/proto/api/notification_api"
 	users_api "github.com/GCFactory/dbo-system/service/registration/gen_proto/proto/api/users"
 	"github.com/GCFactory/dbo-system/service/registration/gen_proto/proto/platform"
 	"github.com/GCFactory/dbo-system/service/registration/internal/models"
@@ -555,6 +556,82 @@ func (h *GRPCRegistrationHandlers) SendRequest(ctx context.Context, server uint8
 				}
 			}
 			break
+		}
+	case ServerTypeNotification:
+		{
+			switch operation_name {
+			case OperationCreateUserNotificationSettings:
+				{
+					if !ValidateOperationsData(operation_name, data) {
+						return ErrorInvalidOperationsData
+					}
+
+					if !ValidateServerTopic(server, ServerTopicNotificationConsumer) {
+						return ErrorInvalidServersTopic
+					}
+
+					email := data["email"].(string)
+					emailNotification := data["email_notification"].(bool)
+
+					userNotificationSettingsData := &notification_api.EventData{
+						SagaUuid:      saga_uuid.String(),
+						EventUuid:     event_uuid.String(),
+						OperationName: operation_name,
+						AdditionalInfo: &notification_api.AdditionalInfo{
+							UserId:            data["user_id"].(string),
+							Email:             &email,
+							EmailNotification: &emailNotification,
+						},
+					}
+
+					msg, err := proto.Marshal(userNotificationSettingsData)
+					if err != nil {
+						h.regLog.Error(err)
+						return err
+					}
+					err = h.kProducer.ProduceRecord(ServerTopicNotificationConsumer, sarama.ByteEncoder(msg))
+					if err != nil {
+						h.regLog.Error(err)
+						return err
+					}
+					break
+				}
+			case OperationDeleteUserNotificationSettings:
+				{
+					if !ValidateOperationsData(operation_name, data) {
+						return ErrorInvalidOperationsData
+					}
+
+					if !ValidateServerTopic(server, ServerTopicNotificationConsumer) {
+						return ErrorInvalidServersTopic
+					}
+
+					userNotificationSettingsData := &notification_api.EventData{
+						SagaUuid:      saga_uuid.String(),
+						EventUuid:     event_uuid.String(),
+						OperationName: operation_name,
+						AdditionalInfo: &notification_api.AdditionalInfo{
+							UserId:            data["user_id"].(string),
+							Email:             nil,
+							EmailNotification: nil,
+						},
+					}
+
+					msg, err := proto.Marshal(userNotificationSettingsData)
+					if err != nil {
+						h.regLog.Error(err)
+						return err
+					}
+					err = h.kProducer.ProduceRecord(ServerTopicNotificationConsumer, sarama.ByteEncoder(msg))
+					if err != nil {
+						h.regLog.Error(err)
+						return err
+					}
+					break
+				}
+			default:
+				return ErrorInvalidServersOperation
+			}
 		}
 	default:
 		{
