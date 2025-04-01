@@ -326,8 +326,6 @@ func (h ApiGatewayHandlers) SignUp() echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, operation_result)
 		}
 
-		operation_result.Success = true
-
 		return c.JSON(http.StatusOK, operation_result)
 	}
 }

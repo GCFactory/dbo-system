@@ -5,7 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/GCFactory/dbo-system/service/api_gateway/internal/api_gateway/usecase/notifications"
 	"github.com/rabbitmq/amqp091-go"
+	"net/url"
 	"strconv"
 
 	//"errors"
@@ -26,7 +28,10 @@ import (
 type apiGateWayUseCase struct {
 	cfg                    *config.Config
 	repo                   api_gateway.Repository
-	registrationServerInfo *models.RegistrationServerInfo
+	registrationServerInfo *models.InternalServerInfo
+	usersServerInfo        *models.InternalServerInfo
+	accountsServerInfo     *models.InternalServerInfo
+	notificationServerInfo *models.InternalServerInfo
 	imagesPath             string
 	rmqChan                *amqp091.Channel
 	rmqQueue               amqp091.Queue
@@ -329,12 +334,13 @@ func (uc *apiGateWayUseCase) CreateUserPage(user_id uuid.UUID) (string, error) {
 		Authority:           user_data.PassportAuthority,
 		AuthorityDate:       user_data.PassportAuthorityDate,
 		RegistrationAddress: user_data.PassportRegistrationAddress,
+		Email:               user_data.Email,
 		ListOfAccounts:      "",
 	}
 
 	accounts := ""
 	for _, account_id := range user_data.Accounts {
-		account_data, err := uc.GetAccountDataRequest(user_id, account_id)
+		account_data, err := uc.GetAccountDataRequest(account_id)
 		if err != nil {
 			return "", err
 		}
@@ -634,22 +640,12 @@ func (uc *apiGateWayUseCase) CreateOperationPage(operation_type string, addition
 					return "", ErrorNoOperationData
 				}
 
-				user_id_str, ok := additional_data["user_id"]
-				if !ok {
-					return "", ErrorNoOperationData
-				}
-
 				account_id, err := uuid.Parse(acc_id_str.(string))
 				if err != nil {
 					return "", err
 				}
 
-				user_id, err := uuid.Parse(user_id_str.(string))
-				if err != nil {
-					return "", err
-				}
-
-				acc_data, err := uc.GetAccountDataRequest(user_id, account_id)
+				acc_data, err := uc.GetAccountDataRequest(account_id)
 				if err != nil {
 					return "", err
 				}
@@ -1056,6 +1052,20 @@ func (uc *apiGateWayUseCase) SignIn(login_info *models.SignInInfo) (*models.Toke
 			return nil, err
 		}
 
+		template_message_sign_in, err := template.New("NotificationSignIn").Parse(notifications.NotificationSignIn)
+		if err == nil {
+			msgInfo := &models.SignInMessage{
+				Login: login_info.Login,
+			}
+
+			var buffer bytes.Buffer
+
+			err = template_message_sign_in.Execute(&buffer, &msgInfo)
+			if err == nil {
+				_ = uc.CreateNotification(context.Background(), user_data.Id, MessageLvlAll, buffer.String())
+			}
+		}
+
 		return token, nil
 	}
 
@@ -1069,6 +1079,26 @@ func (uc *apiGateWayUseCase) SignUp(sign_up_info *models.SignUpInfo) (*models.To
 	if err != nil {
 		return nil, err
 	}
+
+	template_welcome_notify, err := template.New("NotificationWelcome").Parse(notifications.NotificationWelcome)
+	if err != nil {
+		return nil, err
+	}
+
+	var buffer bytes.Buffer
+
+	userNotifyInfo := &models.WelcomeMessage{
+		Login: sign_up_info.Login,
+		Name:  sign_up_info.Surname + " " + sign_up_info.Name + " " + sign_up_info.Patronymic,
+	}
+
+	err = template_welcome_notify.Execute(&buffer, userNotifyInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	_ = uc.CreateNotification(context.Background(), user_id, notifications.NotificationLvlEmail, buffer.String())
+	buffer.Reset()
 
 	token, err := uc.CreateToken(context.Background(), uuid.New(), TokenLiveTime, user_id)
 	if err != nil {
@@ -1614,7 +1644,7 @@ func (uc *apiGateWayUseCase) getOperationTree(operation_id uuid.UUID) (*models.O
 	return result, nil
 }
 
-func (uc *apiGateWayUseCase) GetAccountDataRequest(user_id uuid.UUID, account_id uuid.UUID) (*models.AccountInfo, error) {
+func (uc *apiGateWayUseCase) GetAccountDataRequest(account_id uuid.UUID) (*models.AccountInfo, error) {
 
 	template_request_get_account_data, err := template.New("GetAccountData").Parse(GetAccountData)
 	if err != nil {
@@ -1623,31 +1653,26 @@ func (uc *apiGateWayUseCase) GetAccountDataRequest(user_id uuid.UUID, account_id
 
 	var writer bytes.Buffer
 
-	err = template_request_get_account_data.Execute(&writer, uc.registrationServerInfo)
+	err = template_request_get_account_data.Execute(&writer, uc.accountsServerInfo)
 	if err != nil {
 		return nil, err
 	}
 	request_get_account_data := writer.String()
 	writer.Reset()
 
-	request_get_account_data_body := &models.GetAccountDataBody{
-		UserId:    user_id,
-		AccountId: account_id,
-	}
+	urlParams := url.Values{}
+	urlParams.Add("acc_id", account_id.String())
 
-	request_body, err := json.Marshal(&request_get_account_data_body)
-	if err != nil {
-		return nil, err
-	}
+	fullUrl := fmt.Sprintf("%s?%s", request_get_account_data, urlParams.Encode())
 
-	req, err := http.NewRequest(http.MethodPost, request_get_account_data, bytes.NewBuffer(request_body))
+	req, err := http.NewRequest(http.MethodGet, fullUrl, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{
-		Timeout: uc.registrationServerInfo.TimeWaitResponse,
+		Timeout: uc.accountsServerInfo.TimeWaitResponse,
 	}
 
 	resp, err := client.Do(req)
@@ -1660,82 +1685,47 @@ func (uc *apiGateWayUseCase) GetAccountDataRequest(user_id uuid.UUID, account_id
 		return nil, err
 	}
 
-	var resp_data = &models.OperationResponse{}
+	var resp_data = &models.GetAccountDataResponse{}
 
 	err = json.Unmarshal(resp_body, &resp_data)
 	if err != nil {
 		return nil, err
 	}
 
-	operation_id_str := resp_data.Info
-
-	operation_id, err := uuid.Parse(operation_id_str)
-	if err != nil {
-		return nil, err
-	}
-
-	operation_data, err := uc.GetOperationData(operation_id)
-	if err != nil {
-		return nil, err
-	}
-
-	if operation_data.AdditionalInfo == nil {
-		return nil, ErrorNoAccountData
-	}
-
-	additional_data := operation_data.AdditionalInfo.(map[string]interface{})
-
-	additional_data = additional_data
-
 	result := &models.AccountInfo{
-		Id: account_id,
+		Id:         account_id,
+		Name:       resp_data.Acc_name,
+		CorrNumber: resp_data.Acc_corr_number,
+		CulcNumber: resp_data.Acc_culc_number,
+		CIO:        resp_data.Acc_cio,
+		BIC:        resp_data.Acc_bic,
+		Cache:      resp_data.Acc_money_amount,
 	}
 
-	if cache_amount, ok := additional_data["acc_cache"]; ok {
-		result.Cache = cache_amount.(float64)
-	}
-	if name, ok := additional_data["acc_name"]; ok {
-		result.Name = name.(string)
-	}
-	if status, ok := additional_data["acc_status"]; ok {
-		status_val := status.(float64)
-		status_str := "Unknown"
-		switch status_val {
-		case 10:
-			{
-				status_str = "Reserved"
-			}
-		case 20:
-			{
-				status_str = "Created"
-			}
-		case 30:
-			{
-				status_str = "Opened"
-			}
-		case 40:
-			{
-				status_str = "Closed"
-			}
-		case 50:
-			{
-				status_str = "Blocked"
-			}
+	status_str := "Unknown"
+	switch resp_data.Acc_status {
+	case 10:
+		{
+			status_str = "Reserved"
 		}
-		result.Status = status_str
+	case 20:
+		{
+			status_str = "Created"
+		}
+	case 30:
+		{
+			status_str = "Opened"
+		}
+	case 40:
+		{
+			status_str = "Closed"
+		}
+	case 50:
+		{
+			status_str = "Blocked"
+		}
 	}
-	if corr_number, ok := additional_data["acc_corr_number"]; ok {
-		result.CorrNumber = corr_number.(string)
-	}
-	if culc_number, ok := additional_data["acc_culc_number"]; ok {
-		result.CulcNumber = culc_number.(string)
-	}
-	if cio, ok := additional_data["acc_cio"]; ok {
-		result.CIO = cio.(string)
-	}
-	if bic, ok := additional_data["acc_bic"]; ok {
-		result.BIC = bic.(string)
-	}
+	result.Status = status_str
 
 	return result, nil
 }
@@ -1749,30 +1739,26 @@ func (uc *apiGateWayUseCase) GetUserDataRequest(user_id uuid.UUID) (*models.User
 
 	var writer bytes.Buffer
 
-	err = template_request_get_user_data.Execute(&writer, uc.registrationServerInfo)
+	err = template_request_get_user_data.Execute(&writer, uc.usersServerInfo)
 	if err != nil {
 		return nil, err
 	}
-	request_check_user_password := writer.String()
+	request_get_user_data := writer.String()
 	writer.Reset()
 
-	request_get_user_data_body := &models.CheckUserPasswordBody{
-		UserId: user_id,
-	}
+	params := url.Values{}
+	params.Add("user_id", user_id.String())
 
-	request_body, err := json.Marshal(&request_get_user_data_body)
-	if err != nil {
-		return nil, err
-	}
+	fullUrl := fmt.Sprintf("%s?%s", request_get_user_data, params.Encode())
 
-	req, err := http.NewRequest(http.MethodPost, request_check_user_password, bytes.NewBuffer(request_body))
+	req, err := http.NewRequest(http.MethodGet, fullUrl, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{
-		Timeout: uc.registrationServerInfo.TimeWaitResponse,
+		Timeout: uc.usersServerInfo.TimeWaitResponse,
 	}
 
 	resp, err := client.Do(req)
@@ -1785,91 +1771,79 @@ func (uc *apiGateWayUseCase) GetUserDataRequest(user_id uuid.UUID) (*models.User
 		return nil, err
 	}
 
-	var resp_data = &models.OperationResponse{}
+	var resp_get_user_data = &models.GetUserDataResponse{}
 
-	err = json.Unmarshal(resp_body, &resp_data)
+	err = json.Unmarshal(resp_body, &resp_get_user_data)
 	if err != nil {
 		return nil, err
 	}
 
-	operation_id_str := resp_data.Info
+	result := &models.UserInfo{
+		Email:                       "",
+		Login:                       resp_get_user_data.UserLogin,
+		Patronymic:                  resp_get_user_data.PassportData.FCS.Patronymic,
+		Name:                        resp_get_user_data.PassportData.FCS.Name,
+		Surname:                     resp_get_user_data.PassportData.FCS.Surname,
+		Accounts:                    resp_get_user_data.Accounts,
+		BirthLocation:               resp_get_user_data.PassportData.BirthLocation,
+		BirthDate:                   resp_get_user_data.PassportData.BirthDate,
+		Id:                          user_id,
+		PassportRegistrationAddress: resp_get_user_data.PassportData.RegistrationAdress,
+		PassportAuthorityDate:       resp_get_user_data.PassportData.AuthorityDate,
+		PassportAuthority:           resp_get_user_data.PassportData.Authority,
+		PassportPickUpPoint:         resp_get_user_data.PassportData.PickUpPoint,
+		PassportNumber:              resp_get_user_data.PassportData.Number,
+		PassportSeries:              resp_get_user_data.PassportData.Series,
+		Inn:                         resp_get_user_data.UserInn,
+	}
 
-	operation_id, err := uuid.Parse(operation_id_str)
+	template_request_get_user_notif_settings, err := template.New("GetUserNotificationSettings").Parse(GetUserNotificationSettings)
 	if err != nil {
 		return nil, err
 	}
 
-	operation_data, err := uc.GetOperationData(operation_id)
+	writer.Reset()
+
+	err = template_request_get_user_notif_settings.Execute(&writer, uc.notificationServerInfo)
+	if err != nil {
+		return nil, err
+	}
+	request_get_user_notif_settings := writer.String()
+	writer.Reset()
+
+	params = url.Values{}
+	params.Add("user_id", user_id.String())
+
+	fullUrl = fmt.Sprintf("%s?%s", request_get_user_notif_settings, params.Encode())
+
+	req, err = http.NewRequest(http.MethodGet, fullUrl, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client = &http.Client{
+		Timeout: uc.usersServerInfo.TimeWaitResponse,
+	}
+
+	resp, err = client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 
-	if operation_data.AdditionalInfo == nil {
-		return nil, ErrorNoUserData
+	resp_body, err = io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
 	}
 
-	additional_data := operation_data.AdditionalInfo.(map[string]interface{})
+	var resp_data_notify_settings = &models.GetUserNotifySettingsResponse{}
 
-	result := &models.UserInfo{}
+	err = json.Unmarshal(resp_body, &resp_data_notify_settings)
+	if err != nil {
+		return nil, err
+	}
 
-	if name, ok := additional_data["passport_first_name"]; ok && name != nil {
-		result.Name = name.(string)
-	}
-	if surname, ok := additional_data["passport_first_surname"]; ok && surname != nil {
-		result.Surname = surname.(string)
-	}
-	if patronimic, ok := additional_data["passport_first_patronimic"]; ok && patronimic != nil {
-		result.Patronymic = patronimic.(string)
-	}
-	if passport_series, ok := additional_data["passport_series"]; ok && passport_series != nil {
-		result.PassportSeries = passport_series.(string)
-	}
-	if passport_number, ok := additional_data["passport_number"]; ok && passport_number != nil {
-		result.PassportNumber = passport_number.(string)
-	}
-	if user_id, ok := additional_data["user_id"]; ok && user_id != nil {
-		user_id_str := user_id.(string)
-		id, err := uuid.Parse(user_id_str)
-		if err != nil {
-			return nil, err
-		}
-		result.Id = id
-	}
-	if birth_date, ok := additional_data["passport_birth_date"]; ok && birth_date != nil {
-		result.BirthDate = birth_date.(string)
-	}
-	if birth_location, ok := additional_data["passport_birth_location"]; ok && birth_location != nil {
-		result.BirthLocation = birth_location.(string)
-	}
-	if passport_authority, ok := additional_data["passport_authority"]; ok && passport_authority != nil {
-		result.PassportAuthority = passport_authority.(string)
-	}
-	if authority_date, ok := additional_data["passport_authority_date"]; ok && authority_date != nil {
-		result.PassportAuthorityDate = authority_date.(string)
-	}
-	if passport_pick_up_point, ok := additional_data["passport_pick_up_point"]; ok && passport_pick_up_point != nil {
-		result.PassportPickUpPoint = passport_pick_up_point.(string)
-	}
-	if registration_address, ok := additional_data["passport_registration_address"]; ok && registration_address != nil {
-		result.PassportRegistrationAddress = registration_address.(string)
-	}
-	if inn, ok := additional_data["inn"]; ok && inn != nil {
-		result.Inn = inn.(string)
-	}
-	if login, ok := additional_data["user_login"]; ok && login != nil {
-		result.Login = login.(string)
-	}
-	if accounts, ok := additional_data["accounts"]; ok && accounts != nil {
-		accounts_list := accounts.([]interface{})
-		result.Accounts = make([]uuid.UUID, 0)
-		for _, account_id_str := range accounts_list {
-			account_id, err := uuid.Parse(account_id_str.(string))
-			if err != nil {
-				return nil, err
-			}
-			result.Accounts = append(result.Accounts, account_id)
-		}
-	}
+	result.Email = resp_data_notify_settings.Email
 
 	return result, nil
 }
@@ -1955,30 +1929,26 @@ func (uc *apiGateWayUseCase) GetUserDataByLoginRequest(login string) (*models.Us
 
 	var writer bytes.Buffer
 
-	err = template_request_get_user_data_by_login.Execute(&writer, &uc.registrationServerInfo)
+	err = template_request_get_user_data_by_login.Execute(&writer, &uc.usersServerInfo)
 	if err != nil {
 		return nil, err
 	}
 	request_get_user_data_by_login := writer.String()
 	writer.Reset()
 
-	request_get_user_data_by_login_body := &models.GetUserDataByLoginBody{
-		UserLogin: login,
-	}
+	urlParams := url.Values{}
+	urlParams.Add("login", login)
 
-	request_body, err := json.Marshal(&request_get_user_data_by_login_body)
-	if err != nil {
-		return nil, err
-	}
+	fullUrl := fmt.Sprintf("%s?%s", request_get_user_data_by_login, urlParams.Encode())
 
-	req, err := http.NewRequest(http.MethodPost, request_get_user_data_by_login, bytes.NewBuffer(request_body))
+	req, err := http.NewRequest(http.MethodGet, fullUrl, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{
-		Timeout: uc.registrationServerInfo.TimeWaitResponse,
+		Timeout: uc.usersServerInfo.TimeWaitResponse,
 	}
 
 	resp, err := client.Do(req)
@@ -1991,34 +1961,15 @@ func (uc *apiGateWayUseCase) GetUserDataByLoginRequest(login string) (*models.Us
 		return nil, err
 	}
 
-	var resp_data = &models.OperationResponse{}
+	var resp_data = &models.GetUserDataByLoginResponse{}
 
 	err = json.Unmarshal(resp_body, &resp_data)
 	if err != nil {
 		return nil, err
 	}
 
-	operation_id_str := resp_data.Info
-
-	operation_id, err := uuid.Parse(operation_id_str)
-	if err != nil {
-		return nil, err
-	}
-
-	operation_data, err := uc.GetOperationData(operation_id)
-	if err != nil {
-		return nil, err
-	}
-
-	additional_info := operation_data.AdditionalInfo.(map[string]interface{})
-
-	user_id, err := uuid.Parse(additional_info["user_id"].(string))
-	if err != nil {
-		return nil, err
-	}
-
 	result := &models.UserInfo{
-		Id: user_id,
+		Id: resp_data.UserId,
 	}
 
 	return result, nil
@@ -2060,6 +2011,7 @@ func (uc *apiGateWayUseCase) CreateUserRequest(user_info *models.SignUpInfo) (uu
 			AuthorityDate:       user_info.PassportAuthorityDate + " 00:00:00",
 			BirthDate:           user_info.BirthDate + " 00:00:00",
 		},
+		UserEmail: user_info.Email,
 	}
 
 	request_body, err := json.Marshal(&request_get_user_data_by_login_body)
@@ -2113,7 +2065,7 @@ func (uc *apiGateWayUseCase) CreateUserRequest(user_info *models.SignUpInfo) (uu
 
 	additional_info := operation_data.AdditionalInfo.(map[string]interface{})
 
-	user_id, err := uuid.Parse(additional_info["user_uuid"].(string))
+	user_id, err := uuid.Parse(additional_info["user_id"].(string))
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -2239,8 +2191,11 @@ func (uc *apiGateWayUseCase) CreateNotification(ctx context.Context, userId uuid
 	return nil
 }
 
-func NewApiGatewayUseCase(cfg *config.Config, repo api_gateway.Repository, registration_server_info *models.RegistrationServerInfo,
-	images_path string, rmqChan *amqp091.Channel, rmqQueue amqp091.Queue) api_gateway.UseCase {
+func NewApiGatewayUseCase(cfg *config.Config, repo api_gateway.Repository, registration_server_info *models.InternalServerInfo,
+	usersServerInfo *models.InternalServerInfo, accountsServerInfo *models.InternalServerInfo,
+	notificationServerInfo *models.InternalServerInfo, images_path string, rmqChan *amqp091.Channel,
+	rmqQueue amqp091.Queue) api_gateway.UseCase {
 	return &apiGateWayUseCase{cfg: cfg, repo: repo, registrationServerInfo: registration_server_info, imagesPath: images_path,
-		rmqQueue: rmqQueue, rmqChan: rmqChan}
+		rmqQueue: rmqQueue, rmqChan: rmqChan, accountsServerInfo: accountsServerInfo, usersServerInfo: usersServerInfo,
+		notificationServerInfo: notificationServerInfo}
 }

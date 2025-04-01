@@ -13,8 +13,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-
-	//"path/filepath"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -38,12 +36,41 @@ func (s *Server) MapHandlers(e *echo.Echo) error {
 	// Init repositories
 	apiGatewayRepo := repository.NewApiGatewayRepository(s.redis)
 	// Init useCases
-	registrationServerInfo := &models.RegistrationServerInfo{
-		Host:             s.cfg.Registration.Host,
-		Port:             s.cfg.Registration.Port,
-		NumRetry:         s.cfg.Registration.Retry,
-		WaitTimeRetry:    time.Duration(time.Millisecond.Nanoseconds() * int64(s.cfg.Registration.TimeWaitRetry)),
-		TimeWaitResponse: time.Duration(time.Millisecond.Nanoseconds() * int64(s.cfg.Registration.TimeWaitResponse)),
+	registrationServerInfo := &models.InternalServerInfo{}
+	usersServerInfo := &models.InternalServerInfo{}
+	accountsServerInfo := &models.InternalServerInfo{}
+	notificationServerInfo := &models.InternalServerInfo{}
+
+	if regCfg, ok := s.cfg.InternalServices[ServerNameRegistration]; ok {
+		registrationServerInfo.Port = regCfg.Port
+		registrationServerInfo.Host = regCfg.Host
+		registrationServerInfo.NumRetry = regCfg.Retry
+		registrationServerInfo.WaitTimeRetry = time.Duration(time.Millisecond.Nanoseconds() * int64(regCfg.TimeWaitRetry))
+		registrationServerInfo.TimeWaitResponse = time.Duration(time.Millisecond.Nanoseconds() * int64(regCfg.TimeWaitResponse))
+	}
+
+	if usCfg, ok := s.cfg.InternalServices[ServerNameUsers]; ok {
+		usersServerInfo.Port = usCfg.Port
+		usersServerInfo.Host = usCfg.Host
+		usersServerInfo.NumRetry = usCfg.Retry
+		usersServerInfo.WaitTimeRetry = time.Duration(time.Millisecond.Nanoseconds() * int64(usCfg.TimeWaitRetry))
+		usersServerInfo.TimeWaitResponse = time.Duration(time.Millisecond.Nanoseconds() * int64(usCfg.TimeWaitResponse))
+	}
+
+	if accCfg, ok := s.cfg.InternalServices[ServerNameAccounts]; ok {
+		accountsServerInfo.Port = accCfg.Port
+		accountsServerInfo.Host = accCfg.Host
+		accountsServerInfo.NumRetry = accCfg.Retry
+		accountsServerInfo.WaitTimeRetry = time.Duration(time.Millisecond.Nanoseconds() * int64(accCfg.TimeWaitRetry))
+		accountsServerInfo.TimeWaitResponse = time.Duration(time.Millisecond.Nanoseconds() * int64(accCfg.TimeWaitResponse))
+	}
+
+	if notifCfg, ok := s.cfg.InternalServices[ServerNameNotification]; ok {
+		notificationServerInfo.Port = notifCfg.Port
+		notificationServerInfo.Host = notifCfg.Host
+		notificationServerInfo.NumRetry = notifCfg.Retry
+		notificationServerInfo.WaitTimeRetry = time.Duration(time.Millisecond.Nanoseconds() * int64(notifCfg.TimeWaitRetry))
+		notificationServerInfo.TimeWaitResponse = time.Duration(time.Millisecond.Nanoseconds() * int64(notifCfg.TimeWaitResponse))
 	}
 
 	//executable, err := os.Executable()
@@ -69,8 +96,8 @@ func (s *Server) MapHandlers(e *echo.Echo) error {
 	}
 	fmt.Println(filepath.Abs(folder_images_path))
 
-	apiGatewayUsecase := usecase.NewApiGatewayUseCase(s.cfg, apiGatewayRepo, registrationServerInfo, folder_images_path,
-		s.rmqChan, s.rmqQueue)
+	apiGatewayUsecase := usecase.NewApiGatewayUseCase(s.cfg, apiGatewayRepo, registrationServerInfo, usersServerInfo,
+		accountsServerInfo, notificationServerInfo, folder_images_path, s.rmqChan, s.rmqQueue)
 	// Init handlers
 	apiGatewayHalndlers := delivery.NewApiGatewayHandlers(s.cfg, s.logger, folder_images_path, apiGatewayUsecase)
 

@@ -203,6 +203,8 @@ var (
           
         <label for="inn">INN</label>
         <input type="text" id="inn" name="inn" placeholder="01234567890123456789" required>
+        <label for="email">Email</label>
+        <input type="text" id="email" name="email" placeholder="email@mail.ru" required>
         <br>
           
 		<div id="message"></div>
@@ -236,7 +238,8 @@ var (
 			passport_authority: document.querySelector('input[name="passport_authority"]').value,
 			passport_authority_date: document.querySelector('input[name="passport_authority_date"]').value,
 			passport_registration_address: document.querySelector('input[name="passport_registration_address"]').value,
-			inn: document.querySelector('input[name="inn"]').value
+			inn: document.querySelector('input[name="inn"]').value,
+			email: document.querySelector('input[name="email"]').value
 		};
 	
 		// Отправляем POST-запрос с учётом cookie
@@ -382,6 +385,9 @@ var (
             
             <p><b>Registration address</b></p>
             <p>{{.RegistrationAddress}}</p>
+
+            <p><b>Email address</b></p>
+            <p>{{.Email}}</p>
             
         </div>
         <hr>

@@ -22,6 +22,7 @@ type UserInfo struct {
 	PassportRegistrationAddress string      `json:"passport_registration_address" validate:"required"`
 	Inn                         string      `json:"inn" validate:"required,number,min=20,max=1"`
 	Accounts                    []uuid.UUID `json:"accounts"`
+	Email                       string      `json:"email" validate:"email"`
 }
 
 type AccountInfo struct {
@@ -35,7 +36,7 @@ type AccountInfo struct {
 	CorrNumber string    `json:"corr_number"`
 }
 
-type RegistrationServerInfo struct {
+type InternalServerInfo struct {
 	Host             string
 	Port             string
 	NumRetry         int
@@ -71,9 +72,10 @@ type CreateUserBodyPassport struct {
 }
 
 type CreateUserBody struct {
-	UserInn  string                  `json:"user_inn"`
-	UserData *CreateUserBodyUserData `json:"user_data"`
-	Passport *CreateUserBodyPassport `json:"passport"`
+	UserInn   string                  `json:"user_inn"`
+	UserData  *CreateUserBodyUserData `json:"user_data"`
+	Passport  *CreateUserBodyPassport `json:"passport"`
+	UserEmail string                  `json:"user_email"`
 }
 
 type CheckUserPasswordBody struct {
@@ -164,4 +166,53 @@ type OperationTree struct {
 	SagaList       map[uuid.UUID]*SagaTree
 	EventList      map[uuid.UUID]*EventTree
 	SagaDependList []*SagaDependTree
+}
+
+type GetUserDataResponse_Passport_FCS struct {
+	Name       string `json:"name"`
+	Surname    string `json:"surname"`
+	Patronymic string `json:"patronymic"`
+}
+
+type GetUserDataResponse_Passport struct {
+	Series             string                            `json:"series"`
+	Number             string                            `json:"number"`
+	BirthDate          string                            `json:"birth_date"`
+	BirthLocation      string                            `json:"birth_location"`
+	PickUpPoint        string                            `json:"pick_up_point"`
+	Authority          string                            `json:"authority"`
+	AuthorityDate      string                            `json:"authority_date"`
+	RegistrationAdress string                            `json:"registration_adress"`
+	FCS                *GetUserDataResponse_Passport_FCS `json:"fcs"`
+}
+
+type GetUserDataResponse struct {
+	UserInn      string                        `json:"user_inn"`
+	UserId       uuid.UUID                     `json:"user_id"`
+	UserLogin    string                        `json:"user_login"`
+	PassportData *GetUserDataResponse_Passport `json:"passport_data"`
+	Accounts     []uuid.UUID                   `json:"accounts"`
+}
+
+type GetUserNotifySettingsResponse struct {
+	UserId     uuid.UUID `json:"user_id"`
+	Email      string    `json:"email"`
+	EmailUsage bool      `json:"email_usage"`
+}
+
+type GetAccountDataResponse struct {
+	Acc_uuid         uuid.UUID `json:"acc_uuid" db:"acc_uuid" validate:"len=36 required unique"`
+	Acc_name         string    `json:"acc_name" db:"acc_name" validate:"required"`
+	Acc_status       uint8     `json:"acc_status" db:"acc_status" validate:"min=0 max=255 required oneof=0 10 22 30 40 50 255"`
+	Acc_culc_number  string    `json:"acc_culc_number" db:"acc_culc_number" validate:"len=20 required"`
+	Acc_corr_number  string    `json:"acc_corr_number" db:"acc_corr_number" validate:"len=20 required"`
+	Acc_bic          string    `json:"acc_bic" db:"acc_bic" validate:"len=9 required"`
+	Acc_cio          string    `json:"acc_cio" db:"acc_cio" validate:"len=9 required"`
+	Acc_money_value  uint8     `json:"acc_money_value" db:"acc_money_value" validate:"min=0 max=1 oneof=0 1 2 3"`
+	Acc_money_amount float64   `json:"acc_money_amount" db:"acc_money_amount" validate:"required"`
+	Reason           string    `json:"reserve_reason" db:"reserve_reason" validate:"required"`
+}
+
+type GetUserDataByLoginResponse struct {
+	UserId uuid.UUID `json:"user_id"`
 }

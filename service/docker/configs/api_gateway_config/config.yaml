@@ -30,6 +30,13 @@ registration:
   TimeWaitRetry: 100
   TimeWaitResponse: 5000
 
+RabbitMQ:
+  Host: rabbitmq
+  Port: 5672
+  User: admin
+  Password: admin
+  Queue: notification
+
 jaeger:
   Host: jaeger:6831
   ServiceName: api_gateway

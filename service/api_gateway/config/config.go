@@ -20,8 +20,8 @@ type Config struct {
 	Metrics Metrics               `yaml:"metrics"`
 	Docs    Docs
 
-	Registration RegistrationOrch `yaml:"registration"`
-	RabbitMQ     RabbitMQConfig   `yaml:"rabbitmq,omitempty"`
+	InternalServices map[string]InternalServer `yaml:"internalServices"`
+	RabbitMQ         RabbitMQConfig            `yaml:"rabbitmq,omitempty"`
 
 	Postgres platformConfig.PostgresConfig `yaml:"postgres,omitempty"`
 	AWS      AWS                           `yaml:"aws,omitempty"`

@@ -23,12 +23,31 @@ redis:
   DialTimeout: 1
   Timeout: 1
 
-registration:
-  Host: localhost
-  Port: 8127
-  Retry: 10
-  TimeWaitRetry: 100
-  TimeWaitResponse: 5000
+internalServices:
+  registration:
+    Host: localhost
+    Port: 8127
+    Retry: 10
+    TimeWaitRetry: 1000
+    TimeWaitResponse: 5000
+  users:
+    Host: localhost
+    Port: 8097
+    Retry: 1
+    TimeWaitRetry: 100
+    TimeWaitResponse: 3000
+  accounts:
+    Host: localhost
+    Port: 8107
+    Retry: 1
+    TimeWaitRetry: 100
+    TimeWaitResponse: 3000
+  notification:
+    Host: localhost
+    Port: 8110
+    Retry: 1
+    TimeWaitRetry: 100
+    TimeWaitResponse: 3000
 
 RabbitMQ:
   Host: localhost

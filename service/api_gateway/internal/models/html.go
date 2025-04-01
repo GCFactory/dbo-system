@@ -55,6 +55,7 @@ type SignUpInfo struct {
 	PassportAuthorityDate       string `json:"passport_authority_date" validate:"required,datetime=02-01-2006,min=1" msg:"Error validation passport_authority_date"`
 	PassportRegistrationAddress string `json:"passport_registration_address" validate:"required" msg:"Error validation passport_registration_address"`
 	Inn                         string `json:"inn" validate:"required,number,min=20,max=20" msg:"Error validation inn"`
+	Email                       string `json:"email" validate:"required,email"`
 }
 
 type PostRequestStatus struct {
@@ -81,6 +82,7 @@ type HomePage struct {
 	CreateAccountRequest string
 	UserId               string
 	ListOfAccounts       string
+	Email                string
 }
 
 type HomePageAccountDescription struct {

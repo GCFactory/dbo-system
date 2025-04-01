@@ -749,11 +749,11 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 					if err != nil {
 						return result, err
 					}
-					new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, saga.Saga_uuid, uuid.Nil, false, nil)
-					if err != nil {
-						return result, err
-					}
-					result = append(result, new_events...)
+					//new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, saga.Saga_uuid, uuid.Nil, false, nil)
+					//if err != nil {
+					//	return result, err
+					//}
+					//result = append(result, new_events...)
 				}
 			}
 		case SagaStatusInProcess:

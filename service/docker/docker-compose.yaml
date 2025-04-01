@@ -450,12 +450,14 @@ services:
       - postgresql_registration
       - service_accounts
       - service_users
+      - service_notification
     depends_on:
       - jaeger
       - kafka
       - postgresql_registration
       - service_accounts
       - service_users
+      - service_notification
     cap_add:
       - SYS_PTRACE
     restart: always
