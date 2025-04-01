@@ -695,7 +695,6 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 			}
 		case SagaStatusCreated:
 			{
-
 				saga_connections, local_err := regUC.registrationRepo.GetSagaConnectionsNextSaga(ctxWithTrace, saga_uuid)
 				if local_err != nil {
 					return result, local_err
@@ -750,6 +749,11 @@ func (regUC registrationUC) ProcessingSagaAndEvents(ctx context.Context, saga_uu
 					if err != nil {
 						return result, err
 					}
+					new_events, err := regUC.ProcessingSagaAndEvents(ctxWithTrace, saga.Saga_uuid, uuid.Nil, false, nil)
+					if err != nil {
+						return result, err
+					}
+					result = append(result, new_events...)
 				}
 			}
 		case SagaStatusInProcess:

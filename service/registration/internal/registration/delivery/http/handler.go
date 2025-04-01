@@ -80,6 +80,8 @@ func (h RegistrationHandlers) CreateUser() echo.HandlerFunc {
 		data["registration_adress"] = user_info.Passport.Registration_address
 		data["login"] = user_info.User.Login
 		data["password"] = user_info.User.Password
+		data["email"] = user_info.UserEmail
+		data["email_notification"] = true
 
 		operation_uuid, err := h.registrationGRPC.StartOperation(ctxWithTrace, usecase.OperationCreateUser, data)
 		if err != nil {

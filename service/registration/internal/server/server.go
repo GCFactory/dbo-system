@@ -207,7 +207,7 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) (err error) {
 				{
 					result := event_success.GetInfo()
 
-					data["user_uuid"] = result
+					data["user_id"] = result
 
 					break
 				}

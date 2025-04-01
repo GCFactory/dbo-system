@@ -218,6 +218,26 @@ func (s *Server) handleData(message *sarama.ConsumerMessage) error {
 				err = grpc.ErrorUnknownOperationType
 			}
 		}
+	default:
+		{
+			answer := &api.EventError{
+				SagaUuid:      data.GetSagaUuid(),
+				EventUuid:     data.GetEventUuid(),
+				Info:          grpc.ErrorUnknownOperationType.Error(),
+				Status:        grpc.GetErrorCode(grpc.ErrorUnknownOperationType),
+				OperationName: data.GetOperationName(),
+			}
+			answer_data, err := proto.Marshal(answer)
+			if err != nil {
+				s.logger.Error(err)
+				return err
+			}
+			err = s.kafkaProducer.ProduceRecord(grpc.TopicError, sarama.ByteEncoder(answer_data))
+			if err != nil {
+				s.logger.Error(err)
+				return err
+			}
+		}
 
 	}
 

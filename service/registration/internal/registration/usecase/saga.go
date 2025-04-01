@@ -61,6 +61,7 @@ func ValidateSagaType(saga_type string) bool {
 var PossibleEventsListForSagaType = map[string][]string{
 	SagaTypeCreateUser: {
 		EventTypeCreateUser,
+		EventTypeRemoveUser,
 	},
 	SagaTypeCheckUser: {
 		EventTypeGetUserData,
@@ -395,7 +396,7 @@ func ValidateSagaConnectionStatus(saga_connection_status uint8) bool {
 var SagaGroupResultDataUpdate = map[uint8]map[string][]string{
 	SagaGroupCreateUser: map[string][]string{
 		SagaTypeCreateUser: []string{
-			"user_uuid",
+			"user_id",
 		},
 	},
 	SagaGroupCreateAccount: map[string][]string{
@@ -481,7 +482,7 @@ var SagaGroupDataIsResult = map[uint8]map[string]map[string][]string{
 	SagaGroupCreateUser: map[string]map[string][]string{
 		SagaTypeCreateUser: map[string][]string{
 			EventTypeCreateUser: []string{
-				"user_uuid",
+				"user_id",
 			},
 		},
 	},

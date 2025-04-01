@@ -24,9 +24,10 @@ type UserData struct {
 }
 
 type RegistrationUserInfo struct {
-	User_INN string   `json:"user_inn" validate:"required,len=20,number"`
-	Passport Passport `json:"passport" validate:"required"`
-	User     UserData `json:"user_data" validate:"required"`
+	User_INN  string   `json:"user_inn" validate:"required,len=20,number"`
+	UserEmail string   `json:"user_email" validate:"required,email"`
+	Passport  Passport `json:"passport" validate:"required"`
+	User      UserData `json:"user_data" validate:"required"`
 }
 
 type OperationID struct {
