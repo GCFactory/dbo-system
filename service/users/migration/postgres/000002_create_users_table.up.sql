@@ -15,7 +15,6 @@ CREATE TABLE users
 
 ALTER TABLE users ADD CONSTRAINT unique_passport UNIQUE (passport_uuid);
 ALTER TABLE users ADD CONSTRAINT unique_inn UNIQUE (user_inn);
-ALTER TABLE users ADD CONSTRAINT unique_login UNIQUE (user_login);
-ALTER TABLE users ADD CONSTRAINT unique_password UNIQUE (user_password);
+ALTER TABLE users ADD CONSTRAINT unique_login UNIQUE (user_login, user_password);
 
 ALTER TABLE users ADD CONSTRAINT inn_check CHECK (user_inn ~* '^[0-9]{20}$');

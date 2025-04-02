@@ -26,25 +26,25 @@ redis:
 internalServices:
   registration:
     Host: localhost
-    Port: 8127
+    Port: 8128
     Retry: 10
     TimeWaitRetry: 1000
     TimeWaitResponse: 5000
   users:
     Host: localhost
-    Port: 8097
+    Port: 8098
     Retry: 1
     TimeWaitRetry: 100
     TimeWaitResponse: 3000
   accounts:
     Host: localhost
-    Port: 8107
+    Port: 8108
     Retry: 1
     TimeWaitRetry: 100
     TimeWaitResponse: 3000
   notification:
     Host: localhost
-    Port: 8110
+    Port: 8119
     Retry: 1
     TimeWaitRetry: 100
     TimeWaitResponse: 3000

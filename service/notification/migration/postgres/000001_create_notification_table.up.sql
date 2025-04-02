@@ -8,3 +8,5 @@ CREATE TABLE notification
     email_usage         bool                NOT NULL        DEFAULT false,
     email               varchar(128)                        DEFAULT ''::varchar(128)
 );
+
+ALTER TABLE notification ADD CONSTRAINT unique_email UNIQUE (email);

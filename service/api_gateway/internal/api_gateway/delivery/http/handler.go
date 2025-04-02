@@ -13,6 +13,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -114,10 +115,81 @@ func (h ApiGatewayHandlers) safeReadQueryParamsRequest(c echo.Context, v interfa
 	return nil
 }
 
+func (h ApiGatewayHandlers) safeReadFormDataRequest(c echo.Context, v interface{}) error {
+	val := reflect.ValueOf(v).Elem() // Получаем значение структуры
+
+	// Получаем все form data
+	form, err := c.MultipartForm()
+	if err != nil {
+		// Если это не multipart, пробуем получить как обычную форму
+		if err := c.Request().ParseForm(); err != nil {
+			return fmt.Errorf("failed to parse form data: %v", err)
+		}
+		form = &multipart.Form{
+			Value: c.Request().Form,
+		}
+	}
+
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Type().Field(i)     // Получаем информацию о поле
+		fieldName := field.Name          // Имя поля в структуре
+		jsonTag := field.Tag.Get("json") // Получаем значение тега `json`
+		if jsonTag == "" {
+			continue
+		}
+		fieldType := field.Type // Тип поля
+
+		// Получаем значение из form data по имени поля
+		values, exists := form.Value[jsonTag]
+		if !exists || len(values) == 0 {
+			continue
+		}
+		formValue := values[0] // Берем первое значение (для массивов нужно обрабатывать иначе)
+
+		// Устанавливаем значение поля в зависимости от его типа
+		switch fieldType.Kind() {
+		case reflect.String:
+			val.Field(i).SetString(formValue) // Устанавливаем строку
+		case reflect.Int, reflect.Int64:
+			intValue, err := strconv.Atoi(formValue) // Преобразуем строку в int
+			if err != nil {
+				return fmt.Errorf("invalid value for field %s: %v", fieldName, err)
+			}
+			val.Field(i).SetInt(int64(intValue)) // Устанавливаем int
+		case reflect.Bool:
+			boolValue, err := strconv.ParseBool(formValue) // Преобразуем строку в bool
+			if err != nil {
+				return fmt.Errorf("invalid value for field %s: %v", fieldName, err)
+			}
+			val.Field(i).SetBool(boolValue) // Устанавливаем bool
+		case reflect.Slice:
+			// Обработка массивов/слайсов
+			if fieldType.Elem().Kind() == reflect.String {
+				val.Field(i).Set(reflect.ValueOf(values))
+			} else {
+				return fmt.Errorf("unsupported slice type: %s", fieldType.Elem().Kind())
+			}
+		default:
+			return fmt.Errorf("unsupported field type: %s", fieldType.Kind())
+		}
+	}
+
+	// Валидация структуры
+	validate := validator.New()
+	if err := validate.Struct(v); err != nil {
+		for _, err := range err.(validator.ValidationErrors) {
+			return fmt.Errorf("validation error in field '%s': condition '%s' not met",
+				err.Field(), err.Tag())
+		}
+	}
+
+	return nil
+}
+
 func (h ApiGatewayHandlers) SignInPage() echo.HandlerFunc {
 	return func(c echo.Context) error {
 
-		is_ok, token_id, err := h.CheckToken(c)
+		is_ok, _, err := h.CheckToken(c)
 		if err != nil {
 			error_page, err := h.useCase.CreateErrorPage(err.Error())
 			if err != nil {
@@ -127,20 +199,10 @@ func (h ApiGatewayHandlers) SignInPage() echo.HandlerFunc {
 			return c.HTML(http.StatusInternalServerError, error_page)
 		}
 
-		if !is_ok {
-			page, err := h.useCase.CreateSignInPage()
-			if err != nil {
-				error_page, err := h.useCase.CreateErrorPage(err.Error())
-				if err != nil {
-					utils.LogResponseError(c, h.logger, err)
-					return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
-				}
-				return c.HTML(http.StatusInternalServerError, error_page)
-			}
-
-			return c.HTML(http.StatusOK, page)
+		if is_ok {
+			return c.Redirect(http.StatusSeeOther, "/api/v1/api_gateway/main_page")
 		} else {
-			user_id, err := h.useCase.GetTokenValue(context.Background(), token_id)
+			signIngPage, err := h.useCase.CreateSignInPage()
 			if err != nil {
 				error_page, err := h.useCase.CreateErrorPage(err.Error())
 				if err != nil {
@@ -149,19 +211,8 @@ func (h ApiGatewayHandlers) SignInPage() echo.HandlerFunc {
 				}
 				return c.HTML(http.StatusInternalServerError, error_page)
 			}
-			page, err := h.useCase.CreateUserPage(user_id)
-			if err != nil {
-				error_page, err := h.useCase.CreateErrorPage(err.Error())
-				if err != nil {
-					utils.LogResponseError(c, h.logger, err)
-					return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
-				}
-				return c.HTML(http.StatusInternalServerError, error_page)
-			}
-
-			return c.HTML(http.StatusOK, page)
+			return c.HTML(http.StatusOK, signIngPage)
 		}
-
 	}
 }
 
@@ -272,30 +323,40 @@ func (h ApiGatewayHandlers) SignIn() echo.HandlerFunc {
 		operation_result := &models.PostRequestStatus{
 			Success: false,
 		}
-		err := h.safeReadBodyRequest(c, operation_info)
+		err := h.safeReadFormDataRequest(c, operation_info)
 		if err != nil {
-			operation_result.Error = err.Error()
 			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(http.StatusBadRequest, operation_result)
+			errPage, err := h.useCase.CreateErrorPage(err.Error())
+			if err != nil {
+				operation_result.Error = err.Error()
+				return c.JSON(http.StatusInternalServerError, operation_result)
+			}
+			return c.HTML(http.StatusBadRequest, errPage)
 		}
 
 		token, err := h.useCase.SignIn(operation_info)
 		if err != nil {
-			operation_result.Error = err.Error()
 			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(http.StatusBadRequest, operation_result)
+			errPage, err := h.useCase.CreateErrorPage(err.Error())
+			if err != nil {
+				operation_result.Error = err.Error()
+				return c.JSON(http.StatusInternalServerError, operation_result)
+			}
+			return c.HTML(http.StatusBadRequest, errPage)
 		}
 
 		err = h.CreateCookie(c, token)
 		if err != nil {
-			operation_result.Error = err.Error()
 			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(http.StatusBadRequest, operation_result)
+			errPage, err := h.useCase.CreateErrorPage(err.Error())
+			if err != nil {
+				operation_result.Error = err.Error()
+				return c.JSON(http.StatusInternalServerError, operation_result)
+			}
+			return c.HTML(http.StatusInternalServerError, errPage)
 		}
 
-		operation_result.Success = true
-
-		return c.JSON(http.StatusOK, operation_result)
+		return c.Redirect(http.StatusSeeOther, "/api/v1/api_gateway/main_page")
 	}
 }
 
@@ -306,27 +367,40 @@ func (h ApiGatewayHandlers) SignUp() echo.HandlerFunc {
 		operation_result := &models.PostRequestStatus{
 			Success: false,
 		}
-		if err := h.safeReadBodyRequest(c, operation_info); err != nil {
-			operation_result.Error = err.Error()
+		err := h.safeReadFormDataRequest(c, operation_info)
+		if err != nil {
 			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(http.StatusBadRequest, operation_result)
+			errPage, err := h.useCase.CreateErrorPage(err.Error())
+			if err != nil {
+				operation_result.Error = err.Error()
+				return c.JSON(http.StatusInternalServerError, operation_result)
+			}
+			return c.HTML(http.StatusBadRequest, errPage)
 		}
 
 		token, err := h.useCase.SignUp(operation_info)
 		if err != nil {
-			operation_result.Error = err.Error()
 			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(http.StatusBadRequest, operation_result)
+			errPage, err := h.useCase.CreateErrorPage(err.Error())
+			if err != nil {
+				operation_result.Error = err.Error()
+				return c.JSON(http.StatusInternalServerError, operation_result)
+			}
+			return c.HTML(http.StatusBadRequest, errPage)
 		}
 
 		err = h.CreateCookie(c, token)
 		if err != nil {
-			operation_result.Error = err.Error()
 			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(http.StatusBadRequest, operation_result)
+			errPage, err := h.useCase.CreateErrorPage(err.Error())
+			if err != nil {
+				operation_result.Error = err.Error()
+				return c.JSON(http.StatusInternalServerError, operation_result)
+			}
+			return c.HTML(http.StatusInternalServerError, errPage)
 		}
 
-		return c.JSON(http.StatusOK, operation_result)
+		return c.Redirect(http.StatusSeeOther, "/api/v1/api_gateway/main_page")
 	}
 }
 
@@ -338,17 +412,25 @@ func (h ApiGatewayHandlers) SignOut() echo.HandlerFunc {
 			Success: false,
 		}
 		if err != nil {
-			operation_result.Error = err.Error()
 			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(http.StatusBadRequest, operation_result)
+			errPage, err := h.useCase.CreateErrorPage(err.Error())
+			if err != nil {
+				operation_result.Error = err.Error()
+				return c.JSON(http.StatusInternalServerError, operation_result)
+			}
+			return c.HTML(http.StatusBadRequest, errPage)
 		}
 
 		if is_ok && token_id != uuid.Nil {
 			err = h.useCase.DeleteToken(context.Background(), token_id)
 			if err != nil {
-				operation_result.Error = err.Error()
 				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusBadRequest, operation_result)
+				errPage, err := h.useCase.CreateErrorPage(err.Error())
+				if err != nil {
+					operation_result.Error = err.Error()
+					return c.JSON(http.StatusInternalServerError, operation_result)
+				}
+				return c.HTML(http.StatusBadRequest, errPage)
 			}
 		}
 
@@ -364,7 +446,7 @@ func (h ApiGatewayHandlers) SignOut() echo.HandlerFunc {
 
 		operation_result.Success = true
 
-		return c.JSON(http.StatusOK, operation_result)
+		return c.Redirect(http.StatusSeeOther, "/api/v1/api_gateway/sign_in")
 	}
 }
 
@@ -376,50 +458,73 @@ func (h ApiGatewayHandlers) OpenAccount() echo.HandlerFunc {
 			Success: false,
 		}
 		if err != nil {
-			operation_result.Error = err.Error()
 			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(http.StatusBadRequest, operation_result)
+			errPage, err := h.useCase.CreateErrorPage(err.Error())
+			if err != nil {
+				operation_result.Error = err.Error()
+				return c.JSON(http.StatusInternalServerError, operation_result)
+			}
+			return c.HTML(http.StatusBadRequest, errPage)
 		}
+
 		operation_info := &models.AccountInfo{}
-		if err := h.safeReadBodyRequest(c, operation_info); err != nil {
-			operation_result.Error = err.Error()
+		if err := h.safeReadFormDataRequest(c, operation_info); err != nil {
 			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(http.StatusBadRequest, operation_result)
+			errPage, err := h.useCase.CreateErrorPage(err.Error())
+			if err != nil {
+				operation_result.Error = err.Error()
+				return c.JSON(http.StatusInternalServerError, operation_result)
+			}
+			return c.HTML(http.StatusBadRequest, errPage)
 		}
 
 		if is_ok && token_id != uuid.Nil {
 			err = h.useCase.UpdateToken(context.Background(), token_id, usecase.TokenLiveTime)
 			if err != nil {
-				operation_result.Error = err.Error()
 				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusBadRequest, operation_result)
+				errPage, err := h.useCase.CreateErrorPage(err.Error())
+				if err != nil {
+					operation_result.Error = err.Error()
+					return c.JSON(http.StatusInternalServerError, operation_result)
+				}
+				return c.HTML(http.StatusInternalServerError, errPage)
 			}
 
 			err = h.UpdateCookie(c)
 			if err != nil {
-				operation_result.Error = err.Error()
 				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusBadRequest, operation_result)
+				errPage, err := h.useCase.CreateErrorPage(err.Error())
+				if err != nil {
+					operation_result.Error = err.Error()
+					return c.JSON(http.StatusInternalServerError, operation_result)
+				}
+				return c.HTML(http.StatusInternalServerError, errPage)
 			}
 
 			user_id, err := h.useCase.GetTokenValue(context.Background(), token_id)
 			if err != nil {
-				operation_result.Error = err.Error()
 				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusBadRequest, operation_result)
+				errPage, err := h.useCase.CreateErrorPage(err.Error())
+				if err != nil {
+					operation_result.Error = err.Error()
+					return c.JSON(http.StatusInternalServerError, operation_result)
+				}
+				return c.HTML(http.StatusBadRequest, errPage)
 			}
 
 			err = h.useCase.CreateAccount(user_id, operation_info)
 			if err != nil {
-				operation_result.Error = err.Error()
 				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusBadRequest, operation_result)
+				errPage, err := h.useCase.CreateErrorPage(err.Error())
+				if err != nil {
+					operation_result.Error = err.Error()
+					return c.JSON(http.StatusInternalServerError, operation_result)
+				}
+				return c.HTML(http.StatusInternalServerError, errPage)
 			}
 		}
 
-		operation_result.Success = true
-
-		return c.JSON(http.StatusOK, operation_result)
+		return c.Redirect(http.StatusSeeOther, "/api/v1/api_gateway/main_page")
 	}
 }
 
@@ -431,57 +536,85 @@ func (h ApiGatewayHandlers) CloseAccount() echo.HandlerFunc {
 			Success: false,
 		}
 		if err != nil {
-			operation_result.Error = err.Error()
 			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(http.StatusBadRequest, operation_result)
+			errPage, err := h.useCase.CreateErrorPage(err.Error())
+			if err != nil {
+				operation_result.Error = err.Error()
+				return c.JSON(http.StatusInternalServerError, operation_result)
+			}
+			return c.HTML(http.StatusBadRequest, errPage)
 		}
+
 		operation_info := &models.AccountInfoRequest{}
-		if err := h.safeReadBodyRequest(c, operation_info); err != nil {
-			operation_result.Error = err.Error()
+		err = h.safeReadFormDataRequest(c, operation_info)
+		if err != nil {
 			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(http.StatusBadRequest, operation_result)
+			errPage, err := h.useCase.CreateErrorPage(err.Error())
+			if err != nil {
+				operation_result.Error = err.Error()
+				return c.JSON(http.StatusInternalServerError, operation_result)
+			}
+			return c.HTML(http.StatusBadRequest, errPage)
 		}
 
 		if is_ok && token_id != uuid.Nil {
 			err = h.useCase.UpdateToken(context.Background(), token_id, usecase.TokenLiveTime)
 			if err != nil {
-				operation_result.Error = err.Error()
 				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusBadRequest, operation_result)
+				errPage, err := h.useCase.CreateErrorPage(err.Error())
+				if err != nil {
+					operation_result.Error = err.Error()
+					return c.JSON(http.StatusInternalServerError, operation_result)
+				}
+				return c.HTML(http.StatusInternalServerError, errPage)
 			}
 
 			err = h.UpdateCookie(c)
 			if err != nil {
-				operation_result.Error = err.Error()
 				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusBadRequest, operation_result)
+				errPage, err := h.useCase.CreateErrorPage(err.Error())
+				if err != nil {
+					operation_result.Error = err.Error()
+					return c.JSON(http.StatusInternalServerError, operation_result)
+				}
+				return c.HTML(http.StatusInternalServerError, errPage)
 			}
 
 			user_id, err := h.useCase.GetTokenValue(context.Background(), token_id)
 			if err != nil {
-				operation_result.Error = err.Error()
 				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusBadRequest, operation_result)
+				errPage, err := h.useCase.CreateErrorPage(err.Error())
+				if err != nil {
+					operation_result.Error = err.Error()
+					return c.JSON(http.StatusInternalServerError, operation_result)
+				}
+				return c.HTML(http.StatusInternalServerError, errPage)
 			}
 
 			account_id, err := uuid.Parse(operation_info.AccountId)
 			if err != nil {
-				operation_result.Error = err.Error()
 				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusBadRequest, operation_result)
+				errPage, err := h.useCase.CreateErrorPage(err.Error())
+				if err != nil {
+					operation_result.Error = err.Error()
+					return c.JSON(http.StatusInternalServerError, operation_result)
+				}
+				return c.HTML(http.StatusBadRequest, errPage)
 			}
 
 			err = h.useCase.CloseAccount(user_id, account_id)
 			if err != nil {
-				operation_result.Error = err.Error()
 				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusBadRequest, operation_result)
+				errPage, err := h.useCase.CreateErrorPage(err.Error())
+				if err != nil {
+					operation_result.Error = err.Error()
+					return c.JSON(http.StatusInternalServerError, operation_result)
+				}
+				return c.HTML(http.StatusInternalServerError, errPage)
 			}
 		}
 
-		operation_result.Success = true
-
-		return c.JSON(http.StatusOK, operation_result)
+		return c.Redirect(http.StatusSeeOther, "/api/v1/api_gateway/main_page")
 	}
 }
 
@@ -493,64 +626,95 @@ func (h ApiGatewayHandlers) AddAccountCache() echo.HandlerFunc {
 			Success: false,
 		}
 		if err != nil {
-			operation_result.Error = err.Error()
 			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(http.StatusBadRequest, operation_result)
+			errPage, err := h.useCase.CreateErrorPage(err.Error())
+			if err != nil {
+				operation_result.Error = err.Error()
+				return c.JSON(http.StatusInternalServerError, operation_result)
+			}
+			return c.HTML(http.StatusBadRequest, errPage)
 		}
+
 		operation_info := &models.AccountChangeMoneyRequestBody{}
-		if err := h.safeReadBodyRequest(c, operation_info); err != nil {
-			operation_result.Error = err.Error()
+		if err := h.safeReadFormDataRequest(c, operation_info); err != nil {
 			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(http.StatusBadRequest, operation_result)
+			errPage, err := h.useCase.CreateErrorPage(err.Error())
+			if err != nil {
+				operation_result.Error = err.Error()
+				return c.JSON(http.StatusInternalServerError, operation_result)
+			}
+			return c.HTML(http.StatusBadRequest, errPage)
 		}
 
 		if is_ok && token_id != uuid.Nil {
 			err = h.useCase.UpdateToken(context.Background(), token_id, usecase.TokenLiveTime)
 			if err != nil {
-				operation_result.Error = err.Error()
 				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusBadRequest, operation_result)
+				errPage, err := h.useCase.CreateErrorPage(err.Error())
+				if err != nil {
+					operation_result.Error = err.Error()
+					return c.JSON(http.StatusInternalServerError, operation_result)
+				}
+				return c.HTML(http.StatusInternalServerError, errPage)
 			}
 
 			err = h.UpdateCookie(c)
 			if err != nil {
-				operation_result.Error = err.Error()
 				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusBadRequest, operation_result)
+				errPage, err := h.useCase.CreateErrorPage(err.Error())
+				if err != nil {
+					operation_result.Error = err.Error()
+					return c.JSON(http.StatusInternalServerError, operation_result)
+				}
+				return c.HTML(http.StatusInternalServerError, errPage)
 			}
 
 			user_id, err := h.useCase.GetTokenValue(context.Background(), token_id)
 			if err != nil {
-				operation_result.Error = err.Error()
 				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusBadRequest, operation_result)
+				errPage, err := h.useCase.CreateErrorPage(err.Error())
+				if err != nil {
+					operation_result.Error = err.Error()
+					return c.JSON(http.StatusInternalServerError, operation_result)
+				}
+				return c.HTML(http.StatusInternalServerError, errPage)
 			}
 
 			account_id, err := uuid.Parse(operation_info.AccountId)
 			if err != nil {
-				operation_result.Error = err.Error()
 				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusBadRequest, operation_result)
+				errPage, err := h.useCase.CreateErrorPage(err.Error())
+				if err != nil {
+					operation_result.Error = err.Error()
+					return c.JSON(http.StatusInternalServerError, operation_result)
+				}
+				return c.HTML(http.StatusInternalServerError, errPage)
 			}
 
 			money, err := strconv.ParseFloat(operation_info.Money, 64)
 			if err != nil {
-				operation_result.Error = err.Error()
 				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusBadRequest, operation_result)
+				errPage, err := h.useCase.CreateErrorPage(err.Error())
+				if err != nil {
+					operation_result.Error = err.Error()
+					return c.JSON(http.StatusInternalServerError, operation_result)
+				}
+				return c.HTML(http.StatusBadRequest, errPage)
 			}
 
 			err = h.useCase.AddAccountCache(user_id, account_id, money)
 			if err != nil {
-				operation_result.Error = err.Error()
 				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusBadRequest, operation_result)
+				errPage, err := h.useCase.CreateErrorPage(err.Error())
+				if err != nil {
+					operation_result.Error = err.Error()
+					return c.JSON(http.StatusInternalServerError, operation_result)
+				}
+				return c.HTML(http.StatusInternalServerError, errPage)
 			}
 		}
 
-		operation_result.Success = true
-
-		return c.JSON(http.StatusOK, operation_result)
+		return c.Redirect(http.StatusSeeOther, "/api/v1/api_gateway/main_page")
 	}
 }
 
@@ -562,64 +726,95 @@ func (h ApiGatewayHandlers) WidthAccountCache() echo.HandlerFunc {
 			Success: false,
 		}
 		if err != nil {
-			operation_result.Error = err.Error()
 			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(http.StatusBadRequest, operation_result)
+			errPage, err := h.useCase.CreateErrorPage(err.Error())
+			if err != nil {
+				operation_result.Error = err.Error()
+				return c.JSON(http.StatusInternalServerError, operation_result)
+			}
+			return c.HTML(http.StatusBadRequest, errPage)
 		}
+
 		operation_info := &models.AccountChangeMoneyRequestBody{}
-		if err := h.safeReadBodyRequest(c, operation_info); err != nil {
-			operation_result.Error = err.Error()
+		if err := h.safeReadFormDataRequest(c, operation_info); err != nil {
 			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(http.StatusBadRequest, operation_result)
+			errPage, err := h.useCase.CreateErrorPage(err.Error())
+			if err != nil {
+				operation_result.Error = err.Error()
+				return c.JSON(http.StatusInternalServerError, operation_result)
+			}
+			return c.HTML(http.StatusInternalServerError, errPage)
 		}
 
 		if is_ok && token_id != uuid.Nil {
 			err = h.useCase.UpdateToken(context.Background(), token_id, usecase.TokenLiveTime)
 			if err != nil {
-				operation_result.Error = err.Error()
 				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusBadRequest, operation_result)
+				errPage, err := h.useCase.CreateErrorPage(err.Error())
+				if err != nil {
+					operation_result.Error = err.Error()
+					return c.JSON(http.StatusInternalServerError, operation_result)
+				}
+				return c.HTML(http.StatusInternalServerError, errPage)
 			}
 
 			err = h.UpdateCookie(c)
 			if err != nil {
-				operation_result.Error = err.Error()
 				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusBadRequest, operation_result)
+				errPage, err := h.useCase.CreateErrorPage(err.Error())
+				if err != nil {
+					operation_result.Error = err.Error()
+					return c.JSON(http.StatusInternalServerError, operation_result)
+				}
+				return c.HTML(http.StatusInternalServerError, errPage)
 			}
 
 			user_id, err := h.useCase.GetTokenValue(context.Background(), token_id)
 			if err != nil {
-				operation_result.Error = err.Error()
 				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusBadRequest, operation_result)
+				errPage, err := h.useCase.CreateErrorPage(err.Error())
+				if err != nil {
+					operation_result.Error = err.Error()
+					return c.JSON(http.StatusInternalServerError, operation_result)
+				}
+				return c.HTML(http.StatusInternalServerError, errPage)
 			}
 
 			account_id, err := uuid.Parse(operation_info.AccountId)
 			if err != nil {
-				operation_result.Error = err.Error()
 				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusBadRequest, operation_result)
+				errPage, err := h.useCase.CreateErrorPage(err.Error())
+				if err != nil {
+					operation_result.Error = err.Error()
+					return c.JSON(http.StatusInternalServerError, operation_result)
+				}
+				return c.HTML(http.StatusInternalServerError, errPage)
 			}
 
 			money, err := strconv.ParseFloat(operation_info.Money, 64)
 			if err != nil {
-				operation_result.Error = err.Error()
 				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusBadRequest, operation_result)
+				errPage, err := h.useCase.CreateErrorPage(err.Error())
+				if err != nil {
+					operation_result.Error = err.Error()
+					return c.JSON(http.StatusInternalServerError, operation_result)
+				}
+				return c.HTML(http.StatusBadRequest, errPage)
 			}
 
 			err = h.useCase.WidthAccountCache(user_id, account_id, money)
 			if err != nil {
-				operation_result.Error = err.Error()
 				utils.LogResponseError(c, h.logger, err)
-				return c.JSON(http.StatusBadRequest, operation_result)
+				errPage, err := h.useCase.CreateErrorPage(err.Error())
+				if err != nil {
+					operation_result.Error = err.Error()
+					return c.JSON(http.StatusInternalServerError, operation_result)
+				}
+				return c.HTML(http.StatusInternalServerError, errPage)
 			}
 		}
 
-		operation_result.Success = true
-
-		return c.JSON(http.StatusOK, operation_result)
+		return c.Redirect(http.StatusSeeOther, "/api/v1/api_gateway/main_page")
 	}
 }
 
@@ -680,17 +875,7 @@ func (h ApiGatewayHandlers) OpenAccountPage() echo.HandlerFunc {
 
 			return c.HTML(http.StatusOK, operation_page)
 		} else {
-			sign_in_page, err := h.useCase.CreateSignInPage()
-			if err != nil {
-				error_page, err := h.useCase.CreateErrorPage(err.Error())
-				if err != nil {
-					utils.LogResponseError(c, h.logger, err)
-					return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
-				}
-				return c.HTML(http.StatusInternalServerError, error_page)
-			}
-
-			return c.HTML(http.StatusOK, sign_in_page)
+			return c.Redirect(http.StatusSeeOther, "/api/v1/api_gateway/sign_in")
 		}
 	}
 }
@@ -774,17 +959,7 @@ func (h ApiGatewayHandlers) AccountCreditsPage() echo.HandlerFunc {
 
 			return c.HTML(http.StatusOK, operation_page)
 		} else {
-			sign_in_page, err := h.useCase.CreateSignInPage()
-			if err != nil {
-				error_page, err := h.useCase.CreateErrorPage(err.Error())
-				if err != nil {
-					utils.LogResponseError(c, h.logger, err)
-					return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
-				}
-				return c.HTML(http.StatusInternalServerError, error_page)
-			}
-
-			return c.HTML(http.StatusOK, sign_in_page)
+			return c.Redirect(http.StatusSeeOther, "/api/v1/api_gateway/sign_in")
 		}
 	}
 }
@@ -868,17 +1043,7 @@ func (h ApiGatewayHandlers) CloseAccountPage() echo.HandlerFunc {
 
 			return c.HTML(http.StatusOK, operation_page)
 		} else {
-			sign_in_page, err := h.useCase.CreateSignInPage()
-			if err != nil {
-				error_page, err := h.useCase.CreateErrorPage(err.Error())
-				if err != nil {
-					utils.LogResponseError(c, h.logger, err)
-					return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
-				}
-				return c.HTML(http.StatusInternalServerError, error_page)
-			}
-
-			return c.HTML(http.StatusOK, sign_in_page)
+			return c.Redirect(http.StatusSeeOther, "/api/v1/api_gateway/sign_in")
 		}
 	}
 }
@@ -962,17 +1127,7 @@ func (h ApiGatewayHandlers) AddAccountCachePage() echo.HandlerFunc {
 
 			return c.HTML(http.StatusOK, operation_page)
 		} else {
-			sign_in_page, err := h.useCase.CreateSignInPage()
-			if err != nil {
-				error_page, err := h.useCase.CreateErrorPage(err.Error())
-				if err != nil {
-					utils.LogResponseError(c, h.logger, err)
-					return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
-				}
-				return c.HTML(http.StatusInternalServerError, error_page)
-			}
-
-			return c.HTML(http.StatusOK, sign_in_page)
+			return c.Redirect(http.StatusSeeOther, "/api/v1/api_gateway/sign_in")
 		}
 	}
 }
@@ -1056,17 +1211,7 @@ func (h ApiGatewayHandlers) WidthAccountCachePage() echo.HandlerFunc {
 
 			return c.HTML(http.StatusOK, operation_page)
 		} else {
-			sign_in_page, err := h.useCase.CreateSignInPage()
-			if err != nil {
-				error_page, err := h.useCase.CreateErrorPage(err.Error())
-				if err != nil {
-					utils.LogResponseError(c, h.logger, err)
-					return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
-				}
-				return c.HTML(http.StatusInternalServerError, error_page)
-			}
-
-			return c.HTML(http.StatusOK, sign_in_page)
+			return c.Redirect(http.StatusSeeOther, "/api/v1/api_gateway/sign_in")
 		}
 	}
 }
@@ -1128,17 +1273,7 @@ func (h ApiGatewayHandlers) HomePage() echo.HandlerFunc {
 
 			return c.HTML(http.StatusOK, home_page)
 		} else {
-			sign_in_page, err := h.useCase.CreateSignInPage()
-			if err != nil {
-				error_page, err := h.useCase.CreateErrorPage(err.Error())
-				if err != nil {
-					utils.LogResponseError(c, h.logger, err)
-					return c.JSON(http.StatusInternalServerError, httpErrors.NewRestError(http.StatusInternalServerError, err.Error(), nil))
-				}
-				return c.HTML(http.StatusInternalServerError, error_page)
-			}
-
-			return c.HTML(http.StatusOK, sign_in_page)
+			return c.Redirect(http.StatusSeeOther, "/api/v1/api_gateway/sign_in")
 		}
 	}
 }

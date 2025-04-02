@@ -23,12 +23,31 @@ redis:
   DialTimeout: 1
   Timeout: 1
 
-registration:
-  Host: service_registration
-  Port: 8080
-  Retry: 10
-  TimeWaitRetry: 100
-  TimeWaitResponse: 5000
+internalServices:
+  registration:
+    Host: service_registration
+    Port: 8080
+    Retry: 10
+    TimeWaitRetry: 1000
+    TimeWaitResponse: 5000
+  users:
+    Host: service_users
+    Port: 8080
+    Retry: 1
+    TimeWaitRetry: 100
+    TimeWaitResponse: 3000
+  accounts:
+    Host: service_accounts
+    Port: 8080
+    Retry: 1
+    TimeWaitRetry: 100
+    TimeWaitResponse: 3000
+  notification:
+    Host: service_notification
+    Port: 8080
+    Retry: 1
+    TimeWaitRetry: 100
+    TimeWaitResponse: 3000
 
 RabbitMQ:
   Host: rabbitmq

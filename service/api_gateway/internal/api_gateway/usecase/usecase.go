@@ -569,12 +569,11 @@ func (uc *apiGateWayUseCase) CreateOperationPage(operation_type string, addition
 		var buffer bytes.Buffer
 
 		account_operation_page_info := &models.AccountOperationPage{
-			OperationName:   operation_type,
-			Operation:       "",
-			Login:           login.(string),
-			SignOutRequest:  "",
-			OperationScript: "",
-			ReturnRequest:   "",
+			OperationName:  operation_type,
+			Operation:      "",
+			Login:          login.(string),
+			SignOutRequest: "",
+			ReturnRequest:  "",
 		}
 
 		curr_server_data := &models.RequestData{
@@ -584,13 +583,6 @@ func (uc *apiGateWayUseCase) CreateOperationPage(operation_type string, addition
 		switch operation_type {
 		case AccountOperationTypeOpen:
 			{
-				account_operation_page_info.Operation = html.AccountOperationCreateAccount
-
-				template_operation_open_account_script, err := template.New("ScriptOpenAccountOperation").Parse(html.ScriptOpenAccountOperation)
-				if err != nil {
-					return "", err
-				}
-
 				template_operation_open_account_request, err := template.New("RequestOpenAccount").Parse(html.RequestOpenAccount)
 				if err != nil {
 					return "", err
@@ -603,29 +595,20 @@ func (uc *apiGateWayUseCase) CreateOperationPage(operation_type string, addition
 
 				operation_data := &models.AccountOperationData{
 					OperationRequest: buffer.String(),
-					HomePageRequest:  "",
 				}
 				buffer.Reset()
 
-				template_home_page_request, err := template.New("RequestUserPage").Parse(html.RequestUserPage)
+				template_operation_open_account, err := template.New("AccountOperationCreateAccount").Parse(html.AccountOperationCreateAccount)
 				if err != nil {
 					return "", err
 				}
 
-				err = template_home_page_request.Execute(&buffer, &curr_server_data)
+				err = template_operation_open_account.Execute(&buffer, &operation_data)
 				if err != nil {
 					return "", err
 				}
 
-				operation_data.HomePageRequest = buffer.String()
-				buffer.Reset()
-
-				err = template_operation_open_account_script.Execute(&buffer, &operation_data)
-				if err != nil {
-					return "", err
-				}
-
-				account_operation_page_info.OperationScript = buffer.String()
+				account_operation_page_info.Operation = buffer.String()
 				buffer.Reset()
 
 			}
@@ -677,23 +660,9 @@ func (uc *apiGateWayUseCase) CreateOperationPage(operation_type string, addition
 				} else if operation_type == AccountOperationTypeClose {
 
 					operation_info := &models.AccountOperationData{
-						HomePageRequest:  "",
 						OperationRequest: "",
 						AccountId:        account_id.String(),
 					}
-
-					template_operation_close_account, err := template.New("AccountOperationCloseAccount").Parse(html.AccountOperationCloseAccount)
-					if err != nil {
-						return "", err
-					}
-
-					err = template_operation_close_account.Execute(&buffer, &operation_info)
-					if err != nil {
-						return "", err
-					}
-
-					account_operation_page_info.Operation = buffer.String()
-					buffer.Reset()
 
 					template_close_account_request, err := template.New("RequestAccountClose").Parse(html.RequestAccountClose)
 					if err != nil {
@@ -708,52 +677,25 @@ func (uc *apiGateWayUseCase) CreateOperationPage(operation_type string, addition
 					operation_info.OperationRequest = buffer.String()
 					buffer.Reset()
 
-					template_home_page_request, err := template.New("RequestUserPage").Parse(html.RequestUserPage)
+					template_operation_close_account, err := template.New("AccountOperationCloseAccount").Parse(html.AccountOperationCloseAccount)
 					if err != nil {
 						return "", err
 					}
 
-					err = template_home_page_request.Execute(&buffer, &curr_server_data)
-					if err != nil {
-						return "", err
-					}
-
-					operation_info.HomePageRequest = buffer.String()
-					buffer.Reset()
-
-					template_close_account_script, err := template.New("ScriptCloseAccountOperation").Parse(html.ScriptCloseAccountOperation)
-					if err != nil {
-						return "", err
-					}
-
-					err = template_close_account_script.Execute(&buffer, &operation_info)
-					if err != nil {
-						return "", err
-					}
-
-					account_operation_page_info.OperationScript = buffer.String()
-					buffer.Reset()
-
-				} else if operation_type == AccountOperationAddCache {
-
-					operation_info := &models.AccountOperationData{
-						HomePageRequest:  "",
-						OperationRequest: "",
-						AccountId:        account_id.String(),
-					}
-
-					template_operation_account_add_cache, err := template.New("AccountOperationAddCache").Parse(html.AccountOperationAddCache)
-					if err != nil {
-						return "", err
-					}
-
-					err = template_operation_account_add_cache.Execute(&buffer, &operation_info)
+					err = template_operation_close_account.Execute(&buffer, &operation_info)
 					if err != nil {
 						return "", err
 					}
 
 					account_operation_page_info.Operation = buffer.String()
 					buffer.Reset()
+
+				} else if operation_type == AccountOperationAddCache {
+
+					operation_info := &models.AccountOperationData{
+						OperationRequest: "",
+						AccountId:        account_id.String(),
+					}
 
 					template_account_add_cache_request, err := template.New("RequestAddAccountCache").Parse(html.RequestAddAccountCache)
 					if err != nil {
@@ -768,52 +710,25 @@ func (uc *apiGateWayUseCase) CreateOperationPage(operation_type string, addition
 					operation_info.OperationRequest = buffer.String()
 					buffer.Reset()
 
-					template_home_page_request, err := template.New("RequestUserPage").Parse(html.RequestUserPage)
+					template_operation_account_add_cache, err := template.New("AccountOperationAddCache").Parse(html.AccountOperationAddCache)
 					if err != nil {
 						return "", err
 					}
 
-					err = template_home_page_request.Execute(&buffer, &curr_server_data)
-					if err != nil {
-						return "", err
-					}
-
-					operation_info.HomePageRequest = buffer.String()
-					buffer.Reset()
-
-					template_add_account_cache_script, err := template.New("ScriptOperationAccountCache").Parse(html.ScriptOperationAccountCache)
-					if err != nil {
-						return "", err
-					}
-
-					err = template_add_account_cache_script.Execute(&buffer, &operation_info)
-					if err != nil {
-						return "", err
-					}
-
-					account_operation_page_info.OperationScript = buffer.String()
-					buffer.Reset()
-
-				} else {
-
-					operation_info := &models.AccountOperationData{
-						HomePageRequest:  "",
-						OperationRequest: "",
-						AccountId:        account_id.String(),
-					}
-
-					template_operation_account_width_cache, err := template.New("AccountOperationWidthCache").Parse(html.AccountOperationWidthCache)
-					if err != nil {
-						return "", err
-					}
-
-					err = template_operation_account_width_cache.Execute(&buffer, &operation_info)
+					err = template_operation_account_add_cache.Execute(&buffer, &operation_info)
 					if err != nil {
 						return "", err
 					}
 
 					account_operation_page_info.Operation = buffer.String()
 					buffer.Reset()
+
+				} else {
+
+					operation_info := &models.AccountOperationData{
+						OperationRequest: "",
+						AccountId:        account_id.String(),
+					}
 
 					template_account_width_cache_request, err := template.New("RequestWidthAccountCache").Parse(html.RequestWidthAccountCache)
 					if err != nil {
@@ -828,30 +743,17 @@ func (uc *apiGateWayUseCase) CreateOperationPage(operation_type string, addition
 					operation_info.OperationRequest = buffer.String()
 					buffer.Reset()
 
-					template_home_page_request, err := template.New("RequestUserPage").Parse(html.RequestUserPage)
+					template_operation_account_width_cache, err := template.New("AccountOperationWidthCache").Parse(html.AccountOperationWidthCache)
 					if err != nil {
 						return "", err
 					}
 
-					err = template_home_page_request.Execute(&buffer, &curr_server_data)
+					err = template_operation_account_width_cache.Execute(&buffer, &operation_info)
 					if err != nil {
 						return "", err
 					}
 
-					operation_info.HomePageRequest = buffer.String()
-					buffer.Reset()
-
-					template_width_account_cache_script, err := template.New("ScriptOperationAccountCache").Parse(html.ScriptOperationAccountCache)
-					if err != nil {
-						return "", err
-					}
-
-					err = template_width_account_cache_script.Execute(&buffer, &operation_info)
-					if err != nil {
-						return "", err
-					}
-
-					account_operation_page_info.OperationScript = buffer.String()
+					account_operation_page_info.Operation = buffer.String()
 					buffer.Reset()
 
 				}
@@ -882,19 +784,6 @@ func (uc *apiGateWayUseCase) CreateOperationPage(operation_type string, addition
 			}
 
 			account_operation_page_info.SignOutRequest = buffer.String()
-			buffer.Reset()
-
-			template_sing_in_page_request, err := template.New("RequestSignInPage").Parse(html.RequestSignInPage)
-			if err != nil {
-				return "", err
-			}
-
-			err = template_sing_in_page_request.Execute(&buffer, &curr_server_data)
-			if err != nil {
-				return "", err
-			}
-
-			account_operation_page_info.SignInPageRequest = buffer.String()
 			buffer.Reset()
 
 			template_request_user_page, err := template.New("RequestUserPage").Parse(html.RequestUserPage)

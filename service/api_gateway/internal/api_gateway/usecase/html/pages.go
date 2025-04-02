@@ -25,7 +25,7 @@ var (
   </head>
   <body>
     <div class="center">
-      <form class="center" id="signInForm">
+      <form class="center" action="{{.SignInRequest}}" method="POST">
           <label for="login">Login</label>
           <input type="text" id="login" name="login" placeholder="login" required>
           
@@ -40,58 +40,6 @@ var (
           <input type="submit" value="Sign up">
       </form>
     </div>
-
-	<script>
-		document.getElementById('signInForm').addEventListener('submit', function(event) {
-		event.preventDefault(); // Предотвращаем стандартную отправку формы
-	
-		var submitButton = document.getElementById('signInButton');
-		submitButton.disabled = true; // Отключаем кнопку
-		submitButton.innerText = 'Check login and password...'; // Меняем текст кнопки
-	
-		var formData = {
-			login: document.querySelector('input[name="login"]').value,
-			password: document.querySelector('input[name="password"]').value
-		};
-	
-		// Отправляем POST-запрос с учётом cookie
-		fetch('{{.SignInRequest}}', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json' // Указываем, что отправляем JSON
-			},
-			body: JSON.stringify(formData), // Преобразуем объект в JSON
-			credentials: 'include' // Важно: включаем отправку и получение cookie
-		})
-		.then(response => {
-			if (response.ok) {
-				return response.json(); // Парсим JSON-ответ
-			} else {
-				return response.json().then(errorData => {
-					throw new Error(errorData.error || 'Sending post request check login and password error');
-				});
-			}
-		})
-		.then(data => {
-			if (data.success) {
-                // Устанавливаем флаг, что перенаправление выполнено
-				window.location.href = '{{.HomePageRequest}}'; // Перенаправляем на GET-страницу
-			} else {
-				// Если есть ошибка, выводим сообщение
-				document.getElementById('message').innerText = data.error;
-			}
-		})
-		.catch(error => {
-			document.getElementById('message').innerText = error;
-			document.getElementById('message').style.color = 'red'; // Делаем текст красным
-			console.error('Error:', error);
-		})
-		.finally(() => {
-			submitButton.disabled = false; // Включаем кнопку обратно
-			submitButton.innerText = 'Sign in';
-		});
-	});
-	</script>
 
   </body>
 </html>`
@@ -168,7 +116,7 @@ var (
   <body>
     <div class="center">
         <p>SIGN UP</p>
-      <form class="center form_grid" id="signUpForm">
+      <form class="center form_grid" action="{{.SignUpRequest}}" method="POST">
           
         <label for="login">Login</label>
         <input type="text" id="login" name="login" placeholder="login" required>
@@ -206,79 +154,13 @@ var (
         <label for="email">Email</label>
         <input type="text" id="email" name="email" placeholder="email@mail.ru" required>
         <br>
-          
-		<div id="message"></div>
-		<br>
+
         <div class="fird_div_full_line grid_full_line">
             <input type="submit" value="Register" style="width: 100%;" id="signUpButton">
         </div>
           
       </form>
     </div>
-
-	<script>
-		document.getElementById('signUpForm').addEventListener('submit', function(event) {
-		event.preventDefault(); // Предотвращаем стандартную отправку формы
-	
-		var submitButton = document.getElementById('signUpButton');
-		submitButton.disabled = true; // Отключаем кнопку
-		submitButton.innerText = 'Register user...'; // Меняем текст кнопки
-	
-		var formData = {
-			login: document.querySelector('input[name="login"]').value,
-			password: document.querySelector('input[name="password"]').value,
-			surname: document.querySelector('input[name="surname"]').value,
-			name: document.querySelector('input[name="name"]').value,
-			patronymic: document.querySelector('input[name="patronymic"]').value,
-			passport_series: document.querySelector('input[name="passport_series"]').value,
-			passport_number: document.querySelector('input[name="passport_number"]').value,
-			birth_date: document.querySelector('input[name="birth_date"]').value,
-			birth_location: document.querySelector('input[name="birth_location"]').value,
-			passport_pick_up_point: document.querySelector('input[name="passport_pick_up_point"]').value,
-			passport_authority: document.querySelector('input[name="passport_authority"]').value,
-			passport_authority_date: document.querySelector('input[name="passport_authority_date"]').value,
-			passport_registration_address: document.querySelector('input[name="passport_registration_address"]').value,
-			inn: document.querySelector('input[name="inn"]').value,
-			email: document.querySelector('input[name="email"]').value
-		};
-	
-		// Отправляем POST-запрос с учётом cookie
-		fetch('{{.SignUpRequest}}', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json' // Указываем, что отправляем JSON
-			},
-			body: JSON.stringify(formData), // Преобразуем объект в JSON
-			credentials: 'include' // Важно: включаем отправку и получение cookie
-		})
-		.then(response => {
-			if (response.ok) {
-				return response.json(); // Парсим JSON-ответ
-			} else {
-				return response.json().then(errorData => {
-					throw new Error(errorData.error || 'Sending post request register user error');
-				});
-			}
-		})
-		.then(data => {
-			if (data.success) {
-				window.location.href = '{{.HomePageRequest}}'; // Перенаправляем на GET-страницу
-			} else {
-				// Если есть ошибка, выводим сообщение
-				document.getElementById('message').innerText = data.error;
-			}
-		})
-		.catch(error => {
-			document.getElementById('message').innerText = error;
-			document.getElementById('message').style.color = 'red'; // Делаем текст красным
-			console.error('Error:', error);
-		})
-		.finally(() => {
-			submitButton.disabled = false; // Включаем кнопку обратно
-			submitButton.innerText = 'Sign up';
-		});
-	});
-	</script>
 
   </body>
 </html>`
@@ -340,9 +222,8 @@ var (
       </div>
       <p class="pre-tab">   |   </p>
       <div class="center_content">
-          <form class="center_content" id="signOutForm">
+          <form class="center_content" action="{{.SignOutRequest}}" method="POST">
               <input type="submit" value="Sign out" id="signOutButton">
-				<div id="message"></div>
           </form>
       </div>
     </header>
@@ -415,48 +296,6 @@ var (
         </div>
     </main>
 
-	<script>
-		document.getElementById('signOutForm').addEventListener('submit', function(event) {
-		event.preventDefault(); // Предотвращаем стандартную отправку формы
-	
-		var submitButton = document.getElementById('signOutButton');
-		submitButton.disabled = true; // Отключаем кнопку
-		submitButton.innerText = 'Exiting...'; // Меняем текст кнопки
-	
-		// Отправляем POST-запрос с учётом cookie
-		fetch('{{.SignOutRequest}}', {
-			method: 'POST',
-			credentials: 'include' // Важно: включаем отправку и получение cookie
-		})
-		.then(response => {
-			if (response.ok) {
-				return response.json(); // Парсим JSON-ответ
-			} else {
-				return response.json().then(errorData => {
-					throw new Error(errorData.error || 'Sending post request register user error');
-				});
-			}
-		})
-		.then(data => {
-			if (data.success) {
-				window.location.href = '{{.SignInPageRequest}}'; // Перенаправляем на GET-страницу
-			} else {
-				// Если есть ошибка, выводим сообщение
-				document.getElementById('message').innerText = data.error;
-			}
-		})
-		.catch(error => {
-			document.getElementById('message').innerText = error;
-			document.getElementById('message').style.color = 'red'; // Делаем текст красным
-			console.error('Error:', error);
-		})
-		.finally(() => {
-			submitButton.disabled = false; // Включаем кнопку обратно
-			submitButton.innerText = 'Sign out';
-		});
-	});
-	</script>
-
   </body>
 </html>`
 	AccountOperationPage string = `<!DOCTYPE html>
@@ -497,7 +336,7 @@ var (
       </div>
       <p class="pre-tab">   |   </p>
       <div class="center_content">
-          <form class="center_content" id="signOutForm">
+          <form class="center_content" action="{{.SignOutRequest}}" method="POST">
               <input type="submit" value="Sign out" id="signOutButton">
 				<div id="message"></div>
           </form>
@@ -518,50 +357,6 @@ var (
             </form>
         </div>
     </main>
-
-	{{.OperationScript}}
-
-	<script>
-		document.getElementById('signOutForm').addEventListener('submit', function(event) {
-		event.preventDefault(); // Предотвращаем стандартную отправку формы
-	
-		var submitButton = document.getElementById('signOutButton');
-		submitButton.disabled = true; // Отключаем кнопку
-		submitButton.innerText = 'Exiting...'; // Меняем текст кнопки
-	
-		// Отправляем POST-запрос с учётом cookie
-		fetch('{{.SignOutRequest}}', {
-			method: 'POST',
-			credentials: 'include' // Важно: включаем отправку и получение cookie
-		})
-		.then(response => {
-			if (response.ok) {
-				return response.json(); // Парсим JSON-ответ
-			} else {
-				return response.json().then(errorData => {
-					throw new Error(errorData.error || 'Sending post request register user error');
-				});
-			}
-		})
-		.then(data => {
-			if (data.success) {
-				window.location.href = '{{.SignInPageRequest}}'; // Перенаправляем на GET-страницу
-			} else {
-				// Если есть ошибка, выводим сообщение
-				document.getElementById('message').innerText = data.error;
-			}
-		})
-		.catch(error => {
-			document.getElementById('message').innerText = error;
-			document.getElementById('message').style.color = 'red'; // Делаем текст красным
-			console.error('Error:', error);
-		})
-		.finally(() => {
-			submitButton.disabled = false; // Включаем кнопку обратно
-			submitButton.innerText = 'Sign out';
-		});
-	});
-	</script>
 
   </body>
 </html>`
@@ -682,7 +477,7 @@ var (
 	`
 	AccountOperationCreateAccount string = `
         <div>
-            <form class="center_content" id="createAccountForm">
+            <form class="center_content" action="{{.OperationRequest}}" method="POST">
                 
                 <label for="name"><b>Account name</b></label>
                 <input type="text" id="name" name="name" placeholder="Name" required>
@@ -708,7 +503,7 @@ var (
 	`
 	AccountOperationCloseAccount string = `        
 		<div>
-            <form class="center_content" id="closeForm">
+            <form class="center_content" action="{{.OperationRequest}}" method="POST">
 				<input type="hidden" name="account_id" value="{{.AccountId}}">
 				<div id="operationMessage"></div>
                 <input type="submit" value="Confirm" id="closeButton">
@@ -743,7 +538,7 @@ var (
 	`
 	AccountOperationAddCache string = `
 	        <div>
-            <form class="center_content" id="formAccountMoney">
+            <form class="center_content" action="{{.OperationRequest}}" method="POST">
 				<input type="hidden" name="account_id" value="{{.AccountId}}">
                 <lable for="money">Money</lable>
                 <input type="text" id="money" name="money">
@@ -765,166 +560,5 @@ var (
 			alt="operation_graph">
 		</td>
 	</tr>
-`
-)
-
-var (
-	ScriptOpenAccountOperation string = `
-		<script>
-			document.getElementById('createAccountForm').addEventListener('submit', function(event) {
-			event.preventDefault(); // Предотвращаем стандартную отправку формы
-		
-			var submitButton = document.getElementById('createAccountButton');
-			submitButton.disabled = true; // Отключаем кнопку
-			submitButton.innerText = 'Creating...'; // Меняем текст кнопки
-		
-			var formData = {
-				name: document.querySelector('input[name="name"]').value,
-				culc_number: document.querySelector('input[name="culc_number"]').value,
-				corr_number: document.querySelector('input[name="corr_number"]').value,
-				bic: document.querySelector('input[name="bic"]').value,
-				cio: document.querySelector('input[name="cio"]').value,
-			};
-
-			// Отправляем POST-запрос с учётом cookie
-			fetch('{{.OperationRequest}}', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json' // Указываем, что отправляем JSON
-				},
-				body: JSON.stringify(formData), // Преобразуем объект в JSON
-				credentials: 'include' // Важно: включаем отправку и получение cookie
-			})
-			.then(response => {
-				if (response.ok) {
-					return response.json(); // Парсим JSON-ответ
-				} else {
-					return response.json().then(errorData => {
-						throw new Error(errorData.error);
-					});
-				}
-			})
-			.then(data => {
-				if (data.success) {
-					window.location.href = '{{.HomePageRequest}}'; // Перенаправляем на GET-страницу
-				} else {
-					// Если есть ошибка, выводим сообщение
-					document.getElementById('operationMessage').innerText = data.error;
-				}
-			})
-			.catch(error => {
-				document.getElementById('operationMessage').innerText = error;
-				document.getElementById('operationMessage').style.color = 'red'; // Делаем текст красным
-				console.error('Error:', error);
-			})
-			.finally(() => {
-				submitButton.disabled = false; // Включаем кнопку обратно
-				submitButton.innerText = 'Create';
-			});
-		});
-		</script>
-`
-	ScriptCloseAccountOperation string = `
-		<script>
-			document.getElementById('closeForm').addEventListener('submit', function(event) {
-			event.preventDefault(); // Предотвращаем стандартную отправку формы
-		
-			var submitButton = document.getElementById('closeButton');
-			submitButton.disabled = true; // Отключаем кнопку
-			submitButton.innerText = 'Closing...'; // Меняем текст кнопки
-		
-			var formData = {
-				account_id: document.querySelector('input[name="account_id"]').value
-			};
-
-			// Отправляем POST-запрос с учётом cookie
-			fetch('{{.OperationRequest}}', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json' // Указываем, что отправляем JSON
-				},
-				body: JSON.stringify(formData), // Преобразуем объект в JSON
-				credentials: 'include' // Важно: включаем отправку и получение cookie
-			})
-			.then(response => {
-				if (response.ok) {
-					return response.json(); // Парсим JSON-ответ
-				} else {
-					return response.json().then(errorData => {
-						throw new Error(errorData.error);
-					});
-				}
-			})
-			.then(data => {
-				if (data.success) {
-					window.location.href = '{{.HomePageRequest}}'; // Перенаправляем на GET-страницу
-				} else {
-					// Если есть ошибка, выводим сообщение
-					document.getElementById('operationMessage').innerText = data.error;
-				}
-			})
-			.catch(error => {
-				document.getElementById('operationMessage').innerText = error;
-				document.getElementById('operationMessage').style.color = 'red'; // Делаем текст красным
-				console.error('Error:', error);
-			})
-			.finally(() => {
-				submitButton.disabled = false; // Включаем кнопку обратно
-				submitButton.innerText = 'Create';
-			});
-		});
-		</script>
-`
-	ScriptOperationAccountCache string = `
-		<script>
-			document.getElementById('formAccountMoney').addEventListener('submit', function(event) {
-			event.preventDefault(); // Предотвращаем стандартную отправку формы
-		
-			var submitButton = document.getElementById('accountMoneyButton');
-			submitButton.disabled = true; // Отключаем кнопку
-			submitButton.innerText = 'Processing...'; // Меняем текст кнопки
-		
-			var formData = {
-				account_id: document.querySelector('input[name="account_id"]').value,
-				money: document.querySelector('input[name="money"]').value
-			};
-
-			// Отправляем POST-запрос с учётом cookie
-			fetch('{{.OperationRequest}}', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json' // Указываем, что отправляем JSON
-				},
-				body: JSON.stringify(formData), // Преобразуем объект в JSON
-				credentials: 'include' // Важно: включаем отправку и получение cookie
-			})
-			.then(response => {
-				if (response.ok) {
-					return response.json(); // Парсим JSON-ответ
-				} else {
-					return response.json().then(errorData => {
-						throw new Error(errorData.error);
-					});
-				}
-			})
-			.then(data => {
-				if (data.success) {
-					window.location.href = '{{.HomePageRequest}}'; // Перенаправляем на GET-страницу
-				} else {
-					// Если есть ошибка, выводим сообщение
-					document.getElementById('operationMessage').innerText = data.error;
-				}
-			})
-			.catch(error => {
-				document.getElementById('operationMessage').innerText = error;
-				document.getElementById('operationMessage').style.color = 'red'; // Делаем текст красным
-				console.error('Error:', error);
-			})
-			.finally(() => {
-				submitButton.disabled = false; // Включаем кнопку обратно
-				submitButton.innerText = 'Create';
-			});
-		});
-		</script>
 `
 )
