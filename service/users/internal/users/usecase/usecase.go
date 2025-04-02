@@ -237,6 +237,19 @@ func (uc userUsecase) CheckUserPassword(ctx context.Context, user_uuid uuid.UUID
 	return nil
 }
 
+func (uc userUsecase) UpdateTotpInfo(ctx context.Context, userId uuid.UUID, totpId uuid.UUID, totpUsage bool) error {
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "userUsecase.UpdateTotpInfo")
+	defer span.Finish()
+
+	err := uc.usersRepo.UpdateUserTotp(ctxWithTrace, userId, totpId, totpUsage)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func NewUsersUseCase(cfg *config.Config, users_repo users.Repository, log logger.Logger) users.UseCase {
 	return &userUsecase{cfg: cfg, usersRepo: users_repo, logger: log}
 }

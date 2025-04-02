@@ -74,4 +74,9 @@ const (
 	GetUserByLogin = `SELECT *
 						FROM users
 						WHERE user_login = $1;`
+
+	UpdateUserTotp = `UPDATE users
+						SET totp_id = $2,
+						    using_totp = $3
+						WHERE user_uuid = $1;`
 )

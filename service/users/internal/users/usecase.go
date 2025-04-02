@@ -17,4 +17,5 @@ type UseCase interface {
 	UpdateUserPassword(ctx context.Context, user_uuid uuid.UUID, passw string) error
 	GetUserDataByLogin(ctx context.Context, login string) (*models.User, error)
 	CheckUserPassword(ctx context.Context, user_uuid uuid.UUID, passw string) error
+	UpdateTotpInfo(ctx context.Context, userId uuid.UUID, totpId uuid.UUID, totpUsage bool) error
 }

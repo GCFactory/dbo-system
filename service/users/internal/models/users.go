@@ -30,6 +30,8 @@ type User struct {
 	User_accounts ListOfAccounts `json:"user_accounts" db:"user_accounts" validate:"required,json"`
 	User_login    string         `json:"user_login" db:"user_login" validate:"required"`
 	User_passw    string         `json:"user_password" db:"user_password" validate:"required"`
+	UsingTotp     bool           `json:"using_totp" db:"using_totp" validate:"boolean"`
+	TotpId        uuid.UUID      `json:"totp_id" db:"totp_id" validate:"required,uuid4"`
 }
 
 type User_full_data struct {

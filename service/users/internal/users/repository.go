@@ -17,4 +17,5 @@ type Repository interface {
 	GetUsersAccounts(ctx context.Context, user_uuid uuid.UUID) (string, error)
 	UpdateUserPassw(ctx context.Context, user_uuid uuid.UUID, new_passw string) error
 	GetUserByLogin(ctx context.Context, login string) (*models.User, error)
+	UpdateUserTotp(ctx context.Context, userUuid uuid.UUID, totpId uuid.UUID, totpUsage bool) error
 }

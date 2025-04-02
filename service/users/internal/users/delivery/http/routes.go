@@ -10,4 +10,7 @@ func MapNotificationRoutes(usersGroup *echo.Group, h users.HttpHandlers, mw *mid
 	usersGroup.GET("/get_user_data", h.GetUserData())
 	usersGroup.GET("/get_user_data_accounts", h.GetUserAccounts())
 	usersGroup.GET("/get_user_data_by_login", h.GetUserDataByLogin())
+	usersGroup.POST("/check_user_password", h.CheckUserPassw())
+	usersGroup.POST("/get_user_totp_data", h.GetUserTotpInfo())
+	usersGroup.POST("/update_user_totp_data", h.UpdateTotpInfo())
 }

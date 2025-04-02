@@ -1,0 +1,16 @@
+meta {
+  name: Check user passw
+  type: http
+  seq: 5
+}
+
+post {
+  url: http://{{Host}}:{{Port}}/api/v1/users/check_user_password
+  body: formUrlEncoded
+  auth: none
+}
+
+body:form-urlencoded {
+  login: tegl
+  password: admin
+}

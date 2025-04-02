@@ -35,6 +35,7 @@ type GetUserDataResponse struct {
 	UserLogin    string                        `json:"user_login"`
 	PassportData *GetUserDataResponse_Passport `json:"passport_data"`
 	Accounts     []uuid.UUID                   `json:"accounts"`
+	UsingTotp    bool                          `json:"using_totp"`
 }
 
 type GetUserAccount struct {
@@ -51,4 +52,29 @@ type GetUserDataByLogin struct {
 
 type GetUserDataByLoginResponse struct {
 	UserId uuid.UUID `json:"user_id"`
+}
+
+type CheckPasswordRequest struct {
+	Login    string `json:"login" validate:"required"`
+	Password string `json:"password" validate:"required"`
+}
+
+type CheckPasswordResponse struct {
+	UserId    uuid.UUID `json:"user_id"`
+	TotpUsage bool      `json:"totp_usage"`
+}
+
+type GetUserTotpDataRequest struct {
+	UserId string `json:"user_id"`
+}
+
+type GetUserTotpDataResponse struct {
+	TotpId    uuid.UUID `json:"totp_id"`
+	TotpUsage bool      `json:"totp_usage"`
+}
+
+type UpdateTotpInfoRequest struct {
+	UserId    string `json:"user_id"`
+	TotpId    string `json:"totp_id"`
+	TotpUsage bool   `json:"totp_usage"`
 }

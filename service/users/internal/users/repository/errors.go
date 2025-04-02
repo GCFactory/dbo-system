@@ -12,4 +12,5 @@ var (
 	ErrorGetUsersAccounts = errors.New("Error getting users accounts")
 	ErrorUpdatePassword   = errors.New("Error update password")
 	ErrorNoUserFound      = errors.New("No user found")
+	ErrorUpdateTotpInfo   = errors.New("Error update totp info")
 )

@@ -1,0 +1,17 @@
+meta {
+  name: Update totp info
+  type: http
+  seq: 7
+}
+
+post {
+  url: http://{{Host}}:{{Port}}/api/v1/users/update_user_totp_data
+  body: formUrlEncoded
+  auth: none
+}
+
+body:form-urlencoded {
+  user_id: 5c4bf76f-1131-4643-ab3a-aacbeea6bc30
+  totp_usage: true
+  totp_id: 5c4bf76f-0000-4643-ab3a-aacbeea6bc30
+}

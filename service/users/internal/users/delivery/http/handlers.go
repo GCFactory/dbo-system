@@ -11,6 +11,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
+	"mime/multipart"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -104,6 +105,77 @@ func (h UsersHandlers) safeReadQueryParamsRequest(c echo.Context, v interface{})
 	return nil
 }
 
+func (h UsersHandlers) safeReadFormDataRequest(c echo.Context, v interface{}) error {
+	val := reflect.ValueOf(v).Elem() // Получаем значение структуры
+
+	// Получаем все form data
+	form, err := c.MultipartForm()
+	if err != nil {
+		// Если это не multipart, пробуем получить как обычную форму
+		if err := c.Request().ParseForm(); err != nil {
+			return fmt.Errorf("failed to parse form data: %v", err)
+		}
+		form = &multipart.Form{
+			Value: c.Request().Form,
+		}
+	}
+
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Type().Field(i)     // Получаем информацию о поле
+		fieldName := field.Name          // Имя поля в структуре
+		jsonTag := field.Tag.Get("json") // Получаем значение тега `json`
+		if jsonTag == "" {
+			continue
+		}
+		fieldType := field.Type // Тип поля
+
+		// Получаем значение из form data по имени поля
+		values, exists := form.Value[jsonTag]
+		if !exists || len(values) == 0 {
+			continue
+		}
+		formValue := values[0] // Берем первое значение (для массивов нужно обрабатывать иначе)
+
+		// Устанавливаем значение поля в зависимости от его типа
+		switch fieldType.Kind() {
+		case reflect.String:
+			val.Field(i).SetString(formValue) // Устанавливаем строку
+		case reflect.Int, reflect.Int64:
+			intValue, err := strconv.Atoi(formValue) // Преобразуем строку в int
+			if err != nil {
+				return fmt.Errorf("invalid value for field %s: %v", fieldName, err)
+			}
+			val.Field(i).SetInt(int64(intValue)) // Устанавливаем int
+		case reflect.Bool:
+			boolValue, err := strconv.ParseBool(formValue) // Преобразуем строку в bool
+			if err != nil {
+				return fmt.Errorf("invalid value for field %s: %v", fieldName, err)
+			}
+			val.Field(i).SetBool(boolValue) // Устанавливаем bool
+		case reflect.Slice:
+			// Обработка массивов/слайсов
+			if fieldType.Elem().Kind() == reflect.String {
+				val.Field(i).Set(reflect.ValueOf(values))
+			} else {
+				return fmt.Errorf("unsupported slice type: %s", fieldType.Elem().Kind())
+			}
+		default:
+			return fmt.Errorf("unsupported field type: %s", fieldType.Kind())
+		}
+	}
+
+	// Валидация структуры
+	validate := validator.New()
+	if err := validate.Struct(v); err != nil {
+		for _, err := range err.(validator.ValidationErrors) {
+			return fmt.Errorf("validation error in field '%s': condition '%s' not met",
+				err.Field(), err.Tag())
+		}
+	}
+
+	return nil
+}
+
 func (h UsersHandlers) GetUserData() echo.HandlerFunc {
 	return func(c echo.Context) error {
 
@@ -157,6 +229,7 @@ func (h UsersHandlers) GetUserData() echo.HandlerFunc {
 					Patronymic: userData.Passport.Patronimic,
 				},
 			},
+			UsingTotp: userData.User.UsingTotp,
 		}
 
 		return c.JSON(http.StatusOK, userDataPrepare)
@@ -234,6 +307,142 @@ func (h UsersHandlers) GetUserDataByLogin() echo.HandlerFunc {
 		return c.JSON(http.StatusOK, userInfo)
 	}
 
+}
+
+func (h UsersHandlers) CheckUserPassw() echo.HandlerFunc {
+	return func(c echo.Context) error {
+
+		result := &models.DefaultHttpResponse{
+			Status: http.StatusOK,
+			Info:   "",
+		}
+
+		operationInfo := &models.CheckPasswordRequest{}
+		err := h.safeReadFormDataRequest(c, operationInfo)
+		if err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			result.Status = http.StatusBadRequest
+			result.Info = err.Error()
+			return c.JSON(http.StatusBadRequest, result)
+		}
+
+		user, err := h.useCase.GetUserDataByLogin(context.Background(), operationInfo.Login)
+		if err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			result.Status = http.StatusBadRequest
+			result.Info = err.Error()
+			return c.JSON(http.StatusBadRequest, result)
+		}
+
+		err = h.useCase.CheckUserPassword(context.Background(), user.User_uuid, operationInfo.Password)
+		if err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			result.Status = http.StatusBadRequest
+			result.Info = err.Error()
+			return c.JSON(http.StatusBadRequest, result)
+		}
+
+		loginInfo := &models.CheckPasswordResponse{
+			UserId:    user.User_uuid,
+			TotpUsage: user.UsingTotp,
+		}
+
+		return c.JSON(http.StatusOK, loginInfo)
+	}
+}
+
+func (h UsersHandlers) GetUserTotpInfo() echo.HandlerFunc {
+	return func(c echo.Context) error {
+
+		result := &models.DefaultHttpResponse{
+			Status: http.StatusOK,
+			Info:   "",
+		}
+
+		operationInfo := &models.GetUserTotpDataRequest{}
+		err := h.safeReadFormDataRequest(c, operationInfo)
+		if err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			result.Status = http.StatusBadRequest
+			result.Info = err.Error()
+			return c.JSON(http.StatusBadRequest, result)
+		}
+
+		userId, err := uuid.Parse(operationInfo.UserId)
+		if err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			result.Status = http.StatusBadRequest
+			result.Info = err.Error()
+			return c.JSON(http.StatusBadRequest, result)
+		}
+
+		userInfo, err := h.useCase.GetUserData(context.Background(), userId)
+		if err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			result.Status = http.StatusNotFound
+			result.Info = err.Error()
+			return c.JSON(http.StatusNotFound, result)
+		}
+
+		totpInfo := &models.GetUserTotpDataResponse{
+			TotpId:    userInfo.User.TotpId,
+			TotpUsage: userInfo.User.UsingTotp,
+		}
+		return c.JSON(http.StatusOK, totpInfo)
+	}
+}
+
+func (h UsersHandlers) UpdateTotpInfo() echo.HandlerFunc {
+	return func(c echo.Context) error {
+
+		result := &models.DefaultHttpResponse{
+			Status: http.StatusOK,
+			Info:   "",
+		}
+
+		operationInfo := &models.UpdateTotpInfoRequest{}
+		err := h.safeReadFormDataRequest(c, operationInfo)
+		if err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			result.Status = http.StatusBadRequest
+			result.Info = err.Error()
+			return c.JSON(http.StatusBadRequest, result)
+		}
+
+		userId, err := uuid.Parse(operationInfo.UserId)
+		if err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			result.Status = http.StatusBadRequest
+			result.Info = err.Error()
+			return c.JSON(http.StatusBadRequest, result)
+		}
+
+		totpId, err := uuid.Parse(operationInfo.TotpId)
+		if err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			result.Status = http.StatusBadRequest
+			result.Info = err.Error()
+			return c.JSON(http.StatusBadRequest, result)
+		}
+
+		_, err = h.useCase.GetUserData(context.Background(), userId)
+		if err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			result.Status = http.StatusNotFound
+			result.Info = err.Error()
+			return c.JSON(http.StatusNotFound, result)
+		}
+
+		err = h.useCase.UpdateTotpInfo(context.Background(), userId, totpId, operationInfo.TotpUsage)
+		if err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			result.Status = http.StatusInternalServerError
+			result.Info = err.Error()
+			return c.JSON(http.StatusInternalServerError, result)
+		}
+
+		return c.JSON(http.StatusOK, nil)
+	}
 }
 
 func NewUsersHandlers(cfg *config.Config, useCase users.UseCase, logger logger.Logger) users.HttpHandlers {

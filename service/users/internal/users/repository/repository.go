@@ -87,7 +87,7 @@ func (repo UserRepository) GetUserData(ctx context.Context, user_uuid uuid.UUID)
 	if err = repo.db.QueryRowxContext(local_ctx,
 		GetUserData,
 		&user_uuid,
-	).Scan(&user.User_uuid, &user.Passport_uuid, &user.User_inn, &tmp, &user.User_login, &user.User_passw); err != nil {
+	).Scan(&user.User_uuid, &user.Passport_uuid, &user.User_inn, &tmp, &user.User_login, &user.User_passw, &user.UsingTotp, &user.TotpId); err != nil {
 		return nil, ErrorGetUser
 	}
 
@@ -257,7 +257,7 @@ func (repo UserRepository) GetUserByLogin(ctx context.Context, login string) (*m
 	if err = repo.db.QueryRowxContext(local_ctx,
 		GetUserByLogin,
 		&login,
-	).Scan(&result.User_uuid, &result.Passport_uuid, &result.User_inn, &tmp, &result.User_login, &result.User_passw); err != nil {
+	).Scan(&result.User_uuid, &result.Passport_uuid, &result.User_inn, &tmp, &result.User_login, &result.User_passw, &result.UsingTotp, &result.TotpId); err != nil {
 		return nil, ErrorGetUser
 	}
 
@@ -289,6 +289,38 @@ func (repo UserRepository) DeleteUser(ctx context.Context, userId uuid.UUID) err
 	}
 
 	return nil
+}
+
+func (repo UserRepository) UpdateUserTotp(ctx context.Context, userUuid uuid.UUID, totpId uuid.UUID, totpUsage bool) error {
+
+	span, local_ctx := opentracing.StartSpanFromContext(ctx, "UserRepository.UpdateUserTotp")
+	defer span.Finish()
+
+	tx, err := repo.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	res, err := repo.db.ExecContext(local_ctx,
+		UpdateUserTotp,
+		userUuid,
+		totpId,
+		totpUsage,
+	)
+
+	if err != nil {
+		return ErrorUpdateTotpInfo
+	} else if count, err := res.RowsAffected(); err != nil || count == 0 {
+		return ErrorUpdateTotpInfo
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
+
 }
 
 func NewUserRepository(db *sqlx.DB) users.Repository {
