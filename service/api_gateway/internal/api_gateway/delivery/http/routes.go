@@ -24,4 +24,12 @@ func MapApiGatewayRoutes(apiGatewayGroup *echo.Group, h api_gateway.Handlers, mw
 	apiGatewayGroup.POST("/adding_account/adding_account", h.AddAccountCache())
 	apiGatewayGroup.POST("/width_account/width_account", h.WidthAccountCache())
 	apiGatewayGroup.GET("/graph/*", h.GraphImage())
+	apiGatewayGroup.GET("/qr/*", h.QrImage())
+	apiGatewayGroup.GET("/totp_connect", h.TurnOnTotpPage())
+	apiGatewayGroup.GET("/totp_disconnect", h.TurnOffTotpPage())
+	apiGatewayGroup.POST("/totp_connect/totp_connect", h.TurnOnTotp())
+	apiGatewayGroup.POST("/totp_disconnect/totp_disconnect", h.TurnOffTotp())
+	apiGatewayGroup.GET("/totp_qr", h.TotpQrPage())
+	apiGatewayGroup.GET("/totp_check", h.TotpCheckPage())
+	apiGatewayGroup.POST("/totp_check/totp_check", h.TotpCheck())
 }

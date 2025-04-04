@@ -318,7 +318,7 @@ func (h UsersHandlers) CheckUserPassw() echo.HandlerFunc {
 		}
 
 		operationInfo := &models.CheckPasswordRequest{}
-		err := h.safeReadFormDataRequest(c, operationInfo)
+		err := h.safeReadBodyRequest(c, operationInfo)
 		if err != nil {
 			utils.LogResponseError(c, h.logger, err)
 			result.Status = http.StatusBadRequest
@@ -360,7 +360,7 @@ func (h UsersHandlers) GetUserTotpInfo() echo.HandlerFunc {
 		}
 
 		operationInfo := &models.GetUserTotpDataRequest{}
-		err := h.safeReadFormDataRequest(c, operationInfo)
+		err := h.safeReadBodyRequest(c, operationInfo)
 		if err != nil {
 			utils.LogResponseError(c, h.logger, err)
 			result.Status = http.StatusBadRequest
@@ -401,7 +401,7 @@ func (h UsersHandlers) UpdateTotpInfo() echo.HandlerFunc {
 		}
 
 		operationInfo := &models.UpdateTotpInfoRequest{}
-		err := h.safeReadFormDataRequest(c, operationInfo)
+		err := h.safeReadBodyRequest(c, operationInfo)
 		if err != nil {
 			utils.LogResponseError(c, h.logger, err)
 			result.Status = http.StatusBadRequest

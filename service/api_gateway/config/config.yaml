@@ -44,7 +44,13 @@ internalServices:
     TimeWaitResponse: 3000
   notification:
     Host: localhost
-    Port: 8119
+    Port: 8111
+    Retry: 1
+    TimeWaitRetry: 100
+    TimeWaitResponse: 3000
+  totp:
+    Host: localhost
+    Port: 8130
     Retry: 1
     TimeWaitRetry: 100
     TimeWaitResponse: 3000

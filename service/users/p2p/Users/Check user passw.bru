@@ -6,11 +6,18 @@ meta {
 
 post {
   url: http://{{Host}}:{{Port}}/api/v1/users/check_user_password
-  body: formUrlEncoded
+  body: json
   auth: none
 }
 
+body:json {
+  {
+    "login": "admin",
+    "password": "admin"
+  }
+}
+
 body:form-urlencoded {
-  login: tegl
-  password: admin
+  ~login: admin
+  ~password: admin
 }

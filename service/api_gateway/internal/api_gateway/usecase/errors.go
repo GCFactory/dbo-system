@@ -11,4 +11,5 @@ var (
 	ErrorUnknownAccountOperationType    = errors.New("Unknown account operation type")
 	ErrorValidationAccountOperationData = errors.New("Account operation data validation error")
 	ErrorNoOperationData                = errors.New("Not all operation data was given")
+	ErrorUnknownTotpOperationType       = errors.New("Unknown operation type")
 )

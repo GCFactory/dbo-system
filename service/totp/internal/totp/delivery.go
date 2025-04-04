@@ -8,4 +8,5 @@ type Handlers interface {
 	Validate() echo.HandlerFunc
 	Enable() echo.HandlerFunc
 	Disable() echo.HandlerFunc
+	Url() echo.HandlerFunc
 }

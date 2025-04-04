@@ -1,6 +1,7 @@
 package http
 
 import (
+	"fmt"
 	"github.com/GCFactory/dbo-system/platform/config"
 	"github.com/GCFactory/dbo-system/platform/pkg/httpErrors"
 	"github.com/GCFactory/dbo-system/platform/pkg/logger"
@@ -8,6 +9,7 @@ import (
 	"github.com/GCFactory/dbo-system/service/totp/internal/models"
 	"github.com/GCFactory/dbo-system/service/totp/internal/totp"
 	totpErrors "github.com/GCFactory/dbo-system/service/totp/pkg/errors"
+	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/opentracing/opentracing-go"
@@ -407,4 +409,63 @@ func (t totpHandlers) Disable() echo.HandlerFunc {
 		result.Info = totpDisable.Status
 		return c.JSON(http.StatusOK, result)
 	}
+}
+
+func (t totpHandlers) Url() echo.HandlerFunc {
+
+	return func(c echo.Context) error {
+		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "totpUC.Url")
+		defer span.Finish()
+
+		operation_result := &models.DefaultHttpRequest{}
+		operation_info := &models.GetTotpUrlBody{}
+		err := t.safeReadBodyRequest(c, operation_info)
+		if err != nil {
+			operation_result.Status = http.StatusBadRequest
+			operation_result.Info = err.Error()
+			return c.JSON(operation_result.Status, operation_result)
+		}
+
+		totpInfo, err := t.totpUC.Url(ctx, operation_info.UserId)
+		if err != nil {
+			operation_result.Status = http.StatusInternalServerError
+			operation_result.Info = err.Error()
+			return c.JSON(operation_result.Status, operation_result)
+		}
+
+		result := &models.GetTotpUrlResponse{
+			TotpUrl: totpInfo.TotpUrl,
+		}
+
+		return c.JSON(http.StatusOK, result)
+	}
+}
+
+func (h totpHandlers) safeReadBodyRequest(c echo.Context, v interface{}) error {
+	var err error = nil
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				err = fmt.Errorf("Validation error: %v", r)
+				h.logger.Error(err.Error())
+			}
+		}()
+		err = utils.ReadRequest(c, v)
+	}()
+
+	validate := validator.New()
+	if validation_err := validate.Struct(v); validation_err != nil {
+		if validationErrors, ok := validation_err.(validator.ValidationErrors); ok {
+			for _, fieldError := range validationErrors {
+				err = fmt.Errorf("Ошибка в поле '%s': условие '%s' не выполнено\n", fieldError.Field(), fieldError.Tag())
+				return err
+			}
+		} else {
+			err = validation_err
+			return err
+		}
+
+	}
+
+	return err
 }

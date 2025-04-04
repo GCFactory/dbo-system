@@ -30,7 +30,7 @@ var (
           <input type="text" id="login" name="login" placeholder="login" required>
           
           <label for="password">Password</label>
-          <input type="text" id="password" name="password" placeholder="*****" required>
+          <input type="password" id="password" name="password" placeholder="*****" required>
           
 			<div id="message"></div>
 			<br>
@@ -270,12 +270,26 @@ var (
             <p><b>Email address</b></p>
             <p>{{.Email}}</p>
             
+			<p><b>Using TOTP</b></p>
+			<div style="display: flex;">
+				<div style="display: flex;">
+					<input type="checkbox" {{if .IsUseTotp -}} checked {{else -}} {{end}} style="pointer-events: none;">
+				</div>
+			  	<div>
+					<form action="{{.RequestTurnOnTotp}}">
+				  		<input type="submit" value="Turn on" {{if .IsUseTotp -}} disabled {{else -}} {{end}}>
+					</form>
+					<form action="{{.RequestTurnOffTotp}}">
+				  		<input type="submit" value="Turn off" {{if .IsUseTotp -}} {{else -}} disabled {{end}}>
+					</form>
+			  	</div>
+			</div>
+
         </div>
         <hr>
         <div class="center_content">
             <p><b>ACCOUNTS</b></p>
             <form action="{{.CreateAccountRequest}}">
-				<input type="hidden" name="user_id" value="{{.UserId}}">
                 <input type="submit" value="Open account">
             </form>
         </div>
@@ -360,7 +374,8 @@ var (
 
   </body>
 </html>`
-	AdminPage string = `<!DOCTYPE html>
+	TotpOperationPage string = AccountOperationPage
+	AdminPage         string = `<!DOCTYPE html>
 <html>
   <head>
     <title>Registration page</title>
@@ -443,6 +458,61 @@ var (
         </table>
     </main>
   </body>
+</html>`
+	TotpCheckPage string = `<!DOCTYPE html>
+<html>
+	<head>
+		<title>Registration page</title>
+		<link rel="stylesheet" href="styles.css" />
+		<style>
+			html {
+				height: 100%;
+			}
+			body {
+				height: 99%;
+			}
+			header {
+				display: grid;
+				grid-auto-flow: column; /* Arrange items in a row */
+				justify-content: end; /* Align items to the right */
+				width: 100%;
+			}
+			.center_content {
+				display: grid;
+				margin: auto;
+				justify-items: center;
+			}
+			.form_grid {
+				grid-template-columns: repeat(2, 1fr);
+			}
+			.pre-tab {
+				white-space: pre; /* Сохраняем изначальное форматирование */
+			}
+		</style>
+	</head>
+	<body>
+
+		<div class="center_content">
+			<h1>Totp turn on</h1>
+		</div>
+			
+		<div>
+			<form  class="center_content" action="{{.OperationRequest}}" method="POST">
+			
+				<label for="totp_code"><b>Your TOTP code:</b></label>
+				<input type="text" id="totp_code" name="totp_code">
+				<input type="submit" value="Verify">
+			</form>
+			
+			<br>
+			<div>
+				<form class="center_content" action="{{.ReturnRequest}}">
+				<input type="submit" value="Return">
+			</form>
+			</div>
+  		</div>
+	
+	</body>
 </html>`
 )
 
@@ -560,5 +630,20 @@ var (
 			alt="operation_graph">
 		</td>
 	</tr>
+`
+	TotpOperationOpen string = `
+		<div>
+            <form class="center_content" action="{{.OperationRequest}}" method="POST">
+                <input type="submit" value="Confirm" id="closeButton">
+            </form>
+        </div>
+`
+	TotpOperationClose string = TotpOperationOpen
+	TotpOperationQr    string = `
+		<div class="center_content">
+			<img src="{{.ImagePath}}" 
+			style="width:200px; height: 200px;"
+			alt="Totp_qr">
+		</div>
 `
 )

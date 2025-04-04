@@ -5,4 +5,5 @@ const (
 	ServerNameUsers        string = "users"
 	ServerNameAccounts     string = "accounts"
 	ServerNameNotification string = "notification"
+	ServerNameTotp         string = "totp"
 )

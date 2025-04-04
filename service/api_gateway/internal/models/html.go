@@ -68,6 +68,8 @@ type HomePage struct {
 	Login                string
 	SignOutRequest       string
 	SignInPageRequest    string
+	RequestTurnOnTotp    string
+	RequestTurnOffTotp   string
 	Surname              string
 	Name                 string
 	Patronymic           string
@@ -83,6 +85,7 @@ type HomePage struct {
 	UserId               string
 	ListOfAccounts       string
 	Email                string
+	IsUseTotp            bool
 }
 
 type HomePageAccountDescription struct {
@@ -133,4 +136,29 @@ type AdminOperationData struct {
 	Begin     string
 	End       string
 	ImagePath string
+}
+
+type TotpOperationPage struct {
+	Login          string
+	SignOutRequest string
+	OperationName  string
+	Operation      string
+	ReturnRequest  string
+}
+
+type TotpOperationData struct {
+	OperationRequest string
+}
+
+type TotpQrImagePath struct {
+	ImagePath string
+}
+
+type TotpCheckInput struct {
+	TotpCode string `json:"totp_code"`
+}
+
+type TotpCheckPage struct {
+	OperationRequest string
+	ReturnRequest    string
 }

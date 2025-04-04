@@ -9,6 +9,7 @@ import (
 	"github.com/rabbitmq/amqp091-go"
 	"net/url"
 	"strconv"
+	"strings"
 
 	//"errors"
 	"fmt"
@@ -32,12 +33,56 @@ type apiGateWayUseCase struct {
 	usersServerInfo        *models.InternalServerInfo
 	accountsServerInfo     *models.InternalServerInfo
 	notificationServerInfo *models.InternalServerInfo
-	imagesPath             string
+	totpServerInfo         *models.InternalServerInfo
+	graphImagesPath        string
+	qrImagesPath           string
 	rmqChan                *amqp091.Channel
 	rmqQueue               amqp091.Queue
 }
 
 var TokenLiveTime = time.Minute
+var TokenFirstAuthLiveTime = time.Minute * 5
+
+func (uc *apiGateWayUseCase) AddTokenFirstAuth(ctx context.Context, token *models.TokenFirstAuth) error {
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "apiGateWayUseCase.AddTokenFirstAuth")
+	defer span.Finish()
+
+	err := uc.repo.AddTokenFirstAuth(ctxWithTrace, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (uc *apiGateWayUseCase) GetTokenFirstAuth(ctx context.Context, tokenName string) (*models.TokenFirstAuth, error) {
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "apiGateWayUseCase.GetTokenFirstAuth")
+	defer span.Finish()
+
+	token, err := uc.repo.GetTokenFirstAuth(ctxWithTrace, tokenName)
+	if err != nil {
+		return nil, err
+	}
+
+	return token, nil
+}
+
+func (uc *apiGateWayUseCase) DeleteTokenFirstAuth(ctx context.Context, tokenName string) error {
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "apiGateWayUseCase.DeleteTokenFirstAuth")
+	defer span.Finish()
+
+	err := uc.repo.DeleteTokenFirstAuth(ctxWithTrace, tokenName)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
 
 func (uc *apiGateWayUseCase) CreateToken(ctx context.Context, token_id uuid.UUID, live_time time.Duration, token_value uuid.UUID) (*models.Token, error) {
 
@@ -318,6 +363,35 @@ func (uc *apiGateWayUseCase) CreateUserPage(user_id uuid.UUID) (string, error) {
 	sign_in_page_request := writer.String()
 	writer.Reset()
 
+	template_turn_on_totp_page_request, err := template.New("RequestTurnOnTotpPage").Parse(html.RequestTurnOnTotpPage)
+	if err != nil {
+		return "", err
+	}
+
+	err = template_turn_on_totp_page_request.Execute(&writer, &curr_server_data)
+	if err != nil {
+		return "", err
+	}
+
+	turn_on_totp_page_request := writer.String()
+	writer.Reset()
+
+	template_turn_off_totp_page_request, err := template.New("RequestTurnOffTotpPage").Parse(html.RequestTurnOffTotpPage)
+	if err != nil {
+		return "", err
+	}
+
+	err = template_turn_off_totp_page_request.Execute(&writer, &curr_server_data)
+	if err != nil {
+		return "", err
+	}
+
+	turn_off_totp_page_request := writer.String()
+	writer.Reset()
+
+	authorityDate := strings.Split(user_data.PassportAuthorityDate, "T")[0]
+	birthDate := strings.Split(user_data.BirthDate, "T")[0]
+
 	user_page_info := &models.HomePage{
 		UserId:              user_id.String(),
 		Login:               user_data.Login,
@@ -328,14 +402,17 @@ func (uc *apiGateWayUseCase) CreateUserPage(user_id uuid.UUID) (string, error) {
 		Patronymic:          user_data.Patronymic,
 		INN:                 user_data.Inn,
 		PassportCode:        user_data.PassportSeries + " " + user_data.PassportNumber,
-		BirthDate:           user_data.BirthDate,
+		BirthDate:           birthDate,
 		BirthLocation:       user_data.BirthLocation,
 		PickUpPoint:         user_data.PassportPickUpPoint,
 		Authority:           user_data.PassportAuthority,
-		AuthorityDate:       user_data.PassportAuthorityDate,
+		AuthorityDate:       authorityDate,
 		RegistrationAddress: user_data.PassportRegistrationAddress,
 		Email:               user_data.Email,
 		ListOfAccounts:      "",
+		IsUseTotp:           user_data.UsingTotp,
+		RequestTurnOnTotp:   turn_on_totp_page_request,
+		RequestTurnOffTotp:  turn_off_totp_page_request,
 	}
 
 	accounts := ""
@@ -814,6 +891,322 @@ func (uc *apiGateWayUseCase) CreateOperationPage(operation_type string, addition
 	return result, err
 }
 
+func (uc *apiGateWayUseCase) CreateTurnOnTotpPage(userId uuid.UUID) (string, error) {
+
+	page, err := uc.createTotpOperationPage(userId, TotpOperationTypeTurnOn)
+	if err != nil {
+		return "", err
+	}
+
+	return page, nil
+}
+
+func (uc *apiGateWayUseCase) CreateTurnOffTotpPage(userId uuid.UUID) (string, error) {
+
+	page, err := uc.createTotpOperationPage(userId, TotpOperationTypeTurnOff)
+	if err != nil {
+		return "", err
+	}
+
+	return page, nil
+
+}
+
+func (uc *apiGateWayUseCase) CreateTotpQrPage(userId uuid.UUID) (string, error) {
+
+	page, err := uc.createTotpOperationPage(userId, TotpOperationTypeQr)
+	if err != nil {
+		return "", err
+	}
+
+	return page, nil
+
+}
+
+func (uc *apiGateWayUseCase) CreateTotpCheckPage() (string, error) {
+
+	var buffer bytes.Buffer
+
+	curr_server_data := &models.RequestData{
+		Port: uc.cfg.HTTPServer.Port[1:],
+	}
+
+	totpCheckPageData := &models.TotpCheckPage{}
+	returnRequestTemplate, err := template.New("RequestSignInPage").Parse(html.RequestSignInPage)
+	if err != nil {
+		return "", err
+	}
+
+	err = returnRequestTemplate.Execute(&buffer, &curr_server_data)
+	if err != nil {
+		return "", err
+	}
+
+	totpCheckPageData.ReturnRequest = buffer.String()
+	buffer.Reset()
+
+	templateValidateTotpCode, err := template.New("RequestCheckTotp").Parse(html.RequestCheckTotp)
+	if err != nil {
+		return "", err
+	}
+
+	err = templateValidateTotpCode.Execute(&buffer, &curr_server_data)
+	if err != nil {
+		return "", err
+	}
+	totpCheckPageData.OperationRequest = buffer.String()
+	buffer.Reset()
+
+	templateTotpCheckPage, err := template.New("TotpCheckPage").Parse(html.TotpCheckPage)
+	if err != nil {
+		return "", err
+	}
+
+	err = templateTotpCheckPage.Execute(&buffer, &totpCheckPageData)
+	if err != nil {
+		return "", err
+	}
+
+	return buffer.String(), nil
+}
+
+func (uc *apiGateWayUseCase) createTotpOperationPage(userId uuid.UUID, operation string) (string, error) {
+
+	userData, err := uc.GetUserDataRequest(userId)
+	if err != nil {
+		return "", err
+	}
+
+	totpOperationInfo := &models.TotpOperationPage{
+		OperationName:  operation,
+		Login:          userData.Login,
+		Operation:      "",
+		ReturnRequest:  "",
+		SignOutRequest: "",
+	}
+
+	curr_server_data := &models.RequestData{
+		Port: uc.cfg.HTTPServer.Port[1:],
+	}
+
+	var buffer bytes.Buffer
+
+	template_sign_out_request, err := template.New("RequestSignOut").Parse(html.RequestSignOut)
+	if err != nil {
+		return "", err
+	}
+
+	err = template_sign_out_request.Execute(&buffer, &curr_server_data)
+	if err != nil {
+		return "", err
+	}
+
+	totpOperationInfo.SignOutRequest = buffer.String()
+	buffer.Reset()
+
+	template_request_user_page, err := template.New("RequestUserPage").Parse(html.RequestUserPage)
+	if err != nil {
+		return "", err
+	}
+
+	err = template_request_user_page.Execute(&buffer, &curr_server_data)
+	if err != nil {
+		return "", err
+	}
+
+	totpOperationInfo.ReturnRequest = buffer.String()
+	buffer.Reset()
+
+	switch operation {
+	case TotpOperationTypeTurnOn:
+		{
+			templateGetTotpCodeRequest, err := template.New("RequestTurnOnTotp").Parse(html.RequestTurnOnTotp)
+			if err != nil {
+				return "", err
+			}
+
+			err = templateGetTotpCodeRequest.Execute(&buffer, &curr_server_data)
+			if err != nil {
+				return "", err
+			}
+
+			operationData := &models.TotpOperationData{
+				OperationRequest: buffer.String(),
+			}
+			buffer.Reset()
+
+			templateGetTotpCode, err := template.New("TotpOperationOpen").Parse(html.TotpOperationOpen)
+			if err != nil {
+				return "", err
+			}
+
+			err = templateGetTotpCode.Execute(&buffer, &operationData)
+			if err != nil {
+				return "", err
+			}
+
+			totpOperationInfo.Operation = buffer.String()
+			buffer.Reset()
+
+		}
+	case TotpOperationTypeTurnOff:
+		{
+			templateTurnOffTotpRequest, err := template.New("RequestTurnOffTotp").Parse(html.RequestTurnOffTotp)
+			if err != nil {
+				return "", err
+			}
+
+			err = templateTurnOffTotpRequest.Execute(&buffer, &curr_server_data)
+			if err != nil {
+				return "", err
+			}
+
+			operationData := &models.TotpOperationData{
+				OperationRequest: buffer.String(),
+			}
+			buffer.Reset()
+
+			templateTurnOffTotpOperation, err := template.New("TotpOperationClose").Parse(html.TotpOperationClose)
+			if err != nil {
+				return "", err
+			}
+
+			err = templateTurnOffTotpOperation.Execute(&buffer, &operationData)
+			if err != nil {
+				return "", err
+			}
+
+			totpOperationInfo.Operation = buffer.String()
+			buffer.Reset()
+		}
+	case TotpOperationTypeQr:
+		{
+
+			templateTotpQrOperation, err := template.New("TotpOperationQr").Parse(html.TotpOperationQr)
+			if err != nil {
+				return "", err
+			}
+
+			totpUrl, err := uc.getUserTotpUrl(userId)
+			if err != nil {
+				return "", err
+			}
+
+			qrImageName, err := uc.createTotpQr(userId, totpUrl)
+			if err != nil {
+				return "", err
+			}
+
+			totpQrOperationInfo := &models.TotpQrImagePath{
+				ImagePath: "qr/" + qrImageName,
+			}
+
+			err = templateTotpQrOperation.Execute(&buffer, &totpQrOperationInfo)
+			if err != nil {
+				return "", err
+			}
+
+			totpOperationInfo.Operation = buffer.String()
+			buffer.Reset()
+		}
+	default:
+		return "", ErrorUnknownTotpOperationType
+	}
+
+	templateTotpOperationPage, err := template.New("TotpOperationPage").Parse(html.TotpOperationPage)
+	if err != nil {
+		return "", err
+	}
+
+	err = templateTotpOperationPage.Execute(&buffer, &totpOperationInfo)
+	if err != nil {
+		return "", err
+	}
+
+	return buffer.String(), nil
+
+}
+
+func (uc *apiGateWayUseCase) CheckTotp(userId uuid.UUID, code string) error {
+
+	return uc.checkTotpRequest(userId, code)
+
+}
+
+func (uc *apiGateWayUseCase) checkTotpRequest(userId uuid.UUID, code string) error {
+
+	templateTotpCheckRequest, err := template.New("RequestTotpValidate").Parse(RequestTotpValidate)
+	if err != nil {
+		return err
+	}
+
+	var buffer bytes.Buffer
+
+	err = templateTotpCheckRequest.Execute(&buffer, uc.totpServerInfo)
+	if err != nil {
+		return err
+	}
+
+	totpCheckRequest := buffer.String()
+	buffer.Reset()
+
+	request_get_operations_body := &models.TotpCodeValidateBody{
+		UserId:   userId,
+		TotpCode: code,
+	}
+
+	request_body, err := json.Marshal(&request_get_operations_body)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, totpCheckRequest, bytes.NewBuffer(request_body))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{
+		Timeout: uc.totpServerInfo.TimeWaitResponse,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode == http.StatusOK {
+		return nil
+	} else {
+		resp_body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+
+		var resp_data = &models.OperationResponse{}
+
+		err = json.Unmarshal(resp_body, &resp_data)
+		if err != nil {
+			return err
+		}
+
+		return errors.New(resp_data.Info)
+	}
+
+}
+
+func (uc *apiGateWayUseCase) createTotpQr(userId uuid.UUID, url string) (string, error) {
+
+	fileName := userId.String() + time.Now().Format("02-01-2006_15:04:05")
+	qrFileName, err := createQrCode(url, fileName, uc.qrImagesPath)
+	if err != nil {
+		return "", err
+	}
+
+	return qrFileName, nil
+}
+
 func (uc *apiGateWayUseCase) CreateAdminPage(begin string, end string) (string, error) {
 
 	template_admin_page, err := template.New("AdminPage").Parse(html.AdminPage)
@@ -863,7 +1256,7 @@ func (uc *apiGateWayUseCase) CreateAdminPage(begin string, end string) (string, 
 			}
 
 			graph_file_name := operation_id.String() + "_" + time.Now().Format("02-01-2006_15:04:05")
-			graph_image_path, err := CreateGraph(operation_tree, uc.imagesPath, graph_file_name)
+			graph_image_path, err := CreateGraph(operation_tree, uc.graphImagesPath, graph_file_name)
 			if err != nil {
 				return "", err
 			}
@@ -929,30 +1322,18 @@ func (uc *apiGateWayUseCase) SignIn(login_info *models.SignInInfo) (*models.Toke
 		return nil, err
 	}
 
-	is_ok, err := uc.CheckUserPasswordRequest(user_data.Id, login_info.Password)
+	is_ok, hasTotp, err := uc.CheckUserPasswordRequest(login_info.Login, login_info.Password)
 	if err != nil {
 		return nil, err
 	}
+
+	hasTotp = hasTotp
 
 	if is_ok {
 
 		token, err := uc.CreateToken(context.Background(), uuid.New(), TokenLiveTime, user_data.Id)
 		if err != nil {
 			return nil, err
-		}
-
-		template_message_sign_in, err := template.New("NotificationSignIn").Parse(notifications.NotificationSignIn)
-		if err == nil {
-			msgInfo := &models.SignInMessage{
-				Login: login_info.Login,
-			}
-
-			var buffer bytes.Buffer
-
-			err = template_message_sign_in.Execute(&buffer, &msgInfo)
-			if err == nil {
-				_ = uc.CreateNotification(context.Background(), user_data.Id, MessageLvlAll, buffer.String())
-			}
 		}
 
 		return token, nil
@@ -969,25 +1350,7 @@ func (uc *apiGateWayUseCase) SignUp(sign_up_info *models.SignUpInfo) (*models.To
 		return nil, err
 	}
 
-	template_welcome_notify, err := template.New("NotificationWelcome").Parse(notifications.NotificationWelcome)
-	if err != nil {
-		return nil, err
-	}
-
-	var buffer bytes.Buffer
-
-	userNotifyInfo := &models.WelcomeMessage{
-		Login: sign_up_info.Login,
-		Name:  sign_up_info.Surname + " " + sign_up_info.Name + " " + sign_up_info.Patronymic,
-	}
-
-	err = template_welcome_notify.Execute(&buffer, userNotifyInfo)
-	if err != nil {
-		return nil, err
-	}
-
-	_ = uc.CreateNotification(context.Background(), user_id, notifications.NotificationLvlEmail, buffer.String())
-	buffer.Reset()
+	_ = uc.CreateNotificationSignUp(context.Background(), user_id)
 
 	token, err := uc.CreateToken(context.Background(), uuid.New(), TokenLiveTime, user_id)
 	if err != nil {
@@ -995,6 +1358,71 @@ func (uc *apiGateWayUseCase) SignUp(sign_up_info *models.SignUpInfo) (*models.To
 	}
 
 	return token, nil
+}
+
+func (uc *apiGateWayUseCase) CreateNotificationSignUp(ctx context.Context, userId uuid.UUID) error {
+
+	template_welcome_notify, err := template.New("NotificationWelcome").Parse(notifications.NotificationWelcome)
+	if err != nil {
+		return err
+	}
+
+	userInfo, err := uc.GetUserDataRequest(userId)
+	if err != nil {
+		return err
+	}
+
+	var buffer bytes.Buffer
+
+	userNotifyInfo := &models.WelcomeMessage{
+		Login: userInfo.Login,
+		Name:  userInfo.Surname + " " + userInfo.Name + " " + userInfo.Patronymic,
+	}
+
+	err = template_welcome_notify.Execute(&buffer, userNotifyInfo)
+	if err != nil {
+		return err
+	}
+
+	err = uc.createNotification(ctx, userId, notifications.NotificationLvlAll, buffer.String())
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (uc *apiGateWayUseCase) CreateNotificationSignIn(ctx context.Context, userId uuid.UUID) error {
+
+	template_message_sign_in, err := template.New("NotificationSignIn").Parse(notifications.NotificationSignIn)
+	if err != nil {
+		return err
+	}
+
+	userInfo, err := uc.GetUserDataRequest(userId)
+	if err != nil {
+		return err
+	}
+
+	msgInfo := &models.SignInMessage{
+		Login: userInfo.Login,
+	}
+
+	var buffer bytes.Buffer
+
+	err = template_message_sign_in.Execute(&buffer, &msgInfo)
+	if err != nil {
+		return err
+	}
+
+	err = uc.createNotification(ctx, userId, notifications.NotificationLvlEmail, buffer.String())
+	if err != nil {
+		return err
+	}
+
+	return nil
+
 }
 
 func (uc *apiGateWayUseCase) CreateAccount(user_id uuid.UUID, account_info *models.AccountInfo) error {
@@ -1684,6 +2112,7 @@ func (uc *apiGateWayUseCase) GetUserDataRequest(user_id uuid.UUID) (*models.User
 		PassportNumber:              resp_get_user_data.PassportData.Number,
 		PassportSeries:              resp_get_user_data.PassportData.Series,
 		Inn:                         resp_get_user_data.UserInn,
+		UsingTotp:                   resp_get_user_data.UsingTotp,
 	}
 
 	template_request_get_user_notif_settings, err := template.New("GetUserNotificationSettings").Parse(GetUserNotificationSettings)
@@ -1737,76 +2166,520 @@ func (uc *apiGateWayUseCase) GetUserDataRequest(user_id uuid.UUID) (*models.User
 	return result, nil
 }
 
-func (uc *apiGateWayUseCase) CheckUserPasswordRequest(user_id uuid.UUID, password string) (bool, error) {
+func (uc *apiGateWayUseCase) CheckUserPasswordRequest(login string, password string) (bool, bool, error) {
 
 	template_request_check_user_password, err := template.New("RequestCheckUserPassword").Parse(RequestCheckUserPassword)
 	if err != nil {
-		return false, err
+		return false, false, err
 	}
 
 	var writer bytes.Buffer
 
-	err = template_request_check_user_password.Execute(&writer, &uc.registrationServerInfo)
+	err = template_request_check_user_password.Execute(&writer, &uc.usersServerInfo)
 	if err != nil {
-		return false, err
+		return false, false, err
 	}
 	request_check_user_password := writer.String()
 	writer.Reset()
 
 	request_check_user_password_body := &models.CheckUserPasswordBody{
 		Password: password,
-		UserId:   user_id,
+		Login:    login,
 	}
 
 	request_body, err := json.Marshal(&request_check_user_password_body)
 	if err != nil {
-		return false, err
+		return false, false, err
 	}
 
 	req, err := http.NewRequest(http.MethodPost, request_check_user_password, bytes.NewBuffer(request_body))
 	if err != nil {
-		return false, err
+		return false, false, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{
-		Timeout: uc.registrationServerInfo.TimeWaitResponse,
+		Timeout: uc.usersServerInfo.TimeWaitResponse,
 	}
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return false, err
+		return false, false, err
 	}
 
 	resp_body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return false, err
+		return false, false, err
 	}
 
-	var resp_data = &models.OperationResponse{}
+	if resp.StatusCode == http.StatusOK {
+		var resp_data = &models.CheckPasswordResponse{}
 
-	err = json.Unmarshal(resp_body, &resp_data)
+		err = json.Unmarshal(resp_body, &resp_data)
+		if err != nil {
+			return false, false, err
+		}
+
+		return true, resp_data.TotpUsage, nil
+	} else {
+		var resp_data = &models.OperationResponse{}
+
+		err = json.Unmarshal(resp_body, &resp_data)
+		if err != nil {
+			return false, false, err
+		}
+		return false, false, errors.New(resp_data.Info)
+	}
+
+}
+
+func (uc *apiGateWayUseCase) getUserTotpUrl(userId uuid.UUID) (string, error) {
+
+	templateRequestGetTotpUrl, err := template.New("RequestGetTotpUrl").Parse(RequestGetTotpUrl)
 	if err != nil {
-		return false, err
+		return "", err
 	}
 
-	operation_id_str := resp_data.Info
+	var writer bytes.Buffer
 
-	operation_id, err := uuid.Parse(operation_id_str)
+	err = templateRequestGetTotpUrl.Execute(&writer, &uc.totpServerInfo)
 	if err != nil {
-		return false, err
+		return "", err
+	}
+	requestgetTotpUrl := writer.String()
+	writer.Reset()
+
+	requestGetTotpUrlBody := &models.GetTotpUrlBody{
+		UserId: userId,
 	}
 
-	operation_data, err := uc.GetOperationData(operation_id)
+	request_body, err := json.Marshal(&requestGetTotpUrlBody)
 	if err != nil {
-		return false, err
+		return "", err
 	}
 
-	if operation_data.Info != "Success" {
-		return false, nil
+	req, err := http.NewRequest(http.MethodGet, requestgetTotpUrl, bytes.NewBuffer(request_body))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{
+		Timeout: uc.totpServerInfo.TimeWaitResponse,
 	}
 
-	return true, nil
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+
+	resp_body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	if resp.StatusCode == http.StatusOK {
+		var resp_data = &models.TotpInfo{}
+
+		err = json.Unmarshal(resp_body, &resp_data)
+		if err != nil {
+			return "", err
+		}
+
+		return resp_data.TotpUrl, nil
+	} else {
+		var resp_data = &models.OperationResponse{}
+
+		err = json.Unmarshal(resp_body, &resp_data)
+		if err != nil {
+			return "", err
+		}
+		return "", errors.New(resp_data.Info)
+	}
+
+}
+
+func (uc *apiGateWayUseCase) TurnOnTotp(userId uuid.UUID) error {
+
+	userInfo, err := uc.GetUserDataRequest(userId)
+	if err != nil {
+		return err
+	}
+
+	totpInfo, err := uc.enrollTotpRequest(userId, userInfo.Login)
+	if err != nil {
+		return err
+	}
+
+	totpInfo.TotpUsage = true
+	err = uc.updateTotpUserInfo(userId, totpInfo)
+	if err != nil {
+		return err
+	}
+
+	_ = uc.createNotificationTurnOnTotp(context.Background(), userId)
+
+	return nil
+}
+
+func (uc *apiGateWayUseCase) createNotificationTurnOnTotp(ctx context.Context, userId uuid.UUID) error {
+
+	templateMessageTurnOnTotp, err := template.New("NotificationTurnOnTotp").Parse(notifications.NotificationTurnOnTotp)
+	if err != nil {
+		return err
+	}
+
+	var buffer bytes.Buffer
+
+	userInfo, err := uc.GetUserDataRequest(userId)
+	if err != nil {
+		return err
+	}
+
+	messageData := &models.TurnOnTotpMessage{
+		Login: userInfo.Login,
+	}
+
+	err = templateMessageTurnOnTotp.Execute(&buffer, &messageData)
+	if err != nil {
+		return err
+	}
+
+	err = uc.createNotification(ctx, userId, notifications.NotificationLvlEmail, buffer.String())
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (uc *apiGateWayUseCase) createNotificationTurnOffTotp(ctx context.Context, userId uuid.UUID) error {
+
+	templateMessageTurnOffTotp, err := template.New("NotificationTurnOffTotp").Parse(notifications.NotificationTurnOffTotp)
+	if err != nil {
+		return err
+	}
+
+	var buffer bytes.Buffer
+
+	userInfo, err := uc.GetUserDataRequest(userId)
+	if err != nil {
+		return err
+	}
+
+	messageData := &models.TurnOffTotpMessage{
+		Login: userInfo.Login,
+	}
+
+	err = templateMessageTurnOffTotp.Execute(&buffer, &messageData)
+	if err != nil {
+		return err
+	}
+
+	err = uc.createNotification(ctx, userId, notifications.NotificationLvlAll, buffer.String())
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (uc *apiGateWayUseCase) TurnOffTotp(userId uuid.UUID) error {
+
+	userInfo, err := uc.GetUserDataRequest(userId)
+	if err != nil {
+		return err
+	}
+
+	if userInfo.UsingTotp {
+		totpInfo, err := uc.GetUserTotpInfo(userId)
+		if err != nil {
+			return err
+		}
+
+		err = uc.disableTotp(userId, totpInfo.TotpId)
+		if err != nil {
+			return err
+		}
+
+		totpInfo.TotpUsage = false
+		totpInfo.TotpId = uuid.Nil
+
+		err = uc.updateTotpUserInfo(userId, totpInfo)
+		if err != nil {
+			return err
+		}
+
+		_ = uc.createNotificationTurnOffTotp(context.Background(), userId)
+
+	}
+
+	return nil
+}
+
+func (uc *apiGateWayUseCase) disableTotp(userId uuid.UUID, totpId uuid.UUID) error {
+
+	templateRequestTurnOffTotp, err := template.New("RequestTurnOffTotp").Parse(RequestTurnOffTotp)
+	if err != nil {
+		return err
+	}
+
+	var buffer bytes.Buffer
+
+	err = templateRequestTurnOffTotp.Execute(&buffer, &uc.totpServerInfo)
+	if err != nil {
+		return err
+	}
+
+	requestEnrollTotp := buffer.String()
+	buffer.Reset()
+
+	requestBody := &models.TotpDisactivateRequestBody{
+		UserId: userId,
+		TotpId: totpId,
+	}
+
+	request_body, err := json.Marshal(&requestBody)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, requestEnrollTotp, bytes.NewBuffer(request_body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{
+		Timeout: uc.totpServerInfo.TimeWaitResponse,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	resp_body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode == http.StatusOK {
+
+		return nil
+
+	} else {
+		var resp_data = &models.OperationResponse{}
+
+		err = json.Unmarshal(resp_body, &resp_data)
+		if err != nil {
+			return err
+		}
+		return errors.New(resp_data.Info)
+	}
+}
+
+func (uc *apiGateWayUseCase) GetUserTotpInfo(userId uuid.UUID) (*models.TotpInfo, error) {
+
+	templateRequestUserTotpInfo, err := template.New("RequestGetUserTotpInfo").Parse(RequestGetUserTotpInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	var buffer bytes.Buffer
+
+	err = templateRequestUserTotpInfo.Execute(&buffer, &uc.usersServerInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	requestUserTotpInfo := buffer.String()
+	buffer.Reset()
+
+	requestBody := &models.GetUserTotpInfoBody{
+		UserId: userId,
+	}
+
+	request_body, err := json.Marshal(&requestBody)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, requestUserTotpInfo, bytes.NewBuffer(request_body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{
+		Timeout: uc.usersServerInfo.TimeWaitResponse,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	resp_body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode == http.StatusOK {
+		var resp_data = &models.TotpInfo{}
+
+		err = json.Unmarshal(resp_body, &resp_data)
+		if err != nil {
+			return nil, err
+		}
+		return resp_data, nil
+
+	} else {
+		var resp_data = &models.OperationResponse{}
+
+		err = json.Unmarshal(resp_body, &resp_data)
+		if err != nil {
+			return nil, err
+		}
+		return nil, errors.New(resp_data.Info)
+	}
+}
+
+func (uc *apiGateWayUseCase) updateTotpUserInfo(userId uuid.UUID, totpInfo *models.TotpInfo) error {
+
+	templateRequestUpdateTotpUsersInfo, err := template.New("RequestUpdateTotpInfo").Parse(RequestUpdateTotpInfo)
+	if err != nil {
+		return err
+	}
+
+	var buffer bytes.Buffer
+
+	err = templateRequestUpdateTotpUsersInfo.Execute(&buffer, &uc.usersServerInfo)
+	if err != nil {
+		return err
+	}
+
+	requestUpdateTotpUsersInfo := buffer.String()
+	buffer.Reset()
+
+	requestBody := &models.UpdateTotpUsersInfoBody{
+		UserId:    userId,
+		TotpId:    totpInfo.TotpId,
+		TotpUsage: totpInfo.TotpUsage,
+	}
+
+	request_body, err := json.Marshal(&requestBody)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, requestUpdateTotpUsersInfo, bytes.NewBuffer(request_body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{
+		Timeout: uc.usersServerInfo.TimeWaitResponse,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	resp_body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode == http.StatusOK {
+		return nil
+
+	} else {
+		var resp_data = &models.OperationResponse{}
+
+		err = json.Unmarshal(resp_body, &resp_data)
+		if err != nil {
+			return err
+		}
+		return errors.New(resp_data.Info)
+	}
+}
+
+func (uc *apiGateWayUseCase) enrollTotpRequest(userId uuid.UUID, userName string) (*models.TotpInfo, error) {
+
+	template_request_enroll_totp, err := template.New("RequestCreateTotp").Parse(RequestCreateTotp)
+	if err != nil {
+		return nil, err
+	}
+
+	var buffer bytes.Buffer
+
+	err = template_request_enroll_totp.Execute(&buffer, &uc.totpServerInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	requestEnrollTotp := buffer.String()
+	buffer.Reset()
+
+	requestBody := &models.TotpEnrollRequestBody{
+		UserId:   userId,
+		UserName: userName,
+	}
+
+	request_body, err := json.Marshal(&requestBody)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, requestEnrollTotp, bytes.NewBuffer(request_body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{
+		Timeout: uc.totpServerInfo.TimeWaitResponse,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	resp_body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode == http.StatusCreated {
+		var resp_data = &models.TotpEnrollResponse{}
+
+		err = json.Unmarshal(resp_body, &resp_data)
+		if err != nil {
+			return nil, err
+		}
+
+		result := &models.TotpInfo{
+			TotpId:  resp_data.TotpId,
+			TotpUrl: resp_data.TotpUrl,
+		}
+
+		return result, nil
+
+	} else {
+		var resp_data = &models.OperationResponse{}
+
+		err = json.Unmarshal(resp_body, &resp_data)
+		if err != nil {
+			return nil, err
+		}
+		return nil, errors.New(resp_data.Info)
+	}
 }
 
 func (uc *apiGateWayUseCase) GetUserDataByLoginRequest(login string) (*models.UserInfo, error) {
@@ -2055,7 +2928,7 @@ func (uc *apiGateWayUseCase) GetOperationDataRequest(operation_id uuid.UUID) (*m
 	return resp_data, nil
 }
 
-func (uc *apiGateWayUseCase) CreateNotification(ctx context.Context, userId uuid.UUID, notificationLvl string, message string) error {
+func (uc *apiGateWayUseCase) createNotification(ctx context.Context, userId uuid.UUID, notificationLvl string, message string) error {
 
 	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "apiGateWayUseCase.CreateNotification")
 	defer span.Finish()
@@ -2082,9 +2955,10 @@ func (uc *apiGateWayUseCase) CreateNotification(ctx context.Context, userId uuid
 
 func NewApiGatewayUseCase(cfg *config.Config, repo api_gateway.Repository, registration_server_info *models.InternalServerInfo,
 	usersServerInfo *models.InternalServerInfo, accountsServerInfo *models.InternalServerInfo,
-	notificationServerInfo *models.InternalServerInfo, images_path string, rmqChan *amqp091.Channel,
+	notificationServerInfo *models.InternalServerInfo, totpServerInfo *models.InternalServerInfo,
+	graphImagesPath string, qrImagesPath string, rmqChan *amqp091.Channel,
 	rmqQueue amqp091.Queue) api_gateway.UseCase {
-	return &apiGateWayUseCase{cfg: cfg, repo: repo, registrationServerInfo: registration_server_info, imagesPath: images_path,
+	return &apiGateWayUseCase{cfg: cfg, repo: repo, registrationServerInfo: registration_server_info, graphImagesPath: graphImagesPath,
 		rmqQueue: rmqQueue, rmqChan: rmqChan, accountsServerInfo: accountsServerInfo, usersServerInfo: usersServerInfo,
-		notificationServerInfo: notificationServerInfo}
+		notificationServerInfo: notificationServerInfo, totpServerInfo: totpServerInfo, qrImagesPath: qrImagesPath}
 }

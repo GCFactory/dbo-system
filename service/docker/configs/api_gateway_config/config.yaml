@@ -48,6 +48,12 @@ internalServices:
     Retry: 1
     TimeWaitRetry: 100
     TimeWaitResponse: 3000
+  totp:
+    Host: service_totp
+    Port: 8080
+    Retry: 1
+    TimeWaitRetry: 100
+    TimeWaitResponse: 3000
 
 RabbitMQ:
   Host: rabbitmq

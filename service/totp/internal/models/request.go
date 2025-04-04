@@ -38,3 +38,11 @@ type TOTPRequest struct {
 type TOTPBase struct {
 	OTPValid bool `json:"otp_valid"`
 }
+
+type GetTotpUrlBody struct {
+	UserId uuid.UUID `json:"user_id"`
+}
+
+type GetTotpUrlResponse struct {
+	TotpUrl string `json:"totp_url"`
+}

@@ -11,6 +11,11 @@ type Handlers interface {
 	CloseAccountPage() echo.HandlerFunc
 	AddAccountCachePage() echo.HandlerFunc
 	WidthAccountCachePage() echo.HandlerFunc
+	TurnOnTotpPage() echo.HandlerFunc
+	TurnOffTotpPage() echo.HandlerFunc
+	TotpQrPage() echo.HandlerFunc
+	TotpCheckPage() echo.HandlerFunc
+	TotpCheck() echo.HandlerFunc
 	AdminPage() echo.HandlerFunc
 	SignIn() echo.HandlerFunc
 	SignUp() echo.HandlerFunc
@@ -19,5 +24,8 @@ type Handlers interface {
 	CloseAccount() echo.HandlerFunc
 	AddAccountCache() echo.HandlerFunc
 	WidthAccountCache() echo.HandlerFunc
+	TurnOnTotp() echo.HandlerFunc
+	TurnOffTotp() echo.HandlerFunc
 	GraphImage() echo.HandlerFunc
+	QrImage() echo.HandlerFunc
 }

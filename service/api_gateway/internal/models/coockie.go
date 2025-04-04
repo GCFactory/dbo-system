@@ -10,3 +10,9 @@ type Token struct {
 	Data      uuid.UUID
 	Live_time time.Duration
 }
+
+type TokenFirstAuth struct {
+	TokenName string
+	UserId    uuid.UUID
+	Live_time time.Duration
+}

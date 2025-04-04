@@ -23,6 +23,7 @@ type UserInfo struct {
 	Inn                         string      `json:"inn" validate:"required,number,min=20,max=1"`
 	Accounts                    []uuid.UUID `json:"accounts"`
 	Email                       string      `json:"email" validate:"email"`
+	UsingTotp                   bool        `json:"using_totp" validate:"boolean"`
 }
 
 type AccountInfo struct {
@@ -79,8 +80,8 @@ type CreateUserBody struct {
 }
 
 type CheckUserPasswordBody struct {
-	UserId   uuid.UUID `json:"user_id"`
-	Password string    `json:"password"`
+	Login    string `json:"login"`
+	Password string `json:"password"`
 }
 
 type GetUserDataBoyd struct {
@@ -192,6 +193,7 @@ type GetUserDataResponse struct {
 	UserLogin    string                        `json:"user_login"`
 	PassportData *GetUserDataResponse_Passport `json:"passport_data"`
 	Accounts     []uuid.UUID                   `json:"accounts"`
+	UsingTotp    bool                          `json:"using_totp"`
 }
 
 type GetUserNotifySettingsResponse struct {
@@ -215,4 +217,50 @@ type GetAccountDataResponse struct {
 
 type GetUserDataByLoginResponse struct {
 	UserId uuid.UUID `json:"user_id"`
+}
+
+type CheckPasswordResponse struct {
+	UserId    uuid.UUID `json:"user_id"`
+	TotpUsage bool      `json:"totp_usage"`
+}
+
+type TotpEnrollRequestBody struct {
+	UserId   uuid.UUID `json:"user_id"`
+	UserName string    `json:"user_name"`
+}
+
+type TotpEnrollResponse struct {
+	TotpId     uuid.UUID `json:"totp_id"`
+	TotpSecret string    `json:"totp_secret"`
+	TotpUrl    string    `json:"totp_url"`
+}
+
+type TotpInfo struct {
+	TotpId    uuid.UUID `json:"totp_id"`
+	TotpUrl   string    `json:"totp_url"`
+	TotpUsage bool      `json:"totp_usage"`
+}
+
+type UpdateTotpUsersInfoBody struct {
+	UserId    uuid.UUID `json:"user_id"`
+	TotpId    uuid.UUID `json:"totp_id"`
+	TotpUsage bool      `json:"totp_usage"`
+}
+
+type GetUserTotpInfoBody struct {
+	UserId uuid.UUID `json:"user_id"`
+}
+
+type TotpDisactivateRequestBody struct {
+	UserId uuid.UUID `json:"user_id"`
+	TotpId uuid.UUID `json:"totp_id"`
+}
+
+type GetTotpUrlBody struct {
+	UserId uuid.UUID `json:"user_id"`
+}
+
+type TotpCodeValidateBody struct {
+	UserId   uuid.UUID `json:"user_id"`
+	TotpCode string    `json:"totp_code"`
 }

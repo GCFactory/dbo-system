@@ -40,6 +40,7 @@ func (s *Server) MapHandlers(e *echo.Echo) error {
 	usersServerInfo := &models.InternalServerInfo{}
 	accountsServerInfo := &models.InternalServerInfo{}
 	notificationServerInfo := &models.InternalServerInfo{}
+	totpServerInfo := &models.InternalServerInfo{}
 
 	if regCfg, ok := s.cfg.InternalServices[ServerNameRegistration]; ok {
 		registrationServerInfo.Port = regCfg.Port
@@ -73,33 +74,59 @@ func (s *Server) MapHandlers(e *echo.Echo) error {
 		notificationServerInfo.TimeWaitResponse = time.Duration(time.Millisecond.Nanoseconds() * int64(notifCfg.TimeWaitResponse))
 	}
 
+	if totpCfg, ok := s.cfg.InternalServices[ServerNameTotp]; ok {
+		totpServerInfo.Port = totpCfg.Port
+		totpServerInfo.Host = totpCfg.Host
+		totpServerInfo.NumRetry = totpCfg.Retry
+		totpServerInfo.WaitTimeRetry = time.Duration(time.Millisecond.Nanoseconds() * int64(totpCfg.TimeWaitRetry))
+		totpServerInfo.TimeWaitResponse = time.Duration(time.Millisecond.Nanoseconds() * int64(totpCfg.TimeWaitResponse))
+	}
+
 	//executable, err := os.Executable()
 	//if err != nil {
 	//	panic(err)
 	//}
 	//exPath := filepath.Dir(executable)
 
-	folder_images_path := "./graph"
-	ex, err := exists(folder_images_path)
+	folderGrapthImagesPath := "./graph"
+
+	ex, err := exists(folderGrapthImagesPath)
 	if err != nil {
 		return err
 	}
 	if ex {
-		err = os.RemoveAll(folder_images_path)
+		err = os.RemoveAll(folderGrapthImagesPath)
 		if err != nil {
 			return err
 		}
 	}
-	err = os.MkdirAll(folder_images_path, fs.ModePerm)
+	err = os.MkdirAll(folderGrapthImagesPath, fs.ModePerm)
 	if err != nil {
 		return err
 	}
-	fmt.Println(filepath.Abs(folder_images_path))
+	fmt.Println(filepath.Abs(folderGrapthImagesPath))
+
+	folderQrImagesPath := "./qr"
+	ex, err = exists(folderQrImagesPath)
+	if err != nil {
+		return err
+	}
+	if ex {
+		err = os.RemoveAll(folderQrImagesPath)
+		if err != nil {
+			return err
+		}
+	}
+	err = os.MkdirAll(folderQrImagesPath, fs.ModePerm)
+	if err != nil {
+		return err
+	}
+	fmt.Println(filepath.Abs(folderQrImagesPath))
 
 	apiGatewayUsecase := usecase.NewApiGatewayUseCase(s.cfg, apiGatewayRepo, registrationServerInfo, usersServerInfo,
-		accountsServerInfo, notificationServerInfo, folder_images_path, s.rmqChan, s.rmqQueue)
+		accountsServerInfo, notificationServerInfo, totpServerInfo, folderGrapthImagesPath, folderQrImagesPath, s.rmqChan, s.rmqQueue)
 	// Init handlers
-	apiGatewayHalndlers := delivery.NewApiGatewayHandlers(s.cfg, s.logger, folder_images_path, apiGatewayUsecase)
+	apiGatewayHalndlers := delivery.NewApiGatewayHandlers(s.cfg, s.logger, folderGrapthImagesPath, folderQrImagesPath, apiGatewayUsecase)
 
 	mw := apiMiddlewares.NewMiddlewareManager(s.cfg, []string{"*"}, s.logger)
 

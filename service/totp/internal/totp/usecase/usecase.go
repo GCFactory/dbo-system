@@ -307,6 +307,21 @@ func (t totpUC) Disable(ctx context.Context, totpId uuid.UUID, userId uuid.UUID)
 	return &models.TOTPDisable{Status: totpErrors.NoId.Error()}, totpErrors.NoId
 }
 
+func (t totpUC) Url(ctx context.Context, userId uuid.UUID) (*models.TOTPEnroll, error) {
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "totpUC.Disable")
+	defer span.Finish()
+
+	totpInfo, err := t.totpRepo.GetActiveConfig(ctxWithTrace, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.TOTPEnroll{
+		TotpUrl: totpInfo.URL,
+	}, nil
+
+}
+
 func NewTOTPUseCase(cfg *config.Config, totpRepo totp.Repository, totpLogic totpPkg.Totp, log logger.Logger) totp.UseCase {
 	return &totpUC{cfg: cfg, totpRepo: totpRepo, totpLogic: totpLogic, logger: log}
 }

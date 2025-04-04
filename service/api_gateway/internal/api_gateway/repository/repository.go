@@ -82,6 +82,61 @@ func (repo *apiGatewayRepo) DeleteToken(ctx context.Context, token_id uuid.UUID)
 	return nil
 }
 
+func (repo *apiGatewayRepo) AddTokenFirstAuth(ctx context.Context, token *models.TokenFirstAuth) error {
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "apiGatewayRepo.AddTokenFirstAuth")
+	defer span.Finish()
+
+	err := repo.redis.Set(ctxWithTrace, token.TokenName, token.UserId.String(), token.Live_time).Err()
+	if err != nil {
+		return ErrorAddToken
+	}
+
+	return nil
+}
+
+func (repo *apiGatewayRepo) GetTokenFirstAuth(ctx context.Context, tokenName string) (*models.TokenFirstAuth, error) {
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "apiGatewayRepo.GetTokenFirstAuth")
+	defer span.Finish()
+
+	data_str, err := repo.redis.Get(ctxWithTrace, tokenName).Result()
+	if err != nil {
+		return nil, ErrorGetTokenValue
+	}
+
+	data, err := uuid.Parse(data_str)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd := repo.redis.TTL(ctxWithTrace, tokenName)
+	if cmd.Err() != nil {
+		return nil, ErrorGetTokenExpire
+	}
+
+	time_live := cmd.Val()
+
+	return &models.TokenFirstAuth{
+		TokenName: tokenName,
+		UserId:    data,
+		Live_time: time_live,
+	}, nil
+}
+
+func (repo *apiGatewayRepo) DeleteTokenFirstAuth(ctx context.Context, tokenName string) error {
+
+	span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "apiGatewayRepo.DeleteTokenFirstAuth")
+	defer span.Finish()
+
+	err := repo.redis.Del(ctxWithTrace, tokenName).Err()
+	if err != nil {
+		return ErrorDeleteToken
+	}
+
+	return nil
+}
+
 func NewApiGatewayRepository(db *redis.Client) api_gateway.Repository {
 	return &apiGatewayRepo{redis: db}
 }
