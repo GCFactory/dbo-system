@@ -1,0 +1,83 @@
+version: 1.0.0
+http-server:
+  AppVersion: 1.0.0
+  Env: Development
+  Port: :8080
+  PprofPort: :5555
+  Mode: Development
+  JwtSecretKey: secretkey
+  CookieName: jwt-token
+  ReadTimeout: 5
+  WriteTimeout: 5
+  SSL: false
+  CtxDefaultTimeout: 12
+  CSRF: true
+  Debug: false
+
+jaeger:
+  Host: localhost:6831
+  ServiceName: notification
+  LogSpans: false
+
+docs:
+  Enable: false
+  Prefix: swagger
+  Title: Notification Service REST API
+
+logger:
+  Development: true
+  DisableCaller: false
+  DisableStacktrace: false
+  Encoding: json
+  Level: debug
+
+postgres:
+  PostgresqlHost: localhost
+  PostgresqlPort: 5436
+  PostgresqlUser: postgres
+  PostgresqlPassword: postgres
+  PostgresqlDbname: notification
+  PostgresqlSSLMode: false
+  PgDriver: pgx
+
+RabbitMQ:
+  Host: localhost
+  Port: 5672
+  User: admin
+  Password: admin
+  Queue: notification
+
+NotificationSmtp:
+  Host: localhost
+  Port: 10465
+  User: dbo-system
+  Password: admin
+  From: dbo.notification@mail.ru
+  NickName: dbo-system
+
+kafkaConsumer:
+  brokers: localhost:9092
+  groupID: notification-group
+  topics:
+    - notification_cons
+
+kafkaProducer:
+  brokers: localhost:9092
+  topics:
+    - notification_res
+    - notification_err
+
+cookie:
+  Name: jwt-token
+  MaxAge: 86400
+  Secure: false
+  HttpOnly: true
+
+session:
+  Name: session-id
+  Prefix: api-notification
+  Expire: 3600
+
+metrics:
+  Url: 0.0.0.0:7070
+  ServiceName: notification

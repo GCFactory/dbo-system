@@ -1,0 +1,17 @@
+meta {
+  name: Get operation tree
+  type: http
+  seq: 13
+}
+
+get {
+  url: http://localhost:{{port}}/api/v1/registration/get_operation_tree_data
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "operation_id": "ed2ba5bc-738e-40e9-afb7-351c1b9b2d38"
+  }
+}

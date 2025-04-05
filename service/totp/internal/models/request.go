@@ -8,6 +8,11 @@ type TOTPEnroll struct {
 	TotpUrl    string `json:"totp_url"`
 }
 
+type DefaultHttpRequest struct {
+	Status int    `json:"status"`
+	Info   string `json:"info"`
+}
+
 type TOTPVerify struct {
 	Status string `json:"status" validate:"omitempty"`
 }
@@ -32,4 +37,12 @@ type TOTPRequest struct {
 
 type TOTPBase struct {
 	OTPValid bool `json:"otp_valid"`
+}
+
+type GetTotpUrlBody struct {
+	UserId uuid.UUID `json:"user_id"`
+}
+
+type GetTotpUrlResponse struct {
+	TotpUrl string `json:"totp_url"`
 }

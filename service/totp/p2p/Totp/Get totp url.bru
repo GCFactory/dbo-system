@@ -1,0 +1,17 @@
+meta {
+  name: Get totp url
+  type: http
+  seq: 7
+}
+
+get {
+  url: http://{{Host}}:{{Port}}/api/v1/totp/totp_url
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "user_id": "a5e35399-02dd-41db-bb96-4edce9b841c8"
+  }
+}

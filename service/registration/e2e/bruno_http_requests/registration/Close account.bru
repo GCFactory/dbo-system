@@ -1,0 +1,18 @@
+meta {
+  name: Close account
+  type: http
+  seq: 8
+}
+
+post {
+  url: http://localhost:{{port}}/api/v1/registration/close_acc
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "user_id": "fc99657d-4e7b-4ae3-9b57-08632260e52c",
+    "account_id": "8d3367ab-3d3b-43f4-b719-7ac14a75dd91"
+  }
+}

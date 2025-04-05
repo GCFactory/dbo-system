@@ -1,0 +1,17 @@
+meta {
+  name: GetOperationInfo
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://localhost:{{port}}/api/v1/registration/get_operation_status
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "operation_id": "ef63c51b-0e81-49a0-95da-6020602ad01b"
+  }
+}

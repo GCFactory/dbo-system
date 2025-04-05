@@ -1,0 +1,17 @@
+meta {
+  name: Verify totp URL
+  type: http
+  seq: 6
+}
+
+post {
+  url: http://{{Host}}:{{Port}}/api/v1/totp/validate
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "totp_url": "otpauth://totp/dbo.gcfactory.space:rueie?algorithm=SHA1&digits=6&issuer=dbo.gcfactory.space&period=30&secret=NXZRADYQGTKI4DTYLO2WSU5YGEX3GCI2"
+  }
+}

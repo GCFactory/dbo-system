@@ -1,0 +1,19 @@
+meta {
+  name: Add account cache
+  type: http
+  seq: 6
+}
+
+post {
+  url: http://localhost:{{port}}/api/v1/registration/add_account_cache
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "user_id": "8ba3dbf7-4b0b-4f27-8d8c-f728a2531561",
+    "account_id": "ca9bd4be-736e-435e-b4af-0fa395fee446",
+    "cache_diff": 10.12
+  }
+}

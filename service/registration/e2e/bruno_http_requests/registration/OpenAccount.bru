@@ -1,0 +1,23 @@
+meta {
+  name: OpenAccount
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:{{port}}/api/v1/registration/open_account
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "user_id": "ab6d7869-0f8e-4471-9d13-41fc757adae2",
+    "acc_name": "test account",
+    "culc_number": "40705810990123456789",
+    "corr_number": "30125810502500000025",
+    "bic": "245025025",
+    "cio": "509910012",
+    "reserve_reason": "test reserve"
+  }
+}

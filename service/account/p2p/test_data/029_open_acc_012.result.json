@@ -1,0 +1,7 @@
+{
+  "saga_uuid": "0123456789abcdef",
+  "event_uuid": "0123456789abcdef",
+  "operation_name": "open_acc",
+  "status": 12,
+  "info": "For this operation account has wrong status: opened!"
+}

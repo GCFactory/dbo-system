@@ -1,0 +1,17 @@
+meta {
+  name: Get User Data By Login
+  type: http
+  seq: 11
+}
+
+post {
+  url: http://localhost:{{port}}/api/v1/registration/user_data_by_login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "user_login": "admin"
+  }
+}

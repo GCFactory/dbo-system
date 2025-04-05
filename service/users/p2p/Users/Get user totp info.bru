@@ -1,0 +1,15 @@
+meta {
+  name: Get user totp info
+  type: http
+  seq: 6
+}
+
+post {
+  url: http://{{Host}}:{{Port}}/api/v1/users/get_user_totp_data
+  body: formUrlEncoded
+  auth: none
+}
+
+body:form-urlencoded {
+  user_id: 5c4bf76f-1131-4643-ab3a-aacbeea6bc30
+}

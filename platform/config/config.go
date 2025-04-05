@@ -31,6 +31,8 @@ type Config struct {
 
 	Cookie  Cookie  `yaml:"cookie,omitempty"`
 	Session Session `yaml:"session,omitempty"`
+
+	NotificationSmtp Smtp `yaml:"NotificationSmtp,omitempty"`
 }
 
 // Swagger configuration

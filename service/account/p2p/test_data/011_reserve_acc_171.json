@@ -1,0 +1,12 @@
+{
+  "saga_uuid": "0123456789abcdef",
+  "event_uuid": "0123456789abcdef",
+  "operation_name": "reserve_acc",
+  "account_data": {
+    "culc_number": "40704123990123456789",
+    "corr_number": "30125810502500000025",
+    "bic": "245025025",
+    "cio": "509910012",
+    "reserve_reason": "test reserve"
+  }
+}

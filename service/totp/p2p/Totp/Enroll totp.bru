@@ -1,0 +1,18 @@
+meta {
+  name: Enroll totp
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://{{Host}}:{{Port}}/api/v1/totp/enroll
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "user_id": "a599f853-d607-4f66-b951-d36fac1288b4",
+    "user_name": "rueie"
+  }
+}

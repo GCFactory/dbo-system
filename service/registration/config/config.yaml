@@ -1,0 +1,75 @@
+version: 1.0.0
+http-server:
+  AppVersion: 1.0.0
+  Env: Development
+  Port: :8080
+  PprofPort: :5555
+  Mode: Development
+  JwtSecretKey: secretkey
+  CookieName: jwt-token
+  ReadTimeout: 5
+  WriteTimeout: 5
+  SSL: false
+  CtxDefaultTimeout: 12
+  CSRF: true
+  Debug: false
+
+kafkaConsumer:
+  brokers: kafka:9092
+  groupID: registration-group
+  topics:
+    - users_res
+    - users_err
+    - account_res
+    - account_err
+    - notification_res
+    - notification_err
+
+kafkaProducer:
+  brokers: kafka:9092
+  topics:
+    - users_cons
+    - account_cons
+    - notification_cons
+
+jaeger:
+  Host: localhost:6831
+  ServiceName: registration
+  LogSpans: false
+
+docs:
+  Enable: false
+  Prefix: swagger
+  Title: Registration Service REST API
+
+logger:
+  Development: true
+  DisableCaller: false
+  DisableStacktrace: false
+  Encoding: json
+  Level: debug
+
+postgres:
+  PostgresqlHost: localhost
+  PostgresqlPort: 5435
+  PostgresqlUser: postgres
+  PostgresqlPassword: postgres
+  PostgresqlDbname: registration
+  PostgresqlSSLMode: false
+  PgDriver: pgx
+
+
+cookie:
+  Name: jwt-token
+  MaxAge: 86400
+  Secure: false
+  HttpOnly: true
+
+session:
+  Name: session-id
+  Prefix: api-registration
+  Expire: 3600
+
+metrics:
+  Url: 0.0.0.0:7070
+  ServiceName: registration

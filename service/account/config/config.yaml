@@ -1,0 +1,71 @@
+version: 1.0.0
+http-server:
+  AppVersion: 1.0.0
+  Env: Development
+  Port: :8080
+  PprofPort: :5555
+  Mode: Development
+  JwtSecretKey: secretkey
+  CookieName: jwt-token
+  ReadTimeout: 5
+  WriteTimeout: 5
+  SSL: false
+  CtxDefaultTimeout: 12
+  CSRF: true
+  Debug: false
+
+kafkaConsumer:
+  #brokers: localhost:9092;locahost:9091
+  brokers: localhost:9092
+  groupID: account-group
+  topics:
+    - account_cons
+
+kafkaProducer:
+  #brokers: localhost:9092;locahost:9091
+  brokers: localhost:9092
+  topics:
+    - account_res
+    - account_err
+
+jaeger:
+  Host: localhost:6831
+  ServiceName: accounts
+  LogSpans: false
+
+docs:
+  Enable: false
+  Prefix: swagger
+  Title: Account Service REST API
+
+logger:
+  Development: true
+  DisableCaller: false
+  DisableStacktrace: false
+  Encoding: json
+  Level: debug
+
+postgres:
+  PostgresqlHost: localhost
+  PostgresqlPort: 5434
+  PostgresqlUser: postgres
+  PostgresqlPassword: postgres
+  PostgresqlDbname: account
+  PostgresqlSSLMode: false
+  PgDriver: pgx
+
+
+cookie:
+  Name: jwt-token
+  MaxAge: 86400
+  Secure: false
+  HttpOnly: true
+
+session:
+  Name: session-id
+  Prefix: api-totp
+  Expire: 3600
+
+metrics:
+  Url: 0.0.0.0:7070
+  ServiceName: account

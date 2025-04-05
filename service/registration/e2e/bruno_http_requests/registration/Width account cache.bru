@@ -1,0 +1,19 @@
+meta {
+  name: Width account cache
+  type: http
+  seq: 7
+}
+
+post {
+  url: http://localhost:{{port}}/api/v1/registration/width_account_cache
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "user_id": "fc99657d-4e7b-4ae3-9b57-08632260e52c",
+    "account_id": "8d3367ab-3d3b-43f4-b719-7ac14a75dd91",
+    "cache_diff": 10.12
+  }
+}

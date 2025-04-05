@@ -1,0 +1,15 @@
+meta {
+  name: Get user settings
+  type: http
+  seq: 3
+}
+
+get {
+  url: http://{{Host}}:{{Port}}/api/v1/notification/get_user_notification_settings?user_id=0cb8142f-af3e-49be-8b46-a691baad0130
+  body: none
+  auth: none
+}
+
+params:query {
+  user_id: 0cb8142f-af3e-49be-8b46-a691baad0130
+}

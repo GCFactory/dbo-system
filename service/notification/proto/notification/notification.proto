@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package notification;
+
+option go_package = "./proto/notification_api";
+
+message AdditionalInfo {
+  string user_id = 1;
+  optional string email = 2;
+  optional bool email_notification = 3;
+}
+
+//  Данные event-а
+message EventData{
+  string saga_uuid = 1;                         //  UUID sag-и
+  string event_uuid = 2;                        //  UUID evnet-a
+  string operation_name = 3;                    // Тип операции
+  AdditionalInfo additional_info = 4;
+}
+
+//  Результат event-а
+message EventSuccess{
+  string saga_uuid = 1;                     //  UUID sag-и
+  string event_uuid = 2;                    //  UUID evnet-a
+  string operation_name = 3;                //  Тип выполняемой операции
+  string info = 5;                          //  Дополнительная информация по event-у
+}
+
+message EventError{
+  string saga_uuid = 1;                     //  UUID sag-и
+  string event_uuid = 2;                    //  UUID evnet-a
+  string operation_name = 3;                //  Тип выполняемой операции
+  uint32 status = 4;                        //  Event error status
+  string info = 5;                          //  Дополнительная информация по event-у
+}

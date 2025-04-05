@@ -1,0 +1,15 @@
+meta {
+  name: Get user data by login
+  type: http
+  seq: 4
+}
+
+get {
+  url: http://{{Host}}:{{Port}}/api/v1/users/get_user_data_by_login?login=tegl
+  body: none
+  auth: none
+}
+
+params:query {
+  login: tegl
+}

@@ -17,6 +17,13 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 .pgdata
+service/docker/db
+service/docker/services
+service/docker/rabbitmq
+service/docker/mail
+service/api_gateway/graph
+service/api_gateway/app
+service/api_gateway/qr
 
 # Go workspace file
 go.work

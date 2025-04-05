@@ -12,4 +12,5 @@ func MapTOTPRoutes(totpGroup *echo.Group, h totp.Handlers, mw *middleware.Middle
 	totpGroup.POST("/validate", h.Validate())
 	totpGroup.POST("/enable", h.Enable())
 	totpGroup.POST("/disable", h.Disable())
+	totpGroup.GET("/totp_url", h.Url())
 }

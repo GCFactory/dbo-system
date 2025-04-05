@@ -1,0 +1,556 @@
+version: "3.8"
+
+name: dbo-system
+
+services:
+
+  jaeger:
+    container_name: jaeger_container
+    hostname: jaeger
+    restart: always
+    image: jaegertracing/all-in-one:1.49
+    environment:
+      - COLLECTOR_ZIPKIN_HTTP_PORT=9411
+    ports:
+      - 5775:5775/udp
+      - 6831:6831/udp
+      - 6832:6832/udp
+      - 5778:5778
+      - 16686:16686
+      - 14268:14268
+      - 14250:14250
+      - 9411:9411
+    networks:
+      - web_api
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.2.1
+    hostname: zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - web_api
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+  kafka:
+    image: confluentinc/cp-server:7.2.1
+    hostname: kafka
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "9997:9997"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_JMX_PORT: 9997
+      KAFKA_JMX_HOSTNAME: kafka
+    networks:
+      - web_api
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: 1.5
+        reservations:
+          memory: 512M
+          cpus: 0.5
+
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - 8082:8080
+    environment:
+      DYNAMIC_CONFIG_ENABLED: true
+    networks:
+      - web_api
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:3-management
+    hostname: rabbitmq
+    ports:
+      - 15672:15672
+      - 5672:5672
+    restart: always
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit log_levels [{connection,error},{default,error}] disk_free_limit 2147483648
+    networks:
+      - web_api
+    volumes:
+      - ./rabbitmq:/var/lib/rabbitmq
+    deploy:
+      resources:
+        limits:
+#          cpus: '2'
+          memory: 512M
+        reservations:
+#          cpus: '1'
+          memory: 128M
+
+  postgresql_users:
+    image: postgres:14-alpine
+    hostname: postgresql_users
+    container_name: postgresql_users
+    ports:
+      - "5433:5432"
+    restart: on-failure
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=users
+    volumes:
+      - ./db/db_users:/var/lib/postgresql/data
+    networks:
+      - web_api
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+  postgresql_account:
+    image: postgres:14-alpine
+    hostname: postgresql_account
+    container_name: postgresql_account
+    ports:
+      - "5434:5432"
+    restart: on-failure
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=account
+    volumes:
+      - ./db/db_accounts:/var/lib/postgresql/data
+    networks:
+      - web_api
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+  postgresql_registration:
+    image: postgres:14-alpine
+    hostname: postgresql_registration
+    container_name: postgresql_registration
+    ports:
+      - "5435:5432"
+    restart: on-failure
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=registration
+    volumes:
+      - ./db/db_registration:/var/lib/postgresql/data
+    networks:
+      - web_api
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+  postgresql_notification:
+    image: postgres:14-alpine
+    hostname: postgresql_notification
+    container_name: postgresql_notification
+    ports:
+      - "5436:5432"
+    restart: on-failure
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=notification
+    volumes:
+      - ./db/db_notification:/var/lib/postgresql/data
+    networks:
+      - web_api
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+  postgresql_totp:
+    image: postgres:14-alpine
+    hostname: postgresql_totp
+    container_name: postgresql_totp
+    ports:
+      - "5437:5432"
+    restart: on-failure
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=totp
+    volumes:
+      - ./db/db_totp:/var/lib/postgresql/data
+    networks:
+      - web_api
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+  service_users:
+    build:
+      context: ./../users
+      dockerfile: ./docker/Dockerfile
+    hostname: service_users
+    image: users_image
+    deploy:
+      mode: replicated
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    ports:
+      - "8090-8099:8080"
+    links:
+      - jaeger
+      - kafka
+      - postgresql_users
+    depends_on:
+      - jaeger
+      - kafka
+      - postgresql_users
+    restart: always
+    cap_add:
+      - SYS_PTRACE
+    volumes:
+      - ./services/users/users_config:/usr/src/app/config
+    networks:
+      - web_api
+
+  service_accounts:
+    build:
+      context: ./../account
+      dockerfile: ./docker/Dockerfile
+    image: accounts_image
+    hostname: service_accounts
+    deploy:
+      mode: replicated
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    ports:
+      - "8100-8109:8080"
+    links:
+      - jaeger
+      - kafka
+      - postgresql_account
+    depends_on:
+      - jaeger
+      - kafka
+      - postgresql_account
+    cap_add:
+      - SYS_PTRACE
+    restart: always
+    volumes:
+      - ./services/accounts/accounts_config:/usr/src/app/config
+    networks:
+      - web_api
+
+  redis_api_gateway:
+    image: redis:7.4
+    hostname: redis_api_gateway
+    container_name: redis_api_gateway
+    ports:
+      - "5500:6379"
+    restart: on-failure
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_USER=${REDIS_USER}
+      - REDIS_USER_PASSWORD=${REDIS_USER_PASSWORD}
+    command: >
+      sh -c '
+        mkdir -p /usr/local/etc/redis &&
+        echo "bind 0.0.0.0" > /usr/local/etc/redis/redis.conf &&
+        echo "requirepass $REDIS_PASSWORD" >> /usr/local/etc/redis/redis.conf &&
+        echo "appendonly yes" >> /usr/local/etc/redis/redis.conf &&
+        echo "appendfsync everysec" >> /usr/local/etc/redis/redis.conf &&
+        echo "user default on nopass ~* +@all" > /usr/local/etc/redis/users.acl &&
+        echo "user $REDIS_USER on >$REDIS_USER_PASSWORD ~* +@all" >> /usr/local/etc/redis/users.acl &&
+        redis-server /usr/local/etc/redis/redis.conf --aclfile /usr/local/etc/redis/users.acl
+      '
+    volumes:
+      - ./db/db_api_gateway:/data
+    networks:
+      - web_api
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-a", "admin", "ping" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  mailpit:
+    container_name: mailpit
+    image: axllent/mailpit
+    hostname: mailpit
+    restart: unless-stopped
+    networks:
+      - web_api
+    ports:
+      - "1025:1025" # smtp server
+      - "8025:8025" # web ui
+      - "10465:1025" # smtp server TLS
+    environment:
+      - MP_MAX_MESSAGES=5000
+      - MP_DATABASE=data/mailpit.db
+      - MP_SMTP_REQUIRE_TLS=true
+      - MP_SMTP_TLS_CERT=/certs/cert.pem     # Путь к сертификату в контейнере
+      - MP_SMTP_TLS_KEY=/certs/key.pem       # Путь к приватному ключу
+      - MP_SMTP_TLS_PORT=10465
+      - MP_SMTP_AUTH_FILE=/auth/auth.txt  # Аутентификация SMTP
+      - MP_UI_AUTH_FILE=/auth/auth.txt    # Аутентификация веб-интерфейса
+    volumes:
+      - ./mail/mailpit:/data
+      - ./mail/mail_certs:/certs
+      - ./mail/mail_auth:/auth
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+  service_notification:
+    build:
+      context: ./../notification
+      dockerfile: ./docker/Dockerfile
+    image: notification_image
+    hostname: service_notification
+    deploy:
+      mode: replicated
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    ports:
+      - "8110-8119:8080"
+    links:
+      - jaeger
+      - postgresql_notification
+      - rabbitmq
+      - mailpit
+      - kafka
+    depends_on:
+      - jaeger
+      - postgresql_notification
+      - rabbitmq
+      - mailpit
+      - kafka
+    restart: always
+    cap_add:
+      - SYS_PTRACE
+    volumes:
+      - ./services/notification/notification_config:/usr/src/app/config
+    networks:
+      - web_api
+
+  service_registration:
+    build:
+      context: ./../registration
+      dockerfile: ./docker/Dockerfile
+    image: registration_image
+    hostname: service_registration
+    deploy:
+      mode: replicated
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    ports:
+      - "8120-8129:8080"
+    links:
+      - jaeger
+      - kafka
+      - postgresql_registration
+      - service_accounts
+      - service_users
+      - service_notification
+    depends_on:
+      - jaeger
+      - kafka
+      - postgresql_registration
+      - service_accounts
+      - service_users
+      - service_notification
+    cap_add:
+      - SYS_PTRACE
+    restart: always
+    volumes:
+      - ./services/registration/registration_config:/usr/src/app/config
+    networks:
+      - web_api
+
+  service_totp:
+    build:
+      context: ./../totp
+      dockerfile: ./docker/Dockerfile
+    image: totp_image
+    hostname: service_totp
+    deploy:
+      mode: replicated
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    links:
+      - jaeger
+      - postgresql_totp
+    depends_on:
+      - jaeger
+      - postgresql_totp
+    restart: always
+    ports:
+      - "8130-8139:8080"
+    networks:
+      - web_api
+    volumes:
+      - ./services/totp/totp_config:/usr/src/app/config
+
+  service_api_gateway:
+    build:
+      context: ./../api_gateway
+      dockerfile: ./docker/Dockerfile
+    image: api_gateway_image
+    hostname: service_api_gateway
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    ports:
+      - "8080:8080"
+    links:
+      - redis_api_gateway
+      - service_registration
+      - service_totp
+      - service_notification
+      - rabbitmq
+    depends_on:
+      - redis_api_gateway
+      - service_registration
+      - service_totp
+      - service_notification
+      - rabbitmq
+    cap_add:
+      - SYS_PTRACE
+    restart: always
+    volumes:
+      - ./services/api_gateway/api_gateway_config:/usr/src/app/config
+    networks:
+      - web_api
+
+
+networks:
+  web_api:
+    driver: bridge
+
+volumes:
+  db_users:
+  db_accounts:
+  db_registration:
+  db_notification:
+  db_totp:
+  db_api_gateway:
+  users_config:
+  accounts_config:
+  registration_config:
+  api_gateway_config:
+  notification_config:
+  totp_config:
+  rabbitmq:
+  mailpit:
+  mail_certs:
+  mail_auth:
