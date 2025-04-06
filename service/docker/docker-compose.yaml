@@ -11,6 +11,13 @@ services:
     image: jaegertracing/all-in-one:1.49
     environment:
       - COLLECTOR_ZIPKIN_HTTP_PORT=9411
+#    healthcheck:
+#      test: ["CMD", "curl", "-X", "GET", "localhost:14269"]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 3
+#      start_period: 1m
+#      start_interval: 10s
     ports:
       - 5775:5775/udp
       - 6831:6831/udp
@@ -18,6 +25,7 @@ services:
       - 5778:5778
       - 16686:16686
       - 14268:14268
+      - 14269:14269
       - 14250:14250
       - 9411:9411
     networks:
@@ -35,11 +43,19 @@ services:
     image: confluentinc/cp-zookeeper:7.2.1
     hostname: zookeeper
     container_name: zookeeper
+    restart: always
     ports:
       - "2181:2181"
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 2181 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 1m
+      start_interval: 10s
     networks:
       - web_api
     deploy:
@@ -55,6 +71,7 @@ services:
     image: confluentinc/cp-server:7.2.1
     hostname: kafka
     container_name: kafka
+    restart: always
     depends_on:
       - zookeeper
     ports:
@@ -73,6 +90,13 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_JMX_PORT: 9997
       KAFKA_JMX_HOSTNAME: kafka
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5m
+      start_interval: 10s
     networks:
       - web_api
     deploy:
@@ -87,6 +111,7 @@ services:
   kafka-ui:
     container_name: kafka-ui
     image: provectuslabs/kafka-ui:latest
+    restart: always
     ports:
       - 8082:8080
     environment:
@@ -114,6 +139,13 @@ services:
       - RABBITMQ_DEFAULT_USER=admin
       - RABBITMQ_DEFAULT_PASS=admin
       - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit log_levels [{connection,error},{default,error}] disk_free_limit 2147483648
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 1m
+      start_interval: 5s
     networks:
       - web_api
     volumes:
@@ -133,7 +165,14 @@ services:
     container_name: postgresql_users
     ports:
       - "5433:5432"
-    restart: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 1m
+      start_interval: 10s
+    restart: on-failure:5
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -155,13 +194,20 @@ services:
     image: postgres:14-alpine
     hostname: postgresql_account
     container_name: postgresql_account
+    restart: on-failure:5
     ports:
       - "5434:5432"
-    restart: on-failure
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=account
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 1m
+      start_interval: 10s
     volumes:
       - ./db/db_accounts:/var/lib/postgresql/data
     networks:
@@ -181,11 +227,18 @@ services:
     container_name: postgresql_registration
     ports:
       - "5435:5432"
-    restart: on-failure
+    restart: on-failure:5
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=registration
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 1m
+      start_interval: 10s
     volumes:
       - ./db/db_registration:/var/lib/postgresql/data
     networks:
@@ -205,11 +258,18 @@ services:
     container_name: postgresql_notification
     ports:
       - "5436:5432"
-    restart: on-failure
+    restart: on-failure:5
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=notification
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 1m
+      start_interval: 10s
     volumes:
       - ./db/db_notification:/var/lib/postgresql/data
     networks:
@@ -229,11 +289,18 @@ services:
     container_name: postgresql_totp
     ports:
       - "5437:5432"
-    restart: on-failure
+    restart: on-failure:5
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=totp
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 1m
+      start_interval: 10s
     volumes:
       - ./db/db_totp:/var/lib/postgresql/data
     networks:
@@ -265,6 +332,13 @@ services:
           memory: 128M
     ports:
       - "8090-8099:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5m
+      start_interval: 5s
     links:
       - jaeger
       - kafka
@@ -297,6 +371,13 @@ services:
         reservations:
           cpus: '0.1'
           memory: 128M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5m
+      start_interval: 5s
     ports:
       - "8100-8109:8080"
     links:
@@ -321,7 +402,7 @@ services:
     container_name: redis_api_gateway
     ports:
       - "5500:6379"
-    restart: on-failure
+    restart: on-failure:5
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
       - REDIS_USER=${REDIS_USER}
@@ -406,6 +487,13 @@ services:
           memory: 128M
     ports:
       - "8110-8119:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5m
+      start_interval: 5s
     links:
       - jaeger
       - postgresql_notification
@@ -444,6 +532,13 @@ services:
           memory: 128M
     ports:
       - "8120-8129:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5m
+      start_interval: 5s
     links:
       - jaeger
       - kafka
@@ -482,6 +577,13 @@ services:
         reservations:
           cpus: '0.1'
           memory: 128M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5m
+      start_interval: 5s
     links:
       - jaeger
       - postgresql_totp
@@ -512,6 +614,13 @@ services:
           memory: 128M
     ports:
       - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5m
+      start_interval: 5s
     links:
       - redis_api_gateway
       - service_registration
@@ -531,7 +640,6 @@ services:
       - ./services/api_gateway/api_gateway_config:/usr/src/app/config
     networks:
       - web_api
-
 
 networks:
   web_api:
