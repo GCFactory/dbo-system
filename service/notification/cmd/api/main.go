@@ -21,6 +21,7 @@ import (
 	"net/smtp"
 	"os"
 	"strings"
+	"time"
 )
 
 //	@Title			Users Service
@@ -88,53 +89,82 @@ func main() {
 	}
 	appLogger.Info("Migration completed")
 
-	appLogger.Info("Connecting to RMQ")
-	rmqUrl := "amqp://" +
-		cfg.RabbitMQ.User + ":" +
-		cfg.RabbitMQ.Password + "@" +
-		cfg.RabbitMQ.Host + ":" +
-		cfg.RabbitMQ.Port
-	rmqConn, err := amqp.Dial(rmqUrl)
-	if err != nil {
-		appLogger.Fatalf("Connecting error to RMQ: %s", err)
-		return
-	}
-	defer rmqConn.Close()
-	appLogger.Info("Connecting to RMQ success")
+	var rmqConn *amqp.Connection
+	var rmqCh *amqp.Channel
 
-	appLogger.Info("Open RMQ channel")
-	rmqCh, err := rmqConn.Channel()
-	if err != nil {
-		appLogger.Fatalf("Open RMQ channel error: %s", err)
-		return
-	}
-	defer rmqCh.Close()
-	appLogger.Info("Open RMQ channel success")
+	connect := func() error {
+		appLogger.Info("Connecting to RMQ")
+		rmqUrl := "amqp://" + cfg.RabbitMQ.User + ":" + cfg.RabbitMQ.Password + "@" +
+			cfg.RabbitMQ.Host + ":" + cfg.RabbitMQ.Port
 
-	appLogger.Info("Creating RMQ queue")
-	rmqQueue, err := rmqCh.QueueDeclare(
-		cfg.RabbitMQ.Queue, // name
-		false,              // durable
-		false,              // delete when unused
-		false,              // exclusive
-		false,              // no-wait
-		nil,                // arguments
-	)
-	if err != nil {
-		appLogger.Fatalf("Create RMQ queue error: %s", err)
-		return
+		rmqConn, err = amqp.Dial(rmqUrl)
+		if err != nil {
+			appLogger.Fatalf("Connecting error to RMQ: %s", err)
+			return err
+		}
+		appLogger.Info("Connecting to RMQ success")
+
+		appLogger.Info("Open RMQ channel")
+		rmqCh, err = rmqConn.Channel()
+		if err != nil {
+			appLogger.Fatalf("Open RMQ channel error: %s", err)
+			return err
+		}
+		appLogger.Info("Open RMQ channel success")
+
+		appLogger.Info("Creating RMQ queue")
+		_, err = rmqCh.QueueDeclare(
+			cfg.RabbitMQ.Queue, // name
+			true,               // durable (сохранять очередь при перезапуске сервера)
+			false,              // delete when unused
+			false,              // exclusive
+			false,              // no-wait
+			nil,                // arguments
+		)
+
+		if err != nil {
+			appLogger.Fatalf("Create RMQ queue error: %s", err)
+		} else {
+			appLogger.Info("Create RMQ queue success")
+		}
+
+		return err
 	}
-	appLogger.Info("Create RMQ queue success")
+
+	// Первоначальное подключение
+	if err := connect(); err != nil {
+		log.Fatalf("Failed to connect to RabbitMQ: %s", err)
+	}
+
+	// Обработка закрытия соединения
+	go func() {
+		for {
+			reason := <-rmqConn.NotifyClose(make(chan *amqp.Error))
+			log.Printf("RabbitMQ connection closed: %v", reason)
+
+			// Пытаемся переподключиться
+			for {
+				time.Sleep(5 * time.Second)
+				if err := connect(); err == nil {
+					log.Println("Reconnected to RabbitMQ successfully")
+					break
+				} else {
+					log.Printf("Failed to reconnect to RabbitMQ: %s", err)
+				}
+			}
+		}
+	}()
 
 	appLogger.Info("Register RMQ consumer")
+	// Потребление сообщений
 	msgChan, err := rmqCh.Consume(
-		rmqQueue.Name, // queue
-		"",            // consumer
-		true,          // auto-ack
-		false,         // exclusive
-		false,         // no-local
-		false,         // no-wait
-		nil,           // args
+		cfg.RabbitMQ.Queue, // queue
+		"",                 // consumer
+		false,              // auto-ack (false - ручное подтверждение)
+		false,              // exclusive
+		false,              // no-local
+		false,              // no-wait
+		nil,                // args
 	)
 	if err != nil {
 		appLogger.Fatalf("Register RMQ consumer error: %s", err)

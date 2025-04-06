@@ -96,7 +96,7 @@ func main() {
 	appLogger.Info("Creating RMQ queue")
 	rmqQueue, err := rmqCh.QueueDeclare(
 		cfg.RabbitMQ.Queue, // name
-		false,              // durable
+		true,               // durable
 		false,              // delete when unused
 		false,              // exclusive
 		false,              // no-wait

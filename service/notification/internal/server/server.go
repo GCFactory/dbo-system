@@ -113,6 +113,16 @@ func (s *Server) Run() error {
 			err := s.useCase.SendMessage(context.Background(), d)
 			if err != nil {
 				s.logger.Errorf("Error send msg: %s", err)
+				err = d.Nack(false, true) // requeue
+				if err != nil {
+					s.logger.Errorf("Error to nack msg: %s", err)
+				}
+				continue
+			}
+			// Подтверждаем обработку
+			err = d.Ack(false)
+			if err != nil {
+				s.logger.Errorf("Error to ack msg: %s", err)
 			}
 		}
 	}()
