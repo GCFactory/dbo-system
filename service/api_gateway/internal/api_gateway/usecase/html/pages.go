@@ -121,7 +121,7 @@ var (
         <label for="login">Login</label>
         <input type="text" id="login" name="login" placeholder="login" required>
         <label for="password">Password</label>
-        <input type="text" id="password" name="password" placeholder="*****" required>
+        <input type="password" id="password" name="password" placeholder="*****" required>
         <div class="grid_full_line">
             <br>
         </div>
@@ -137,7 +137,7 @@ var (
         <label for="passport_number">Passport series</label>
         <input type="text" id="passport_number" name="passport_number" placeholder="000000" required>
         <label for="birth_date">Birth date</label>
-        <input type="text" id="birth_date" name="birth_date" placeholder="01-02-2001" required>
+        <input type="text" id="birth_date" name="birth_date" placeholder="DD-MM-YYYY" pattern="\d{2}-\d{2}-\d{4}" required>
         <label for="birth_location">Birth location</label>
         <input type="text" id="birth_location" name="birth_location" placeholder="Moscow" required>
         <label for="passport_pick_up_point">Pick up point</label>
@@ -145,14 +145,14 @@ var (
         <label for="passport_authority">Authority</label>
         <input type="text" id="passport_authority" name="passport_authority" placeholder="123-321" required>
         <label for="passport_authority_date">Authority date</label>
-        <input type="text" id="passport_authority_date" name="passport_authority_date" placeholder="01-02-2001" required>
+        <input type="text" id="passport_authority_date" name="passport_authority_date" placeholder="DD-MM-YYYY" pattern="\d{2}-\d{2}-\d{4}" required>
         <label for="passport_registration_address">Registration address</label>
         <input type="text" id="passport_registration_address" name="passport_registration_address" placeholder="Current registration address" required>
           
         <label for="inn">INN</label>
         <input type="text" id="inn" name="inn" placeholder="01234567890123456789" required>
         <label for="email">Email</label>
-        <input type="text" id="email" name="email" placeholder="email@mail.ru" required>
+        <input type="email" id="email" name="email" placeholder="email@mail.ru" required>
         <br>
 
         <div class="fird_div_full_line grid_full_line">
