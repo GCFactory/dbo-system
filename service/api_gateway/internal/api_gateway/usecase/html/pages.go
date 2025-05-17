@@ -493,13 +493,13 @@ var (
 	<body>
 
 		<div class="center_content">
-			<h1>Totp turn on</h1>
+			<h1>2FA password</h1>
 		</div>
 			
 		<div>
 			<form  class="center_content" action="{{.OperationRequest}}" method="POST">
 			
-				<label for="totp_code"><b>Your TOTP code:</b></label>
+				<label for="totp_code"><b>Enter your TOTP code</b></label>
 				<input type="text" id="totp_code" name="totp_code">
 				<input type="submit" value="Verify">
 			</form>
